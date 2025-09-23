@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { SingerGender, ArtistType } from '../App';
+import type { VocalMelody } from '../services/geminiService';
 
 interface ShareButtonProps {
   title: string;
@@ -11,6 +12,9 @@ interface ShareButtonProps {
   artistImagePrompt: string;
   singerGender: SingerGender;
   artistType: ArtistType;
+  beatPattern: string;
+  vocalMelody: VocalMelody | null;
+  bpm: number;
 }
 
 const ShareIcon = () => (
@@ -26,7 +30,10 @@ const CheckIcon = () => (
 );
 
 
-export const ShareButton: React.FC<ShareButtonProps> = ({ title, artistName, artistBio, artistVideoUrl, lyrics, styleGuide, artistImagePrompt, singerGender, artistType }) => {
+export const ShareButton: React.FC<ShareButtonProps> = ({ 
+    title, artistName, artistBio, artistVideoUrl, lyrics, styleGuide, 
+    artistImagePrompt, singerGender, artistType, beatPattern, vocalMelody, bpm
+}) => {
     const [isCopied, setIsCopied] = useState(false);
 
     const handleShare = async () => {
@@ -40,6 +47,9 @@ export const ShareButton: React.FC<ShareButtonProps> = ({ title, artistName, art
             artistImagePrompt,
             singerGender,
             artistType,
+            beatPattern,
+            vocalMelody,
+            bpm,
         };
 
         const serializedData = JSON.stringify(songData);

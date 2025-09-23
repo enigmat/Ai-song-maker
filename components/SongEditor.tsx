@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
-// Fix: Import SingerGender and ArtistType to create a complete SongData interface.
 import type { SingerGender, ArtistType } from '../App';
+import type { VocalMelody } from '../services/geminiService';
 
 interface SongData {
     title: string;
@@ -11,9 +11,10 @@ interface SongData {
     lyrics: string;
     styleGuide: string;
     beatPattern: string;
-    // Fix: Add missing properties to match the SongData type in App.tsx.
     singerGender: SingerGender;
     artistType: ArtistType;
+    vocalMelody: VocalMelody | null;
+    bpm: number;
 }
 
 interface SongEditorProps {
@@ -26,8 +27,7 @@ interface SongEditorProps {
 export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, onFinalize, isLoading }) => {
     const [lyricsViewMode, setLyricsViewMode] = useState<'edit' | 'structured'>('edit');
     
-    // Fix: Corrected the type of 'field' to only include editable string properties of SongData for better type safety.
-    const handleChange = (field: keyof Omit<SongData, 'singerGender' | 'artistType'>, value: string) => {
+    const handleChange = (field: keyof SongData, value: string | number) => {
         setSongData({ ...songData, [field]: value });
     };
 
@@ -118,19 +118,35 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                     className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all resize-y font-mono text-sm"
                 />
             </div>
-
-            <div>
-                <label htmlFor="beatPattern" className="block text-lg font-medium text-gray-300 mb-2">
-                    Beat Pattern (JSON)
-                </label>
-                <textarea
-                    id="beatPattern"
-                    rows={4}
-                    value={songData.beatPattern}
-                    onChange={(e) => handleChange('beatPattern', e.target.value)}
-                    className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all resize-y font-mono text-sm"
-                    placeholder='e.g., {"kick": [0, 8], "snare": [4, 12], "hihat": [0,2,4,6,8,10,12,14]}'
-                />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label htmlFor="beatPattern" className="block text-lg font-medium text-gray-300 mb-2">
+                        Beat Pattern (JSON)
+                    </label>
+                    <textarea
+                        id="beatPattern"
+                        rows={4}
+                        value={songData.beatPattern}
+                        onChange={(e) => handleChange('beatPattern', e.target.value)}
+                        className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all resize-y font-mono text-sm"
+                        placeholder='e.g., {"kick": [0, 8], "snare": [4, 12], "hihat": [0,2,4,6,8,10,12,14]}'
+                    />
+                </div>
+                <div>
+                    <label htmlFor="bpm" className="block text-lg font-medium text-gray-300 mb-2">
+                        BPM
+                    </label>
+                    <input
+                        id="bpm"
+                        type="number"
+                        value={songData.bpm}
+                        onChange={(e) => handleChange('bpm', parseInt(e.target.value, 10) || 120)}
+                        min="40"
+                        max="220"
+                        className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-lg"
+                    />
+                </div>
             </div>
             
             <div>

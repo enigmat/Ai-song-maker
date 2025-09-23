@@ -14,6 +14,7 @@ interface DownloadButtonProps {
   styleGuide: string;
   singerGender: SingerGender;
   artistType: ArtistType;
+  bpm: number;
 }
 
 const DownloadIcon = () => (
@@ -22,7 +23,7 @@ const DownloadIcon = () => (
     </svg>
 );
 
-export const DownloadButton: React.FC<DownloadButtonProps> = ({ title, artistName, artistBio, artistVideoUrl, lyrics, styleGuide, singerGender, artistType }) => {
+export const DownloadButton: React.FC<DownloadButtonProps> = ({ title, artistName, artistBio, artistVideoUrl, lyrics, styleGuide, singerGender, artistType, bpm }) => {
     const [isDownloading, setIsDownloading] = useState(false);
 
     const getVideoFrameAsBlob = (videoUrl: string): Promise<Blob | null> => {
@@ -86,169 +87,31 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ title, artistNam
     };
     
     const createPlayerHTML = (): string => {
-        const safeTitle = title.replace(/`/g, "'").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        const safeArtistName = artistName.replace(/`/g, "'").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const safeArtistName = artistName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Song Player: ${safeTitle}</title>
+    <title>Song Lyrics: ${safeTitle}</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #111827; color: #e5e7eb; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 1rem; box-sizing: border-box; }
         .container { width: 100%; max-width: 800px; padding: 2rem; background-color: #1f2937; border-radius: 1rem; text-align: center; border: 1px solid #374151; }
         h1 { color: #f9a8d4; font-size: 2.25rem; }
         h2 { color: #a5b4fc; font-size: 1.5rem; margin-top: -0.5rem; }
-        #lyrics-container { line-height: 1.7; font-family: serif; max-height: 50vh; overflow-y: auto; text-align: center; margin-top: 1.5rem; padding: 1rem; border: 1px solid #4b5563; border-radius: 0.5rem; }
-        #lyrics-container p { margin: 0.5rem 0; transition: all 0.3s ease; }
-        .current-line { background-color: #6d28d9; color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; transform: scale(1.05); }
-        button { background-color: #8b5cf6; color: white; border: none; padding: 0.75rem 1.5rem; font-size: 1rem; border-radius: 9999px; cursor: pointer; transition: all 0.3s; font-weight: 600; }
-        button:hover { background-color: #7c3aed; transform: scale(1.05); }
-        button:disabled { background-color: #4b5563; cursor: not-allowed; transform: none; }
-        #status { margin-top: 1rem; margin-bottom: 1rem; color: #9ca3af; height: 1.25rem; }
+        #lyrics-container { line-height: 1.7; font-family: serif; max-height: 60vh; overflow-y: auto; text-align: center; margin-top: 1.5rem; padding: 1rem; border: 1px solid #4b5563; border-radius: 0.5rem; white-space: pre-wrap; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>${safeTitle}</h1>
         <h2>by ${safeArtistName}</h2>
-        <div id="status">Loading voices...</div>
-        <button id="play-button" disabled>Play Song</button>
         <div id="lyrics-container">
-            ${lyrics.split('\n').map(line => `<p>${line.replace(/</g, "&lt;").replace(/>/g, "&gt;") || '&nbsp;'}</p>`).join('')}
+            ${lyrics.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
         </div>
     </div>
-    <script>
-        const songData = {
-            lyrics: ${JSON.stringify(lyrics)},
-            singerGender: '${singerGender}',
-            artistType: '${artistType}'
-        };
-
-        const playButton = document.getElementById('play-button');
-        const statusEl = document.getElementById('status');
-        const lyricsContainer = document.getElementById('lyrics-container');
-        const lyricLines = Array.from(lyricsContainer.getElementsByTagName('p'));
-
-        let isPlaying = false;
-        let voices = [];
-        let isPlayingRef = { current: false };
-
-        function stopSpeech() {
-            isPlayingRef.current = false;
-            window.speechSynthesis.cancel();
-            isPlaying = false;
-            playButton.textContent = 'Play Song';
-            lyricLines.forEach(el => el.classList.remove('current-line'));
-        };
-
-        function startPlayback() {
-            if (voices.length === 0) {
-                statusEl.textContent = 'No speech voices available.';
-                return;
-            }
-            
-            const allLines = songData.lyrics.split('\\n');
-            const speakableLines = allLines
-                .map((line, index) => ({ line, originalIndex: index }))
-                .filter(item => item.line.trim() !== '' && !/^\\s*\\[.*\\]\\s*$/.test(item.line));
-
-            if (speakableLines.length === 0) return;
-
-            const englishVoices = voices.filter(v => v.lang.startsWith('en'));
-            if (englishVoices.length === 0) {
-                statusEl.textContent = "No English voices found for playback.";
-                return;
-            }
-            
-            let selectedVoice = null, maleVoice = null, femaleVoice = null;
-
-            if (songData.artistType === 'Duet') {
-                const preferredFemale = englishVoices.filter(v => v.name.toLowerCase().includes('female'));
-                femaleVoice = preferredFemale.length > 0 ? preferredFemale[0] : englishVoices.find(v => !v.name.toLowerCase().includes('male')) || englishVoices[0];
-                
-                const preferredMale = englishVoices.filter(v => v.name.toLowerCase().includes('male'));
-                maleVoice = preferredMale.length > 0 ? preferredMale[0] : englishVoices.find(v => !v.name.toLowerCase().includes('female')) || englishVoices[0];
-            } else {
-                let preferredVoices = songData.singerGender === 'Female'
-                    ? englishVoices.filter(v => v.name.toLowerCase().includes('female') || !v.name.toLowerCase().includes('male'))
-                    : englishVoices.filter(v => v.name.toLowerCase().includes('male') || !v.name.toLowerCase().includes('female'));
-                selectedVoice = preferredVoices.length > 0 ? preferredVoices[0] : englishVoices[0];
-            }
-
-            isPlaying = true;
-            isPlayingRef.current = true;
-            playButton.textContent = 'Stop';
-            statusEl.textContent = 'Playing...';
-            let lineIndex = 0;
-
-            const speakLine = () => {
-                if (!isPlayingRef.current || lineIndex >= speakableLines.length) {
-                    stopSpeech();
-                    statusEl.textContent = 'Playback finished.';
-                    return;
-                }
-
-                const currentItem = speakableLines[lineIndex];
-                lyricLines.forEach((el, idx) => {
-                    el.classList.toggle('current-line', idx === currentItem.originalIndex);
-                    if (idx === currentItem.originalIndex) {
-                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                });
-                
-                let lineText = currentItem.line;
-                let voiceForLine = selectedVoice;
-
-                if (songData.artistType === 'Duet') {
-                    if (lineText.toLowerCase().includes('(singer 1)')) voiceForLine = femaleVoice;
-                    else if (lineText.toLowerCase().includes('(singer 2)')) voiceForLine = maleVoice;
-                    else voiceForLine = femaleVoice;
-                    lineText = lineText.replace(/\\((singer 1|singer 2|both)\\)/i, '').trim();
-                }
-
-                if (!lineText) { lineIndex++; speakLine(); return; }
-                
-                const utterance = new SpeechSynthesisUtterance(lineText);
-                utterance.rate = 0.9;
-                
-                if (voiceForLine) {
-                    const isFemale = voiceForLine.name.toLowerCase().includes('female');
-                    const basePitch = isFemale ? 1.2 : 0.8;
-                    utterance.pitch = basePitch + (Math.random() * 0.2 - 0.1);
-                    utterance.voice = voiceForLine;
-                }
-                
-                utterance.onend = () => { lineIndex++; speakLine(); };
-                utterance.onerror = (e) => { console.error('Speech error', e); statusEl.textContent = 'An error occurred.'; stopSpeech(); };
-                window.speechSynthesis.speak(utterance);
-            };
-            speakLine();
-        }
-
-        playButton.addEventListener('click', () => isPlaying ? stopSpeech() : startPlayback());
-
-        function loadVoices() {
-            voices = window.speechSynthesis.getVoices();
-            if (voices.length > 0) {
-                playButton.disabled = false;
-                statusEl.textContent = 'Ready to play.';
-            }
-        }
-        
-        if (!('speechSynthesis' in window)) {
-            statusEl.textContent = 'Speech synthesis not supported by this browser.';
-        } else {
-            loadVoices();
-            if (window.speechSynthesis.onvoiceschanged !== undefined) {
-                window.speechSynthesis.onvoiceschanged = loadVoices;
-            }
-             if (voices.length === 0) {
-                setTimeout(loadVoices, 200); // Sometimes voices load slowly
-            }
-        }
-    <\/script>
 </body>
 </html>`;
     };
@@ -264,11 +127,11 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ title, artistNam
             // Add text files
             zip.file("lyrics.txt", lyrics);
             zip.file("style_guide.txt", styleGuide);
-            const artistInfo = `Title: ${title}\nArtist: ${artistName}\n\nBio:\n${artistBio}`;
+            const artistInfo = `Title: ${title}\nArtist: ${artistName}\nBPM: ${bpm}\n\nBio:\n${artistBio}`;
             zip.file("artist_info.txt", artistInfo);
 
             // Add offline HTML player
-            zip.file("song_player.html", createPlayerHTML());
+            zip.file("song_lyrics_viewer.html", createPlayerHTML());
 
             // Handle the video and extract a frame for an image
             if (artistVideoUrl) {

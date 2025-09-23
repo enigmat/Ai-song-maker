@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { ShareButton } from './ShareButton';
 import { LoadingSpinner } from './LoadingSpinner';
 import { DownloadButton } from './DownloadButton';
+import { MasterPlayButton } from './MasterPlayButton';
 import type { SingerGender, ArtistType } from '../App';
+import type { VocalMelody } from '../services/geminiService';
 
 interface ArtistProfileProps {
   title: string;
@@ -14,9 +16,19 @@ interface ArtistProfileProps {
   artistImagePrompt: string;
   singerGender: SingerGender;
   artistType: ArtistType;
+  beatPattern: string;
+  vocalMelody: VocalMelody | null;
+  isPlaying: boolean;
+  onPlaybackToggle: () => void;
+  bpm: number;
+  onBpmChange: (bpm: number) => void;
 }
 
-export const ArtistProfile: React.FC<ArtistProfileProps> = ({ title, artistName, artistBio, artistVideoUrl, lyrics, styleGuide, artistImagePrompt, singerGender, artistType }) => {
+export const ArtistProfile: React.FC<ArtistProfileProps> = ({ 
+  title, artistName, artistBio, artistVideoUrl, lyrics, styleGuide, 
+  artistImagePrompt, singerGender, artistType, beatPattern, vocalMelody,
+  isPlaying, onPlaybackToggle, bpm, onBpmChange
+}) => {
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
 
   useEffect(() => {
@@ -50,7 +62,7 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ title, artistName,
             />
           )}
         </div>
-        <div className="text-center md:text-left">
+        <div className="text-center md:text-left flex-grow">
           <h2 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-transparent bg-clip-text">
             {artistName}
           </h2>
@@ -66,6 +78,9 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ title, artistName,
                 artistImagePrompt={artistImagePrompt}
                 singerGender={singerGender}
                 artistType={artistType}
+                beatPattern={beatPattern}
+                vocalMelody={vocalMelody}
+                bpm={bpm}
              />
              <DownloadButton
                 title={title}
@@ -76,24 +91,34 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({ title, artistName,
                 styleGuide={styleGuide}
                 singerGender={singerGender}
                 artistType={artistType}
+                bpm={bpm}
              />
           </div>
           <p className="mt-4 text-gray-400 text-sm sm:text-base leading-relaxed">
             {artistBio}
           </p>
+          <div className="mt-4 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
+            <MasterPlayButton
+                isPlaying={isPlaying}
+                onToggle={onPlaybackToggle}
+                isReady={!!vocalMelody && !!beatPattern}
+            />
+            <div className="flex items-center gap-3 w-full max-w-xs sm:w-auto">
+                <span className="text-sm font-mono text-gray-400">BPM</span>
+                <input 
+                    type="range" 
+                    min="60" 
+                    max="180" 
+                    value={bpm} 
+                    onChange={(e) => onBpmChange(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-pink-500"
+                    aria-label="Adjust Beats Per Minute"
+                />
+                <span className="text-lg font-mono bg-gray-900/50 w-14 text-center px-2 py-1 rounded-md tabular-nums">{bpm}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 };
-
-// Add fade-in animation keyframes to a global style sheet if possible.
-/*
-@keyframes fade-in {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-in {
-    animation: fade-in 0.5s ease-out forwards;
-}
-*/

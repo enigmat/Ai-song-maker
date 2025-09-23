@@ -6,9 +6,12 @@ import { StyleGuideViewer } from './components/StyleGuideViewer';
 import { ErrorMessage } from './components/ErrorMessage';
 import { ArtistProfile } from './components/ArtistProfile';
 import { SongEditor } from './components/SongEditor';
-import { generateSong, generateArtistVideo, remixBeat } from './services/geminiService';
+import { generateSong, generateArtistVideo, remixBeat, generateVocalMelody, VocalMelody } from './services/geminiService';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { BeatPlayer } from './components/BeatPlayer';
+
+// Declaration for Tone.js from CDN
+declare const Tone: any;
 
 export type SingerGender = 'Female' | 'Male';
 export type ArtistType = 'Solo Artist' | 'Group' | 'Duet';
@@ -23,6 +26,8 @@ interface SongData {
   singerGender: SingerGender;
   artistType: ArtistType;
   beatPattern: string;
+  vocalMelody: VocalMelody | null;
+  bpm: number;
 }
 
 const App: React.FC = () => {
@@ -33,7 +38,7 @@ const App: React.FC = () => {
   
   const [appState, setAppState] = useState<'prompt' | 'editing' | 'display'>('prompt');
   const [isGeneratingText, setIsGeneratingText] = useState<boolean>(false);
-  const [isGeneratingVideo, setIsGeneratingVideo] = useState<boolean>(false);
+  const [isGeneratingAudioVideo, setIsGeneratingAudioVideo] = useState<boolean>(false);
   const [generationStatus, setGenerationStatus] = useState<string>('');
   
   const [songData, setSongData] = useState<SongData>({
@@ -46,22 +51,25 @@ const App: React.FC = () => {
     singerGender: 'Female',
     artistType: 'Solo Artist',
     beatPattern: '',
+    vocalMelody: null,
+    bpm: 120,
   });
   const [artistVideoUrl, setArtistVideoUrl] = useState<string>('');
-
   const [error, setError] = useState<string | null>(null);
   
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentLineIndex, setCurrentLineIndex] = useState<number>(-1);
-  const isPlayingRef = useRef(isPlaying);
+  const [currentBeatStep, setCurrentBeatStep] = useState<number>(-1);
 
-  const [isBeatPlaying, setIsBeatPlaying] = useState<boolean>(false);
   const [isRemixing, setIsRemixing] = useState<boolean>(false);
+  const audioContextReady = useRef(false);
   
-  useEffect(() => {
-    isPlayingRef.current = isPlaying;
-  }, [isPlaying]);
+  const audioResources = useRef<any>({
+      vocalSynth: null,
+      drumSynths: {},
+      beatSequence: null,
+      melodyPart: null,
+  });
   
   useEffect(() => {
     const loadSongFromURL = () => {
@@ -81,9 +89,11 @@ const App: React.FC = () => {
                       lyrics: loadedSong.lyrics,
                       styleGuide: loadedSong.styleGuide || '',
                       artistImagePrompt: loadedSong.artistImagePrompt || '',
-                      singerGender: loadedSong.singerGender || (loadedSong.artistType === 'Duet' ? 'Female' : 'Female'), // Default singer for duets/solo
+                      singerGender: loadedSong.singerGender || (loadedSong.artistType === 'Duet' ? 'Female' : 'Female'),
                       artistType: loadedSong.artistType || 'Solo Artist',
                       beatPattern: loadedSong.beatPattern || '',
+                      vocalMelody: loadedSong.vocalMelody || null,
+                      bpm: loadedSong.bpm || 120,
                     });
                     setArtistVideoUrl(loadedSong.artistVideoUrl || '');
                     setAppState('display');
@@ -101,24 +111,14 @@ const App: React.FC = () => {
     loadSongFromURL();
   }, []);
 
-  useEffect(() => {
-    if (!('speechSynthesis' in window)) {
-        setError("Your browser does not support speech synthesis. The play feature will be unavailable.");
-    } else {
-        const loadVoices = () => {
-          setVoices(window.speechSynthesis.getVoices());
-        };
-        if (window.speechSynthesis.onvoiceschanged !== undefined) {
-          window.speechSynthesis.onvoiceschanged = loadVoices;
-        }
-        loadVoices();
+  const stopPlayback = useCallback(() => {
+    if (typeof Tone !== 'undefined') {
+        Tone.Transport.stop();
+        Tone.Transport.position = 0;
     }
-  }, []);
-
-  const stopSpeech = useCallback(() => {
-    window.speechSynthesis.cancel();
     setIsPlaying(false);
     setCurrentLineIndex(-1);
+    setCurrentBeatStep(-1);
   }, []);
 
   const handleGenerateText = async () => {
@@ -128,8 +128,7 @@ const App: React.FC = () => {
     }
     setIsGeneratingText(true);
     setError(null);
-    stopSpeech();
-    setIsBeatPlaying(false);
+    stopPlayback();
 
     try {
       const generatedData = await generateSong(prompt, genre, artistType);
@@ -137,6 +136,7 @@ const App: React.FC = () => {
         ...generatedData,
         singerGender: singerGender,
         artistType: artistType,
+        vocalMelody: null,
       });
       setAppState('editing');
     } catch (err) {
@@ -152,10 +152,11 @@ const App: React.FC = () => {
       setError('Please provide a prompt for the artist image.');
       return;
     }
-    setIsGeneratingVideo(true);
+    setIsGeneratingAudioVideo(true);
     setError(null);
 
     const messages = [
+        "Composing vocal melody...",
         "Warming up the video cameras...",
         "Setting the scene...",
         "Directing your artist...",
@@ -164,164 +165,42 @@ const App: React.FC = () => {
         "This can take a few minutes...",
     ];
     let messageIndex = 0;
-    setGenerationStatus(messages[messageIndex]);
-    const intervalId = setInterval(() => {
-        messageIndex = (messageIndex + 1) % messages.length;
-        setGenerationStatus(messages[messageIndex]);
-    }, 4000);
+    
+    const updateStatus = () => setGenerationStatus(messages[messageIndex]);
+    updateStatus();
 
+    const intervalId = setInterval(() => {
+        if (messageIndex < messages.length - 2) {
+            messageIndex = (messageIndex + 1);
+            updateStatus();
+        }
+    }, 5000);
 
     try {
+      const melody = await generateVocalMelody(songData.lyrics, songData.styleGuide);
+      setSongData(prev => ({ ...prev, vocalMelody: melody }));
+      
+      messageIndex = 1; // Move to video messages
+      updateStatus();
+
       const videoUrl = await generateArtistVideo(songData.artistImagePrompt);
       setArtistVideoUrl(videoUrl);
       setAppState('display');
     } catch (err) {
       console.error(err);
-      setError('Failed to generate the artist video. Please check the console and try again.');
-       // Go back to editing on failure
+      setError('Failed to generate the artist assets. Please check the console and try again.');
        setAppState('editing');
     } finally {
-      setIsGeneratingVideo(false);
+      setIsGeneratingAudioVideo(false);
       clearInterval(intervalId);
       setGenerationStatus('');
     }
   };
 
-
-  const handlePlaySong = useCallback(() => {
-    if (isPlaying) {
-      stopSpeech();
-      return;
-    }
-
-    if (isBeatPlaying) {
-        setIsBeatPlaying(false);
-    }
-
-    if (!('speechSynthesis' in window) || voices.length === 0) {
-        setError("No speech voices are available on your browser or device. Cannot play song.");
-        return;
-    }
-
-    const allLines = songData.lyrics.split('\n');
-    const speakableLines = allLines
-      .map((line, index) => ({ line, originalIndex: index }))
-      .filter(item => item.line.trim() !== '' && !/^\s*\[.*\]\s*$/.test(item.line));
-
-    if (speakableLines.length === 0) return;
-    
-    const englishVoices = voices.filter(v => v.lang.startsWith('en'));
-    if (englishVoices.length === 0) {
-        setError("No English voices found for playback.");
-        return;
-    }
-
-    let selectedVoice: SpeechSynthesisVoice | null = null;
-    let maleVoice: SpeechSynthesisVoice | null = null;
-    let femaleVoice: SpeechSynthesisVoice | null = null;
-
-    if (songData.artistType === 'Duet') {
-        const preferredFemale = englishVoices.filter(v => v.name.toLowerCase().includes('female'));
-        femaleVoice = preferredFemale.length > 0 ? preferredFemale[0] : englishVoices.find(v => !v.name.toLowerCase().includes('male')) || englishVoices[0];
-        
-        const preferredMale = englishVoices.filter(v => v.name.toLowerCase().includes('male'));
-        maleVoice = preferredMale.length > 0 ? preferredMale[0] : englishVoices.find(v => !v.name.toLowerCase().includes('female')) || englishVoices[0];
-
-        if (!maleVoice || !femaleVoice) {
-            setError("Could not find suitable male and female voices for a duet.");
-            return;
-        }
-    } else {
-        let preferredVoices: SpeechSynthesisVoice[] = [];
-        if (songData.singerGender === 'Female') {
-            preferredVoices = englishVoices.filter(v => v.name.toLowerCase().includes('female'));
-            if (preferredVoices.length === 0) {
-                preferredVoices = englishVoices.filter(v => !v.name.toLowerCase().includes('male'));
-            }
-        } else { // Male
-            preferredVoices = englishVoices.filter(v => v.name.toLowerCase().includes('male'));
-            if (preferredVoices.length === 0) {
-                preferredVoices = englishVoices.filter(v => !v.name.toLowerCase().includes('female'));
-            }
-        }
-
-        if (preferredVoices.length > 0) {
-            selectedVoice = preferredVoices[Math.floor(Math.random() * preferredVoices.length)];
-        } else {
-            selectedVoice = englishVoices[Math.floor(Math.random() * englishVoices.length)];
-        }
-    }
-
-
-    setIsPlaying(true);
-    let lineIndex = 0;
-
-    const speakLine = () => {
-      if (!isPlayingRef.current || lineIndex >= speakableLines.length) {
-        stopSpeech();
-        return;
-      }
-
-      const currentItem = speakableLines[lineIndex];
-      setCurrentLineIndex(currentItem.originalIndex);
-      
-      let lineText = currentItem.line;
-      let voiceForLine: SpeechSynthesisVoice | null = selectedVoice;
-
-      if (songData.artistType === 'Duet') {
-          if (lineText.toLowerCase().includes('(singer 1)')) {
-              voiceForLine = femaleVoice;
-          } else if (lineText.toLowerCase().includes('(singer 2)')) {
-              voiceForLine = maleVoice;
-          } else {
-              voiceForLine = femaleVoice; // Default for (Both) or unmarked lines
-          }
-          lineText = lineText.replace(/\((singer 1|singer 2|both)\)/i, '').trim();
-      }
-
-      if (!lineText) { // If line is empty after stripping markers
-          lineIndex++;
-          speakLine();
-          return;
-      }
-      
-      const utterance = new SpeechSynthesisUtterance(lineText);
-      utterance.rate = 0.9;
-      
-      if (voiceForLine) {
-          const isFemale = voiceForLine.name.toLowerCase().includes('female');
-          const basePitch = isFemale ? 1.2 : 0.8;
-          utterance.pitch = basePitch + (Math.random() * 0.2 - 0.1);
-          utterance.voice = voiceForLine;
-      } else {
-          // Fallback for non-duet case if voice not found
-          const basePitch = songData.singerGender === 'Female' ? 1.2 : 0.8;
-          utterance.pitch = basePitch + (Math.random() * 0.2 - 0.1);
-      }
-      
-      utterance.onend = () => {
-        lineIndex++;
-        speakLine();
-      };
-      
-      utterance.onerror = (event) => {
-        console.error('SpeechSynthesisUtterance.onerror', event);
-        setError('An error occurred during speech playback. Your browser might not support this feature.');
-        stopSpeech();
-      };
-
-      window.speechSynthesis.speak(utterance);
-    };
-
-    setTimeout(speakLine, 100);
-  }, [songData, isPlaying, stopSpeech, voices, isBeatPlaying]);
-  
   const handleStartOver = useCallback(() => {
-    stopSpeech();
-    setIsBeatPlaying(false);
+    stopPlayback();
     setAppState('prompt');
     setPrompt('');
-    // Reset to defaults
     setGenre('Pop');
     setSingerGender('Female');
     setArtistType('Solo Artist');
@@ -335,19 +214,27 @@ const App: React.FC = () => {
       singerGender: 'Female',
       artistType: 'Solo Artist',
       beatPattern: '',
+      vocalMelody: null,
+      bpm: 120,
     });
     setArtistVideoUrl('');
     setError(null);
     window.history.replaceState({}, document.title, window.location.pathname);
-  }, [stopSpeech]);
+  }, [stopPlayback]);
 
-  const handleBeatPlayToggle = () => {
-    if (isBeatPlaying) {
-        setIsBeatPlaying(false);
-    } else {
-        stopSpeech();
-        setIsBeatPlaying(true);
-    }
+  const handlePlaybackToggle = async () => {
+      if (typeof Tone === 'undefined') return;
+      if (!audioContextReady.current) {
+          await Tone.start();
+          audioContextReady.current = true;
+      }
+
+      if (isPlaying) {
+          stopPlayback();
+      } else {
+          setIsPlaying(true);
+          Tone.Transport.start();
+      }
   }
 
   const handleRemixBeat = async () => {
@@ -368,16 +255,73 @@ const App: React.FC = () => {
       }
   };
 
-
+  // Centralized Tone.js effect
   useEffect(() => {
-    return () => {
-      window.speechSynthesis.cancel();
+    if (typeof Tone === 'undefined') return;
+    
+    Tone.Transport.bpm.value = songData.bpm;
+
+    if (appState !== 'display') return;
+
+    // Cleanup function
+    const cleanupAudio = () => {
+        stopPlayback();
+        Object.values(audioResources.current.drumSynths).forEach((synth: any) => synth.dispose());
+        if (audioResources.current.vocalSynth) audioResources.current.vocalSynth.dispose();
+        if (audioResources.current.beatSequence) audioResources.current.beatSequence.dispose();
+        if (audioResources.current.melodyPart) audioResources.current.melodyPart.dispose();
+        audioResources.current = { drumSynths: {}, beatSequence: null, melodyPart: null, vocalSynth: null };
     };
-  }, []);
+    
+    // Setup Synths
+    audioResources.current.vocalSynth = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: "fatsawtooth" },
+        envelope: { attack: 0.01, decay: 0.2, sustain: 0.2, release: 0.4 },
+    }).toDestination();
+    audioResources.current.drumSynths = {
+        kick: new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 10, oscillator: { type: "sine" }, envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4, attackCurve: "exponential" } }).toDestination(),
+        snare: new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.005, decay: 0.2, sustain: 0 } }).toDestination(),
+        hihat: new Tone.NoiseSynth({ noise: { type: "pink" }, envelope: { attack: 0.001, decay: 0.05, sustain: 0 } }).toDestination(),
+        clap: new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination(),
+    };
+
+    // Setup Beat
+    try {
+        const beat = JSON.parse(songData.beatPattern);
+        const steps = Array.from({ length: 16 }, (_, i) => i);
+        audioResources.current.beatSequence = new Tone.Sequence((time: any, step: number) => {
+            if (beat.kick?.includes(step)) { audioResources.current.drumSynths.kick.triggerAttackRelease("C1", "8n", time); }
+            if (beat.snare?.includes(step)) { audioResources.current.drumSynths.snare.triggerAttackRelease("16n", time); }
+            if (beat.clap?.includes(step)) { audioResources.current.drumSynths.clap.triggerAttackRelease("16n", time); }
+            if (beat.hihat?.includes(step)) { audioResources.current.drumSynths.hihat.triggerAttackRelease("16n", time); }
+            Tone.Draw.schedule(() => setCurrentBeatStep(step), time);
+        }, steps, "16n").start(0);
+    } catch(e) { console.error("Could not parse beat", e); }
+
+    // Setup Melody
+    if (songData.vocalMelody) {
+        const melodyEvents = songData.vocalMelody.flatMap(line => 
+            line.notes.map(note => ({ ...note, lineIndex: line.lineIndex }))
+        );
+        audioResources.current.melodyPart = new Tone.Part((time, value) => {
+            audioResources.current.vocalSynth.triggerAttackRelease(value.note, value.duration, time);
+            Tone.Draw.schedule(() => setCurrentLineIndex(value.lineIndex), time);
+        }, melodyEvents).start(0);
+        audioResources.current.melodyPart.loop = false;
+    }
+    
+    Tone.Transport.on('stop', () => {
+        setIsPlaying(false);
+        setCurrentLineIndex(-1);
+        setCurrentBeatStep(-1);
+    });
+
+    return cleanupAudio;
+  }, [appState, songData.beatPattern, songData.vocalMelody, songData.bpm, stopPlayback]);
 
 
   const renderContent = () => {
-    if (isGeneratingText || isGeneratingVideo) {
+    if (isGeneratingText || isGeneratingAudioVideo) {
       return (
         <div className="text-center p-10 bg-gray-800/50 rounded-xl">
           <LoadingSpinner size="lg" />
@@ -397,7 +341,7 @@ const App: React.FC = () => {
                   songData={songData}
                   setSongData={setSongData}
                   onFinalize={handleFinalizeSong}
-                  isLoading={isGeneratingVideo}
+                  isLoading={isGeneratingAudioVideo}
                 />;
       case 'display':
         return (
@@ -412,21 +356,23 @@ const App: React.FC = () => {
               artistImagePrompt={songData.artistImagePrompt}
               singerGender={songData.singerGender}
               artistType={songData.artistType}
+              beatPattern={songData.beatPattern}
+              vocalMelody={songData.vocalMelody}
+              isPlaying={isPlaying}
+              onPlaybackToggle={handlePlaybackToggle}
+              bpm={songData.bpm}
+              onBpmChange={(newBpm) => setSongData(prev => ({ ...prev, bpm: newBpm }))}
             />
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
               <LyricsViewer
                 lyrics={songData.lyrics}
-                isLoading={false}
-                isPlaying={isPlaying}
                 currentLineIndex={currentLineIndex}
-                onPlayToggle={handlePlaySong}
-                isPlayable={'speechSynthesis' in window && voices.length > 0}
               />
               <BeatPlayer
                 beatPattern={songData.beatPattern}
-                isPlaying={isBeatPlaying}
-                onPlayToggle={handleBeatPlayToggle}
+                isPlaying={isPlaying}
+                currentStep={currentBeatStep}
                 onRemix={handleRemixBeat}
                 isRemixing={isRemixing}
               />
