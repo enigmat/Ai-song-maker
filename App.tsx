@@ -6,11 +6,11 @@ import { StyleGuideViewer } from './components/StyleGuideViewer';
 import { ErrorMessage } from './components/ErrorMessage';
 import { ArtistProfile } from './components/ArtistProfile';
 import { SongEditor } from './components/SongEditor';
-import { generateSong, generateArtistImage } from './services/geminiService';
+import { generateSong, generateArtistVideo } from './services/geminiService';
 import { LoadingSpinner } from './components/LoadingSpinner';
 
 export type SingerGender = 'Female' | 'Male';
-export type ArtistType = 'Solo Artist' | 'Group';
+export type ArtistType = 'Solo Artist' | 'Group' | 'Duet';
 
 interface SongData {
   title: string;
@@ -19,6 +19,8 @@ interface SongData {
   artistImagePrompt: string;
   lyrics: string;
   styleGuide: string;
+  singerGender: SingerGender;
+  artistType: ArtistType;
 }
 
 const App: React.FC = () => {
@@ -29,7 +31,8 @@ const App: React.FC = () => {
   
   const [appState, setAppState] = useState<'prompt' | 'editing' | 'display'>('prompt');
   const [isGeneratingText, setIsGeneratingText] = useState<boolean>(false);
-  const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState<boolean>(false);
+  const [generationStatus, setGenerationStatus] = useState<string>('');
   
   const [songData, setSongData] = useState<SongData>({
     title: '',
@@ -38,8 +41,10 @@ const App: React.FC = () => {
     artistImagePrompt: '',
     lyrics: '',
     styleGuide: '',
+    singerGender: 'Female',
+    artistType: 'Solo Artist',
   });
-  const [artistImageUrl, setArtistImageUrl] = useState<string>('');
+  const [artistVideoUrl, setArtistVideoUrl] = useState<string>('');
 
   const [error, setError] = useState<string | null>(null);
   
@@ -69,9 +74,11 @@ const App: React.FC = () => {
                       artistBio: loadedSong.artistBio || '',
                       lyrics: loadedSong.lyrics,
                       styleGuide: loadedSong.styleGuide || '',
-                      artistImagePrompt: '', // Not shared
+                      artistImagePrompt: loadedSong.artistImagePrompt || '',
+                      singerGender: loadedSong.singerGender || (loadedSong.artistType === 'Duet' ? 'Female' : 'Female'), // Default singer for duets/solo
+                      artistType: loadedSong.artistType || 'Solo Artist',
                     });
-                    setArtistImageUrl(loadedSong.artistImageUrl || '');
+                    setArtistVideoUrl(loadedSong.artistVideoUrl || '');
                     setAppState('display');
                 }
                 
@@ -88,13 +95,17 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const loadVoices = () => {
-      setVoices(window.speechSynthesis.getVoices());
-    };
-    if (window.speechSynthesis.onvoiceschanged !== undefined) {
-      window.speechSynthesis.onvoiceschanged = loadVoices;
+    if (!('speechSynthesis' in window)) {
+        setError("Your browser does not support speech synthesis. The play feature will be unavailable.");
+    } else {
+        const loadVoices = () => {
+          setVoices(window.speechSynthesis.getVoices());
+        };
+        if (window.speechSynthesis.onvoiceschanged !== undefined) {
+          window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+        loadVoices();
     }
-    loadVoices();
   }, []);
 
   const stopSpeech = useCallback(() => {
@@ -114,7 +125,11 @@ const App: React.FC = () => {
 
     try {
       const generatedData = await generateSong(prompt, genre, artistType);
-      setSongData(generatedData);
+      setSongData({
+        ...generatedData,
+        singerGender: singerGender,
+        artistType: artistType,
+      });
       setAppState('editing');
     } catch (err) {
       console.error(err);
@@ -129,18 +144,38 @@ const App: React.FC = () => {
       setError('Please provide a prompt for the artist image.');
       return;
     }
-    setIsGeneratingImage(true);
+    setIsGeneratingVideo(true);
     setError(null);
 
+    const messages = [
+        "Warming up the video cameras...",
+        "Setting the scene...",
+        "Directing your artist...",
+        "Rolling camera... Action!",
+        "Rendering the final cut...",
+        "This can take a few minutes...",
+    ];
+    let messageIndex = 0;
+    setGenerationStatus(messages[messageIndex]);
+    const intervalId = setInterval(() => {
+        messageIndex = (messageIndex + 1) % messages.length;
+        setGenerationStatus(messages[messageIndex]);
+    }, 4000);
+
+
     try {
-      const imageUrl = await generateArtistImage(songData.artistImagePrompt);
-      setArtistImageUrl(imageUrl);
+      const videoUrl = await generateArtistVideo(songData.artistImagePrompt);
+      setArtistVideoUrl(videoUrl);
       setAppState('display');
     } catch (err) {
       console.error(err);
-      setError('Failed to generate the artist image. Please check the console and try again.');
+      setError('Failed to generate the artist video. Please check the console and try again.');
+       // Go back to editing on failure
+       setAppState('editing');
     } finally {
-      setIsGeneratingImage(false);
+      setIsGeneratingVideo(false);
+      clearInterval(intervalId);
+      setGenerationStatus('');
     }
   };
 
@@ -151,6 +186,11 @@ const App: React.FC = () => {
       return;
     }
 
+    if (!('speechSynthesis' in window) || voices.length === 0) {
+        setError("No speech voices are available on your browser or device. Cannot play song.");
+        return;
+    }
+
     const allLines = songData.lyrics.split('\n');
     const speakableLines = allLines
       .map((line, index) => ({ line, originalIndex: index }))
@@ -159,11 +199,29 @@ const App: React.FC = () => {
     if (speakableLines.length === 0) return;
     
     const englishVoices = voices.filter(v => v.lang.startsWith('en'));
-    let selectedVoice: SpeechSynthesisVoice | null = null;
+    if (englishVoices.length === 0) {
+        setError("No English voices found for playback.");
+        return;
+    }
 
-    if (englishVoices.length > 0) {
+    let selectedVoice: SpeechSynthesisVoice | null = null;
+    let maleVoice: SpeechSynthesisVoice | null = null;
+    let femaleVoice: SpeechSynthesisVoice | null = null;
+
+    if (songData.artistType === 'Duet') {
+        const preferredFemale = englishVoices.filter(v => v.name.toLowerCase().includes('female'));
+        femaleVoice = preferredFemale.length > 0 ? preferredFemale[0] : englishVoices.find(v => !v.name.toLowerCase().includes('male')) || englishVoices[0];
+        
+        const preferredMale = englishVoices.filter(v => v.name.toLowerCase().includes('male'));
+        maleVoice = preferredMale.length > 0 ? preferredMale[0] : englishVoices.find(v => !v.name.toLowerCase().includes('female')) || englishVoices[0];
+
+        if (!maleVoice || !femaleVoice) {
+            setError("Could not find suitable male and female voices for a duet.");
+            return;
+        }
+    } else {
         let preferredVoices: SpeechSynthesisVoice[] = [];
-        if (singerGender === 'Female') {
+        if (songData.singerGender === 'Female') {
             preferredVoices = englishVoices.filter(v => v.name.toLowerCase().includes('female'));
             if (preferredVoices.length === 0) {
                 preferredVoices = englishVoices.filter(v => !v.name.toLowerCase().includes('male'));
@@ -182,6 +240,7 @@ const App: React.FC = () => {
         }
     }
 
+
     setIsPlaying(true);
     let lineIndex = 0;
 
@@ -191,17 +250,43 @@ const App: React.FC = () => {
         return;
       }
 
-      const currentLine = speakableLines[lineIndex];
-      setCurrentLineIndex(currentLine.originalIndex);
+      const currentItem = speakableLines[lineIndex];
+      setCurrentLineIndex(currentItem.originalIndex);
       
-      const utterance = new SpeechSynthesisUtterance(currentLine.line);
-      utterance.rate = 0.9;
-      utterance.pitch = singerGender === 'Female' ? 1.1 : 0.9;
+      let lineText = currentItem.line;
+      let voiceForLine: SpeechSynthesisVoice | null = selectedVoice;
 
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
+      if (songData.artistType === 'Duet') {
+          if (lineText.toLowerCase().includes('(singer 1)')) {
+              voiceForLine = femaleVoice;
+          } else if (lineText.toLowerCase().includes('(singer 2)')) {
+              voiceForLine = maleVoice;
+          } else {
+              voiceForLine = femaleVoice; // Default for (Both) or unmarked lines
+          }
+          lineText = lineText.replace(/\((singer 1|singer 2|both)\)/i, '').trim();
       }
 
+      if (!lineText) { // If line is empty after stripping markers
+          lineIndex++;
+          speakLine();
+          return;
+      }
+      
+      const utterance = new SpeechSynthesisUtterance(lineText);
+      utterance.rate = 0.9;
+      
+      if (voiceForLine) {
+          const isFemale = voiceForLine.name.toLowerCase().includes('female');
+          const basePitch = isFemale ? 1.2 : 0.8;
+          utterance.pitch = basePitch + (Math.random() * 0.2 - 0.1);
+          utterance.voice = voiceForLine;
+      } else {
+          // Fallback for non-duet case if voice not found
+          const basePitch = songData.singerGender === 'Female' ? 1.2 : 0.8;
+          utterance.pitch = basePitch + (Math.random() * 0.2 - 0.1);
+      }
+      
       utterance.onend = () => {
         lineIndex++;
         speakLine();
@@ -216,9 +301,32 @@ const App: React.FC = () => {
       window.speechSynthesis.speak(utterance);
     };
 
-    speakLine();
-  }, [songData.lyrics, isPlaying, stopSpeech, voices, singerGender]);
+    setTimeout(speakLine, 100);
+  }, [songData, isPlaying, stopSpeech, voices]);
   
+  const handleStartOver = useCallback(() => {
+    stopSpeech();
+    setAppState('prompt');
+    setPrompt('');
+    // Reset to defaults
+    setGenre('Pop');
+    setSingerGender('Female');
+    setArtistType('Solo Artist');
+    setSongData({
+      title: '',
+      artistName: '',
+      artistBio: '',
+      artistImagePrompt: '',
+      lyrics: '',
+      styleGuide: '',
+      singerGender: 'Female',
+      artistType: 'Solo Artist',
+    });
+    setArtistVideoUrl('');
+    setError(null);
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }, [stopSpeech]);
+
   useEffect(() => {
     return () => {
       window.speechSynthesis.cancel();
@@ -227,12 +335,16 @@ const App: React.FC = () => {
 
 
   const renderContent = () => {
-    if (isGeneratingText) {
+    if (isGeneratingText || isGeneratingVideo) {
       return (
         <div className="text-center p-10 bg-gray-800/50 rounded-xl">
           <LoadingSpinner size="lg" />
-          <p className="mt-4 text-gray-400 text-lg">Generating your song draft...</p>
-          <p className="text-gray-500">This may take a moment.</p>
+          <p className="mt-4 text-gray-400 text-lg animate-pulse">
+            {isGeneratingText ? 'Generating your song draft...' : generationStatus}
+          </p>
+          <p className="text-gray-500">
+             {isGeneratingText ? 'This may take a moment.' : 'Creative work takes time!'}
+          </p>
         </div>
       );
     }
@@ -243,7 +355,7 @@ const App: React.FC = () => {
                   songData={songData}
                   setSongData={setSongData}
                   onFinalize={handleFinalizeSong}
-                  isLoading={isGeneratingImage}
+                  isLoading={isGeneratingVideo}
                 />;
       case 'display':
         return (
@@ -252,9 +364,12 @@ const App: React.FC = () => {
               title={songData.title}
               artistName={songData.artistName}
               artistBio={songData.artistBio}
-              artistImageUrl={artistImageUrl}
+              artistVideoUrl={artistVideoUrl}
               lyrics={songData.lyrics}
               styleGuide={songData.styleGuide}
+              artistImagePrompt={songData.artistImagePrompt}
+              singerGender={songData.singerGender}
+              artistType={songData.artistType}
             />
             
             <LyricsViewer
@@ -263,8 +378,21 @@ const App: React.FC = () => {
               isPlaying={isPlaying}
               currentLineIndex={currentLineIndex}
               onPlayToggle={handlePlaySong}
+              isPlayable={'speechSynthesis' in window && voices.length > 0}
             />
             <StyleGuideViewer styleGuide={songData.styleGuide} isLoading={false} />
+            <div className="mt-8 text-center">
+              <button
+                onClick={handleStartOver}
+                className="inline-flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 border-2 border-purple-500 text-purple-400 rounded-lg shadow-md hover:bg-purple-500 hover:text-white transition-all duration-300 transform hover:scale-105"
+                aria-label="Start over and create a new song"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                Start Over
+              </button>
+            </div>
           </>
         );
       case 'prompt':

@@ -41,12 +41,22 @@ export interface SongData {
     artistImagePrompt: string;
 }
 
-export const generateSong = async (prompt: string, genre: string, artistType: 'Solo Artist' | 'Group'): Promise<SongData> => {
+export const generateSong = async (prompt: string, genre: string, artistType: 'Solo Artist' | 'Group' | 'Duet'): Promise<SongData> => {
     try {
         const artistTypeLower = artistType.toLowerCase();
-        const imagePromptExample = artistType === 'Solo Artist'
-            ? "A soulful 70s R&B singer in a velvet suit, posing on a city street at dusk, cinematic lighting"
-            : "A soulful 70s R&B group in matching velvet suits, posing on a city street at dusk, cinematic lighting";
+        
+        let videoPromptExample = "";
+        switch (artistType) {
+            case 'Solo Artist':
+                videoPromptExample = "A soulful 70s R&B singer in a velvet suit, posing on a city street at dusk, cinematic lighting, emotionally singing, 4k, cinematic";
+                break;
+            case 'Group':
+                videoPromptExample = "A soulful 70s R&B group in matching velvet suits, posing on a city street at dusk, cinematic lighting, singing emotionally, 4k, cinematic";
+                break;
+            case 'Duet':
+                videoPromptExample = "A male and female R&B duo in a dramatic studio setting, singing emotionally to each other, cinematic lighting, 4k, cinematic";
+                break;
+        }
 
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
@@ -62,11 +72,11 @@ Create a single JSON object containing:
 1.  **title:** A creative title for the song.
 2.  **artistName:** Invent a plausible name for the ${artistTypeLower}.
 3.  **artistBio:** A short, fictional biography (2-3 sentences) for the invented ${artistTypeLower}.
-4.  **artistImagePrompt:** A descriptive prompt for an AI image generator to create a press photo for the ${artistTypeLower} (e.g., "${imagePromptExample}").
-5.  **lyrics:** Write compelling lyrics following a standard song structure. The lyrics must be a single string with each line separated by a newline character ('\\n'). Explicitly include song structure markers like '[Verse]', '[Chorus]', and '[Bridge]' on their own lines.
+4.  **artistImagePrompt:** A descriptive prompt for an AI video generator to create a short, looping music video clip for the ${artistTypeLower} (e.g., "${videoPromptExample}").
+5.  **lyrics:** Write compelling lyrics following a standard song structure. The lyrics must be a single string with each line separated by a newline character ('\\n'). Explicitly include song structure markers like '[Verse]', '[Chorus]', and '[Bridge]' on their own lines. If the artistType is 'Duet', the lyrics MUST be formatted for two singers (a male and a female). Clearly indicate who is singing by starting the line with '(Singer 1)', '(Singer 2)', or '(Both)'.
 6.  **styleGuide:** Create a detailed production style guide for the song, using the provided example as a template for formatting and detail.`,
             config: {
-                systemInstruction: "You are a world-class songwriter and music producer, acting as a creative partner. Your task is to generate a strong, editable first draft of a complete song package based on a user's idea. This includes a song title, an invented artist name and bio, a descriptive artist image prompt, creative lyrics, and a detailed production style guide. The entire output must be a single, valid JSON object.",
+                systemInstruction: "You are a world-class songwriter and music producer, acting as a creative partner. Your task is to generate a strong, editable first draft of a complete song package based on a user's idea. This includes a song title, an invented artist name and bio, a descriptive artist video prompt, creative lyrics, and a detailed production style guide. The entire output must be a single, valid JSON object.",
                 temperature: 0.8,
                 topP: 0.95,
                 responseMimeType: "application/json",
@@ -87,7 +97,7 @@ Create a single JSON object containing:
                         },
                         artistImagePrompt: {
                             type: Type.STRING,
-                            description: "A descriptive prompt for generating an artist/group press photo."
+                            description: "A descriptive prompt for generating a short, looping artist/group music video."
                         },
                         lyrics: {
                             type: Type.STRING,
@@ -121,26 +131,41 @@ Create a single JSON object containing:
     }
 };
 
-export const generateArtistImage = async (prompt: string): Promise<string> => {
+export const generateArtistVideo = async (prompt: string): Promise<string> => {
     try {
-        const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001',
-            prompt: prompt,
+        let operation = await ai.models.generateVideos({
+            model: 'veo-2.0-generate-001',
+            prompt: `${prompt}, looping video`,
             config: {
-              numberOfImages: 1,
-              outputMimeType: 'image/jpeg',
-              aspectRatio: '1:1',
-            },
+                numberOfVideos: 1
+            }
         });
 
-        if (response.generatedImages && response.generatedImages.length > 0) {
-            const base64ImageBytes = response.generatedImages[0].image.imageBytes;
-            return `data:image/jpeg;base64,${base64ImageBytes}`;
-        } else {
-            throw new Error("No image was generated by the model.");
+        while (!operation.done) {
+            await new Promise(resolve => setTimeout(resolve, 10000));
+            operation = await ai.operations.getVideosOperation({ operation: operation });
         }
+
+        const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+        if (!downloadLink) {
+            throw new Error("Video generation did not return a valid link.");
+        }
+        
+        const response = await fetch(`${downloadLink}&key=${API_KEY}`);
+        if (!response.ok) {
+            throw new Error(`Failed to download video: ${response.statusText}`);
+        }
+        const videoBlob = await response.blob();
+        
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(videoBlob);
+        });
+
     } catch (error) {
-        console.error("Error generating image with Gemini API:", error);
-        throw new Error("Failed to generate the artist image.");
+        console.error("Error generating video with Gemini API:", error);
+        throw new Error("Failed to generate the artist video.");
     }
 };

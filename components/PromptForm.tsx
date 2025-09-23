@@ -15,9 +15,9 @@ interface PromptFormProps {
   isLoading: boolean;
 }
 
-const genres = ['Acoustic', 'Country', 'Electronic', 'Hip Hop', 'Instrumental', 'Jazz', 'Pop', 'R&B', 'Rock'];
+const genres = ['Acoustic', 'Blues', 'Country', 'Electronic', 'Hip Hop', 'Instrumental', 'Jazz', 'Pop', 'R&B', 'Rock'];
 const genders: SingerGender[] = ['Female', 'Male'];
-const artistTypes: ArtistType[] = ['Solo Artist', 'Group'];
+const artistTypes: ArtistType[] = ['Solo Artist', 'Group', 'Duet'];
 
 export const PromptForm: React.FC<PromptFormProps> = ({ prompt, setPrompt, genre, setGenre, singerGender, setSingerGender, artistType, setArtistType, onGenerate, isLoading }) => {
   const handleSubmit = (e: React.FormEvent) => {

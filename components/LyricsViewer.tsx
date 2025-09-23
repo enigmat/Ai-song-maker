@@ -7,6 +7,7 @@ interface LyricsViewerProps {
   isPlaying: boolean;
   currentLineIndex: number;
   onPlayToggle: () => void;
+  isPlayable: boolean;
 }
 
 const PlayIcon = () => (
@@ -22,7 +23,7 @@ const PauseIcon = () => (
 );
 
 
-export const LyricsViewer: React.FC<LyricsViewerProps> = ({ lyrics, isLoading, isPlaying, currentLineIndex, onPlayToggle }) => {
+export const LyricsViewer: React.FC<LyricsViewerProps> = ({ lyrics, isLoading, isPlaying, currentLineIndex, onPlayToggle, isPlayable }) => {
   const lines = lyrics.split('\n');
 
   return (
@@ -48,8 +49,9 @@ export const LyricsViewer: React.FC<LyricsViewerProps> = ({ lyrics, isLoading, i
                 <button 
                   onClick={onPlayToggle} 
                   className="text-purple-400 hover:text-white transition-colors duration-300 transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={!lyrics}
+                  disabled={!lyrics || !isPlayable}
                   aria-label={isPlaying ? 'Pause song' : 'Play song'}
+                  title={!isPlayable ? 'Speech synthesis not available in this browser' : (isPlaying ? 'Pause song' : 'Play song')}
                 >
                     {isPlaying ? <PauseIcon /> : <PlayIcon />}
                 </button>

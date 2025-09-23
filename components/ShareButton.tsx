@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
+import type { SingerGender, ArtistType } from '../App';
 
 interface ShareButtonProps {
   title: string;
   artistName: string;
   artistBio: string;
-  artistImageUrl: string;
+  artistVideoUrl: string;
   lyrics: string;
   styleGuide: string;
+  artistImagePrompt: string;
+  singerGender: SingerGender;
+  artistType: ArtistType;
 }
 
 const ShareIcon = () => (
@@ -22,7 +26,7 @@ const CheckIcon = () => (
 );
 
 
-export const ShareButton: React.FC<ShareButtonProps> = ({ title, artistName, artistBio, artistImageUrl, lyrics, styleGuide }) => {
+export const ShareButton: React.FC<ShareButtonProps> = ({ title, artistName, artistBio, artistVideoUrl, lyrics, styleGuide, artistImagePrompt, singerGender, artistType }) => {
     const [isCopied, setIsCopied] = useState(false);
 
     const handleShare = async () => {
@@ -30,9 +34,12 @@ export const ShareButton: React.FC<ShareButtonProps> = ({ title, artistName, art
             title,
             artistName,
             artistBio,
-            artistImageUrl,
+            artistVideoUrl,
             lyrics,
             styleGuide,
+            artistImagePrompt,
+            singerGender,
+            artistType,
         };
 
         const serializedData = JSON.stringify(songData);
