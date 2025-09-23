@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
+// Fix: Import SingerGender and ArtistType to create a complete SongData interface.
+import type { SingerGender, ArtistType } from '../App';
 
 interface SongData {
     title: string;
@@ -9,6 +11,9 @@ interface SongData {
     lyrics: string;
     styleGuide: string;
     beatPattern: string;
+    // Fix: Add missing properties to match the SongData type in App.tsx.
+    singerGender: SingerGender;
+    artistType: ArtistType;
 }
 
 interface SongEditorProps {
@@ -21,7 +26,8 @@ interface SongEditorProps {
 export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, onFinalize, isLoading }) => {
     const [lyricsViewMode, setLyricsViewMode] = useState<'edit' | 'structured'>('edit');
     
-    const handleChange = (field: keyof SongData, value: string) => {
+    // Fix: Corrected the type of 'field' to only include editable string properties of SongData for better type safety.
+    const handleChange = (field: keyof Omit<SongData, 'singerGender' | 'artistType'>, value: string) => {
         setSongData({ ...songData, [field]: value });
     };
 

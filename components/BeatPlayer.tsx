@@ -26,8 +26,8 @@ const PauseIcon = () => (
 
 const RemixIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-        <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v2.586l-1.707-1.707a1 1 0 00-1.414 1.414L8.586 10l-2.707 2.707a1 1 0 101.414 1.414L10 11.414l2.707 2.707a1 1 0 001.414-1.414L11.414 10l2.707-2.707a1 1 0 00-1.414-1.414L10 8.586V5z" />
+        <path d="M10 3a1 1 0 011 1v1.333a1 1 0 01-2 0V4a1 1 0 011-1zm6.04 2.153a1 1 0 01.636 1.29l-1.127 3.382a1 1 0 01-1.898-.636l1.127-3.382a1 1 0 011.262-.654zM4.113 6.04a1 1 0 011.262.654l1.127 3.382a1 1 0 01-1.898.636L3.476 7.33A1 1 0 014.113 6.04zM10 17a1 1 0 01-1-1v-1.333a1 1 0 112 0V16a1 1 0 01-1 1zM3.96 13.847a1 1 0 01-.636-1.29l1.127-3.382a1 1 0 011.898.636l-1.127 3.382a1 1 0 01-1.262.654zM15.887 13.96a1 1 0 01-1.262-.654l-1.127-3.382a1 1 0 011.898-.636l1.127 3.382a1 1 0 01-.636 1.29z" />
+        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clipRule="evenodd" />
     </svg>
 );
 
@@ -36,6 +36,9 @@ interface ParsedBeat {
     kick: number[];
     snare: number[];
     hihat: number[];
+    clap?: number[];
+    tom?: number[];
+    cymbal?: number[];
 }
 
 export const BeatPlayer: React.FC<BeatPlayerProps> = ({ beatPattern, isPlaying, onPlayToggle, onRemix, isRemixing }) => {
@@ -51,6 +54,9 @@ export const BeatPlayer: React.FC<BeatPlayerProps> = ({ beatPattern, isPlaying, 
                 kick: pattern.kick || [],
                 snare: pattern.snare || [],
                 hihat: pattern.hihat || [],
+                clap: pattern.clap || [],
+                tom: pattern.tom || [],
+                cymbal: pattern.cymbal || [],
             };
         } catch (e) {
             console.error("Failed to parse beat pattern:", e);
@@ -68,6 +74,9 @@ export const BeatPlayer: React.FC<BeatPlayerProps> = ({ beatPattern, isPlaying, 
             kick: new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 10, oscillator: { type: "sine" }, envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4, attackCurve: "exponential" } }).toDestination(),
             snare: new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.005, decay: 0.2, sustain: 0 } }).toDestination(),
             hihat: new Tone.NoiseSynth({ noise: { type: "pink" }, envelope: { attack: 0.001, decay: 0.05, sustain: 0 } }).toDestination(),
+            clap: new Tone.NoiseSynth({ noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination(),
+            tom: new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 4, oscillator: { type: "sine" }, envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 0.5 } }).toDestination(),
+            cymbal: new Tone.MetalSynth({ frequency: 250, envelope: { attack: 0.001, decay: 0.5, release: 0.2 }, harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5 }).toDestination(),
         };
         
         Tone.Transport.bpm.value = 120;
@@ -92,18 +101,16 @@ export const BeatPlayer: React.FC<BeatPlayerProps> = ({ beatPattern, isPlaying, 
         sequence.current = new Tone.Sequence((time: any, step: number) => {
             if (parsedBeat.kick.includes(step)) { synths.current.kick.triggerAttackRelease("C1", "8n", time); }
             if (parsedBeat.snare.includes(step)) { synths.current.snare.triggerAttackRelease("16n", time); }
+            if (parsedBeat.clap?.includes(step)) { synths.current.clap.triggerAttackRelease("16n", time); }
+            if (parsedBeat.tom?.includes(step)) { synths.current.tom.triggerAttackRelease("G2", "8n", time); }
             if (parsedBeat.hihat.includes(step)) { synths.current.hihat.triggerAttackRelease("16n", time); }
+            if (parsedBeat.cymbal?.includes(step)) { synths.current.cymbal.triggerAttackRelease("16n", time); }
+            
             Tone.Draw.schedule(() => { setCurrentStep(step); }, time);
         }, steps, "16n").start(0);
         sequence.current.loop = true;
 
-        if (isPlaying) {
-            Tone.Transport.start();
-        } else {
-            Tone.Transport.pause();
-        }
-
-    }, [parsedBeat]);
+    }, [parsedBeat]); 
 
     useEffect(() => {
         if (typeof Tone === 'undefined') return;
@@ -127,23 +134,29 @@ export const BeatPlayer: React.FC<BeatPlayerProps> = ({ beatPattern, isPlaying, 
         const instruments = [
             { name: 'Kick', steps: parsedBeat.kick, color: 'bg-purple-500' },
             { name: 'Snare', steps: parsedBeat.snare, color: 'bg-pink-500' },
+            { name: 'Clap', steps: parsedBeat.clap || [], color: 'bg-yellow-500' },
+            { name: 'Tom', steps: parsedBeat.tom || [], color: 'bg-orange-500' },
             { name: 'Hi-Hat', steps: parsedBeat.hihat, color: 'bg-teal-500' },
+            { name: 'Cymbal', steps: parsedBeat.cymbal || [], color: 'bg-sky-500' },
         ];
 
         return (
-            <div className="grid gap-2 mt-6 flex-grow">
+            <div className="space-y-2 mt-4 flex-grow">
                 {instruments.map(inst => (
-                    <div key={inst.name} className="grid [grid-template-columns:repeat(16,minmax(0,1fr))] gap-1.5 items-center">
-                        {Array.from({ length: 16 }).map((_, i) => (
-                            <div
-                                key={i}
-                                className={`w-full aspect-square rounded-sm transition-all duration-100 ${
-                                    inst.steps.includes(i) ? inst.color : 'bg-gray-700/50'
-                                } ${
-                                    currentStep === i && isPlaying ? 'ring-2 ring-white scale-110 shadow-lg' : ''
-                                }`}
-                            />
-                        ))}
+                    <div key={inst.name} className="flex items-center gap-2">
+                         <span className="w-14 text-right text-xs text-gray-400 font-mono flex-shrink-0">{inst.name}</span>
+                        <div className="grid [grid-template-columns:repeat(16,minmax(0,1fr))] gap-1 items-center flex-1">
+                            {Array.from({ length: 16 }).map((_, i) => (
+                                <div
+                                    key={i}
+                                    className={`w-full aspect-square rounded-sm transition-all duration-100 ${
+                                        inst.steps.includes(i) ? inst.color : 'bg-gray-700/50'
+                                    } ${
+                                        currentStep === i && isPlaying ? 'ring-2 ring-white scale-110 shadow-lg' : ''
+                                    }`}
+                                />
+                            ))}
+                        </div>
                     </div>
                 ))}
             </div>
@@ -151,8 +164,8 @@ export const BeatPlayer: React.FC<BeatPlayerProps> = ({ beatPattern, isPlaying, 
     };
 
     return (
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 p-6 flex flex-col transition-all duration-300 h-full">
-            <h3 className="text-2xl font-bold text-center mb-4 text-gray-200">Beat Machine</h3>
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 p-4 flex flex-col transition-all duration-300 h-full">
+            <h3 className="text-xl font-bold text-center mb-2 text-gray-200">Beat Machine</h3>
             <div className="flex justify-center items-center gap-4">
                 <button
                     onClick={handlePlayToggle}

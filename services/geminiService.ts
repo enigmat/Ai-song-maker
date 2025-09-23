@@ -76,7 +76,7 @@ Create a single JSON object containing:
 4.  **artistImagePrompt:** A descriptive prompt for an AI video generator to create a short, looping music video clip for the ${artistTypeLower} (e.g., "${videoPromptExample}").
 5.  **lyrics:** Write compelling lyrics following a standard song structure. The lyrics must be a single string with each line separated by a newline character ('\\n'). Explicitly include song structure markers like '[Verse]', '[Chorus]', and '[Bridge]' on their own lines. If the artistType is 'Duet', the lyrics MUST be formatted for two singers (a male and a female). Clearly indicate who is singing by starting the line with '(Singer 1)', '(Singer 2)', or '(Both)'.
 6.  **styleGuide:** Create a detailed production style guide for the song, using the provided example as a template for formatting and detail.
-7.  **beatPattern:** Based on the generated style guide (especially tempo and feel), create a 16-step drum machine pattern. Represent it as a JSON string with keys "kick", "snare", and "hihat". Each key should have an array of numbers from 0 to 15 indicating the steps where the sound is triggered. Example: '{"kick": [0, 8], "snare": [4, 12], "hihat": [0,2,4,6,8,10,12,14]}'.`,
+7.  **beatPattern:** Based on the generated style guide (especially tempo and feel), create a 16-step drum machine pattern. Represent it as a JSON string with keys for "kick", "snare", and "hihat", and optionally "clap", "tom", and "cymbal". Each key should have an array of numbers from 0 to 15 indicating the steps where the sound is triggered. Example: '{"kick": [0, 8], "snare": [4, 12], "hihat": [0,2,4,6,8,10,12,14], "clap": [4]}'.`,
             config: {
                 systemInstruction: "You are a world-class songwriter and music producer, acting as a creative partner. Your task is to generate a strong, editable first draft of a complete song package based on a user's idea. This includes a song title, an invented artist name and bio, a descriptive artist video prompt, creative lyrics, a detailed production style guide, and a drum pattern. The entire output must be a single, valid JSON object.",
                 temperature: 0.8,
@@ -91,7 +91,7 @@ Create a single JSON object containing:
                         artistImagePrompt: { type: Type.STRING, description: "A descriptive prompt for generating a short, looping artist/group music video." },
                         lyrics: { type: Type.STRING, description: "The generated song lyrics, including structure markers like '[Verse]', with each line separated by a newline character." },
                         styleGuide: { type: Type.STRING, description: "A detailed production style guide for the song, formatted like the provided example." },
-                        beatPattern: { type: Type.STRING, description: "A JSON string representing a 16-step drum pattern for kick, snare, and hihat." }
+                        beatPattern: { type: Type.STRING, description: "A JSON string representing a 16-step drum pattern for kick, snare, hihat, and optionally other percussion like clap, tom, or cymbal." }
                     },
                     required: ["title", "artistName", "artistBio", "artistImagePrompt", "lyrics", "styleGuide", "beatPattern"]
                 }
@@ -129,7 +129,7 @@ ${styleGuide}
 ---
 
 **INSTRUCTIONS:**
-Output ONLY a single valid JSON object representing the drum pattern. The JSON should have keys "kick", "snare", and "hihat". Each key should have an array of numbers from 0 to 15 indicating the steps where the sound is triggered. Do not include any other text or markdown formatting.`,
+Output ONLY a single valid JSON object representing the drum pattern. The JSON must have keys "kick", "snare", and "hihat". It can also optionally include "clap", "tom", and "cymbal". Each key should have an array of numbers from 0 to 15 indicating the steps where the sound is triggered. Do not include any other text or markdown formatting.`,
             config: {
                 systemInstruction: "You are a creative and skilled drum machine programmer. Your only job is to create a compelling 16-step drum pattern based on a musical style guide and output it as a clean JSON object.",
                 temperature: 0.9,
@@ -140,7 +140,10 @@ Output ONLY a single valid JSON object representing the drum pattern. The JSON s
                     properties: {
                         kick: { type: Type.ARRAY, items: { type: Type.INTEGER } },
                         snare: { type: Type.ARRAY, items: { type: Type.INTEGER } },
-                        hihat: { type: Type.ARRAY, items: { type: Type.INTEGER } }
+                        hihat: { type: Type.ARRAY, items: { type: Type.INTEGER } },
+                        clap: { type: Type.ARRAY, items: { type: Type.INTEGER }, description: "Optional clap pattern." },
+                        tom: { type: Type.ARRAY, items: { type: Type.INTEGER }, description: "Optional tom pattern." },
+                        cymbal: { type: Type.ARRAY, items: { type: Type.INTEGER }, description: "Optional cymbal pattern." }
                     },
                     required: ["kick", "snare", "hihat"]
                 }
