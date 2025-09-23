@@ -27,8 +27,8 @@ export const LyricsViewer: React.FC<LyricsViewerProps> = ({ lyrics, isLoading, i
   const lines = lyrics.split('\n');
 
   return (
-    <div className="mt-8">
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 min-h-[300px] p-6 flex flex-col items-center justify-center transition-all duration-300">
+    <div>
+      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 min-h-[300px] p-6 flex flex-col items-center justify-center transition-all duration-300 h-full">
         {isLoading && (
           <div className="text-center">
             <LoadingSpinner size="lg" />

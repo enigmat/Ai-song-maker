@@ -6,8 +6,9 @@ import { StyleGuideViewer } from './components/StyleGuideViewer';
 import { ErrorMessage } from './components/ErrorMessage';
 import { ArtistProfile } from './components/ArtistProfile';
 import { SongEditor } from './components/SongEditor';
-import { generateSong, generateArtistVideo } from './services/geminiService';
+import { generateSong, generateArtistVideo, remixBeat } from './services/geminiService';
 import { LoadingSpinner } from './components/LoadingSpinner';
+import { BeatPlayer } from './components/BeatPlayer';
 
 export type SingerGender = 'Female' | 'Male';
 export type ArtistType = 'Solo Artist' | 'Group' | 'Duet';
@@ -21,6 +22,7 @@ interface SongData {
   styleGuide: string;
   singerGender: SingerGender;
   artistType: ArtistType;
+  beatPattern: string;
 }
 
 const App: React.FC = () => {
@@ -43,6 +45,7 @@ const App: React.FC = () => {
     styleGuide: '',
     singerGender: 'Female',
     artistType: 'Solo Artist',
+    beatPattern: '',
   });
   const [artistVideoUrl, setArtistVideoUrl] = useState<string>('');
 
@@ -52,6 +55,9 @@ const App: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentLineIndex, setCurrentLineIndex] = useState<number>(-1);
   const isPlayingRef = useRef(isPlaying);
+
+  const [isBeatPlaying, setIsBeatPlaying] = useState<boolean>(false);
+  const [isRemixing, setIsRemixing] = useState<boolean>(false);
   
   useEffect(() => {
     isPlayingRef.current = isPlaying;
@@ -77,6 +83,7 @@ const App: React.FC = () => {
                       artistImagePrompt: loadedSong.artistImagePrompt || '',
                       singerGender: loadedSong.singerGender || (loadedSong.artistType === 'Duet' ? 'Female' : 'Female'), // Default singer for duets/solo
                       artistType: loadedSong.artistType || 'Solo Artist',
+                      beatPattern: loadedSong.beatPattern || '',
                     });
                     setArtistVideoUrl(loadedSong.artistVideoUrl || '');
                     setAppState('display');
@@ -122,6 +129,7 @@ const App: React.FC = () => {
     setIsGeneratingText(true);
     setError(null);
     stopSpeech();
+    setIsBeatPlaying(false);
 
     try {
       const generatedData = await generateSong(prompt, genre, artistType);
@@ -184,6 +192,10 @@ const App: React.FC = () => {
     if (isPlaying) {
       stopSpeech();
       return;
+    }
+
+    if (isBeatPlaying) {
+        setIsBeatPlaying(false);
     }
 
     if (!('speechSynthesis' in window) || voices.length === 0) {
@@ -302,10 +314,11 @@ const App: React.FC = () => {
     };
 
     setTimeout(speakLine, 100);
-  }, [songData, isPlaying, stopSpeech, voices]);
+  }, [songData, isPlaying, stopSpeech, voices, isBeatPlaying]);
   
   const handleStartOver = useCallback(() => {
     stopSpeech();
+    setIsBeatPlaying(false);
     setAppState('prompt');
     setPrompt('');
     // Reset to defaults
@@ -321,11 +334,40 @@ const App: React.FC = () => {
       styleGuide: '',
       singerGender: 'Female',
       artistType: 'Solo Artist',
+      beatPattern: '',
     });
     setArtistVideoUrl('');
     setError(null);
     window.history.replaceState({}, document.title, window.location.pathname);
   }, [stopSpeech]);
+
+  const handleBeatPlayToggle = () => {
+    if (isBeatPlaying) {
+        setIsBeatPlaying(false);
+    } else {
+        stopSpeech();
+        setIsBeatPlaying(true);
+    }
+  }
+
+  const handleRemixBeat = async () => {
+      if (!songData.styleGuide) {
+          setError("Cannot remix without a style guide.");
+          return;
+      }
+      setIsRemixing(true);
+      setError(null);
+      try {
+          const newBeatPattern = await remixBeat(songData.styleGuide);
+          setSongData(prev => ({ ...prev, beatPattern: newBeatPattern }));
+      } catch (err) {
+          console.error(err);
+          setError("Failed to remix the beat. Please try again.");
+      } finally {
+          setIsRemixing(false);
+      }
+  };
+
 
   useEffect(() => {
     return () => {
@@ -372,15 +414,26 @@ const App: React.FC = () => {
               artistType={songData.artistType}
             />
             
-            <LyricsViewer
-              lyrics={songData.lyrics}
-              isLoading={false}
-              isPlaying={isPlaying}
-              currentLineIndex={currentLineIndex}
-              onPlayToggle={handlePlaySong}
-              isPlayable={'speechSynthesis' in window && voices.length > 0}
-            />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+              <LyricsViewer
+                lyrics={songData.lyrics}
+                isLoading={false}
+                isPlaying={isPlaying}
+                currentLineIndex={currentLineIndex}
+                onPlayToggle={handlePlaySong}
+                isPlayable={'speechSynthesis' in window && voices.length > 0}
+              />
+              <BeatPlayer
+                beatPattern={songData.beatPattern}
+                isPlaying={isBeatPlaying}
+                onPlayToggle={handleBeatPlayToggle}
+                onRemix={handleRemixBeat}
+                isRemixing={isRemixing}
+              />
+            </div>
+
             <StyleGuideViewer styleGuide={songData.styleGuide} isLoading={false} />
+
             <div className="mt-8 text-center">
               <button
                 onClick={handleStartOver}
