@@ -15,7 +15,7 @@ interface PromptFormProps {
   isLoading: boolean;
 }
 
-const genres = ['Acoustic', 'Blues', 'Country', 'Electronic', 'Hip Hop', 'Instrumental', 'Jazz', 'Pop', 'R&B', 'Rock'];
+const genres = ['Acoustic', 'Afrobeat', 'Blues', 'Classic', 'Country', 'Disco', 'Electronic', 'Gospel', 'Hip Hop', 'Instrumental', 'Jazz', 'Latin', 'Pop', 'R&B', 'Reggae', 'Rock', 'Trap'];
 const genders: SingerGender[] = ['Female', 'Male'];
 const artistTypes: ArtistType[] = ['Solo Artist', 'Group', 'Duet'];
 
