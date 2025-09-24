@@ -154,8 +154,8 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
 
             <div>
                 <label htmlFor="artistImagePrompt" className="block text-lg font-medium text-gray-300 mb-2">
-                    Artist Video Prompt
-                    <span className="text-sm text-gray-400 ml-2">(Edit to change the generated video)</span>
+                    Artist Image Prompt
+                    <span className="text-sm text-gray-400 ml-2">(Edit to change the generated image)</span>
                 </label>
                 <div className="relative">
                     <textarea

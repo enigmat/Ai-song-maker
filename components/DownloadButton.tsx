@@ -11,7 +11,7 @@ interface DownloadButtonProps {
   title: string;
   artistName: string;
   artistBio: string;
-  artistVideoUrl: string;
+  artistImageUrl: string;
   lyrics: string;
   styleGuide: string;
   singerGender: SingerGender;
@@ -26,7 +26,6 @@ interface FilesToInclude {
     styleGuide: boolean;
     artistInfo: boolean;
     htmlPlayer: boolean;
-    video: boolean;
     image: boolean;
     fullMix: boolean;
     vocals: boolean;
@@ -44,7 +43,7 @@ const DownloadIcon = () => (
 );
 
 export const DownloadButton: React.FC<DownloadButtonProps> = ({ 
-    title, artistName, artistBio, artistVideoUrl, lyrics, styleGuide, singerGender, artistType, bpm, beatPattern, vocalMelody
+    title, artistName, artistBio, artistImageUrl, lyrics, styleGuide, singerGender, artistType, bpm, beatPattern, vocalMelody
 }) => {
     const [downloadStatus, setDownloadStatus] = useState<'idle' | 'rendering' | 'zipping'>('idle');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -53,7 +52,6 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
         styleGuide: true,
         artistInfo: true,
         htmlPlayer: true,
-        video: true,
         image: true,
         fullMix: true,
         vocals: true,
@@ -65,73 +63,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
     });
 
     const handleFileSelectionChange = (file: keyof FilesToInclude, checked: boolean) => {
-        setFilesToInclude(prev => {
-            const newState = { ...prev, [file]: checked };
-            if (file === 'video' && !checked) {
-                newState.image = false;
-            }
-            return newState;
-        });
-    };
-
-    const getVideoFrameAsBlob = (videoUrl: string): Promise<Blob | null> => {
-        return new Promise((resolve) => {
-            const video = document.createElement('video');
-            video.style.display = 'none';
-            video.muted = true;
-            video.playsInline = true;
-            video.preload = 'metadata';
-            video.crossOrigin = 'anonymous';
-    
-            const timeout = setTimeout(() => {
-                cleanup();
-                resolve(null);
-            }, 5000);
-    
-            const onSeeked = () => {
-                clearTimeout(timeout);
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext('2d');
-                if (!ctx) {
-                    cleanup();
-                    resolve(null);
-                    return;
-                }
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                canvas.toBlob((blob) => {
-                    cleanup();
-                    resolve(blob);
-                }, 'image/jpeg', 0.9);
-            };
-            
-            const onLoadedMetadata = () => {
-                video.currentTime = Math.min(1, video.duration / 2);
-            };
-    
-            const onError = () => {
-                clearTimeout(timeout);
-                cleanup();
-                resolve(null);
-            };
-            
-            const cleanup = () => {
-                video.removeEventListener('loadedmetadata', onLoadedMetadata);
-                video.removeEventListener('seeked', onSeeked);
-                video.removeEventListener('error', onError);
-                if (video.parentNode) {
-                    video.parentNode.removeChild(video);
-                }
-            };
-    
-            video.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
-            video.addEventListener('seeked', onSeeked, { once: true });
-            video.addEventListener('error', onError, { once: true });
-    
-            video.src = videoUrl;
-            document.body.appendChild(video);
-        });
+        setFilesToInclude(prev => ({ ...prev, [file]: checked }));
     };
     
     const createPlayerHTML = (): string => {
@@ -203,18 +135,11 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
             }
             if (filesToInclude.htmlPlayer) zip.file("song_lyrics_viewer.html", createPlayerHTML());
 
-            if (artistVideoUrl) {
-                if (filesToInclude.video) {
-                    const videoResponse = await fetch(artistVideoUrl);
-                    const videoBlob = await videoResponse.blob();
-                    zip.file("artist_video.mp4", videoBlob);
-                }
-                
-                if (filesToInclude.image) {
-                    const imageBlob = await getVideoFrameAsBlob(artistVideoUrl);
-                    if (imageBlob) {
-                        zip.file("artist_image.jpg", imageBlob);
-                    }
+            if (artistImageUrl && filesToInclude.image) {
+                const imageResponse = await fetch(artistImageUrl);
+                const imageBlob = await imageResponse.blob();
+                if (imageBlob) {
+                    zip.file("artist_image.jpg", imageBlob);
                 }
             }
 
@@ -300,8 +225,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
                                        <CheckboxItem id="styleGuide" label="style_guide.txt" checked={filesToInclude.styleGuide} onChange={handleFileSelectionChange} />
                                        <CheckboxItem id="artistInfo" label="artist_info.txt" checked={filesToInclude.artistInfo} onChange={handleFileSelectionChange} />
                                        <CheckboxItem id="htmlPlayer" label="song_lyrics_viewer.html" checked={filesToInclude.htmlPlayer} onChange={handleFileSelectionChange} />
-                                       <CheckboxItem id="video" label="artist_video.mp4" checked={filesToInclude.video} onChange={handleFileSelectionChange} />
-                                       <CheckboxItem id="image" label="artist_image.jpg" checked={filesToInclude.image} onChange={handleFileSelectionChange} disabled={!filesToInclude.video} />
+                                       <CheckboxItem id="image" label="artist_image.jpg" checked={filesToInclude.image} onChange={handleFileSelectionChange} />
                                     </div>
                                 </fieldset>
 

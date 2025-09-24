@@ -52,16 +52,16 @@ export const generateSong = async (prompt: string, genre: string, artistType: 'S
     try {
         const artistTypeLower = artistType.toLowerCase();
         
-        let videoPromptExample = "";
+        let imagePromptExample = "";
         switch (artistType) {
             case 'Solo Artist':
-                videoPromptExample = "A soulful 70s R&B singer in a velvet suit, posing on a city street at dusk, cinematic lighting, emotionally singing, 4k, cinematic";
+                imagePromptExample = "A soulful 70s R&B singer in a velvet suit, posing on a city street at dusk, cinematic lighting, album cover art, 4k, photographic";
                 break;
             case 'Group':
-                videoPromptExample = "A soulful 70s R&B group in matching velvet suits, posing on a city street at dusk, cinematic lighting, singing emotionally, 4k, cinematic";
+                imagePromptExample = "A soulful 70s R&B group in matching velvet suits, posing on a city street at dusk, cinematic lighting, album cover art, 4k, photographic";
                 break;
             case 'Duet':
-                videoPromptExample = "A male and female R&B duo in a dramatic studio setting, singing emotionally to each other, cinematic lighting, 4k, cinematic";
+                imagePromptExample = "A male and female R&B duo in a dramatic studio setting, back to back, cinematic lighting, album cover art, 4k, photographic";
                 break;
         }
 
@@ -79,13 +79,13 @@ Create a single JSON object containing:
 1.  **title:** A creative title for the song.
 2.  **artistName:** Invent a plausible name for the ${artistTypeLower}.
 3.  **artistBio:** A short, fictional biography (2-3 sentences) for the invented ${artistTypeLower}.
-4.  **artistImagePrompt:** A descriptive prompt for an AI video generator to create a short, looping music video clip for the ${artistTypeLower} (e.g., "${videoPromptExample}").
+4.  **artistImagePrompt:** A descriptive prompt for an AI image generator to create an album cover style image for the ${artistTypeLower} (e.g., "${imagePromptExample}").
 5.  **lyrics:** Write compelling lyrics following a standard song structure. The lyrics must be a single string with each line separated by a newline character ('\\n'). Explicitly include song structure markers like '[Verse]', '[Chorus]', and '[Bridge]' on their own lines. If the artistType is 'Duet', the lyrics MUST be formatted for two singers (a male and a female). Clearly indicate who is singing by starting the line with '(Singer 1)', '(Singer 2)', or '(Both)'.
 6.  **styleGuide:** Create a detailed production style guide for the song, using the provided example as a template for formatting and detail. IMPORTANT: Do not use real artist names. Instead, describe the style or vibe they are known for (e.g., "in the style of a classic 70s soul group" instead of "like The Spinners").
 7.  **beatPattern:** Based on the generated style guide (especially tempo and feel), create a 16-step drum machine pattern. Represent it as a JSON string with keys for "kick", "snare", and "hihat", and optionally "clap". Each key should have an array of numbers from 0 to 15 indicating the steps where the sound is triggered. Example: '{"kick": [0, 8], "snare": [4, 12], "hihat": [0,2,4,6,8,10,12,14], "clap": [4]}'.
 8.  **bpm:** Extract the tempo (Beats Per Minute) from the style guide and provide it as a single integer (e.g., 80).`,
             config: {
-                systemInstruction: "You are a world-class songwriter and music producer. Your task is to generate a strong, editable first draft of a complete song package. This includes a song title, artist name/bio, artist video prompt, creative lyrics, a style guide, a drum pattern, and a BPM. The entire output must be a single, valid JSON object.",
+                systemInstruction: "You are a world-class songwriter and music producer. Your task is to generate a strong, editable first draft of a complete song package. This includes a song title, artist name/bio, artist image prompt, creative lyrics, a style guide, a drum pattern, and a BPM. The entire output must be a single, valid JSON object.",
                 temperature: 0.8,
                 topP: 0.95,
                 responseMimeType: "application/json",
@@ -285,41 +285,24 @@ Analyze the lyrics and style guide (especially tempo, key, and mood). Generate a
 };
 
 
-export const generateArtistVideo = async (prompt: string): Promise<string> => {
+export const generateArtistImage = async (prompt: string): Promise<string> => {
     try {
-        let operation = await ai.models.generateVideos({
-            model: 'veo-2.0-generate-001',
-            prompt: `${prompt}, looping video`,
+        const response = await ai.models.generateImages({
+            model: 'imagen-4.0-generate-001',
+            prompt: prompt,
             config: {
-                numberOfVideos: 1
-            }
+                numberOfImages: 1,
+                outputMimeType: 'image/jpeg',
+                aspectRatio: '1:1',
+            },
         });
-
-        while (!operation.done) {
-            await new Promise(resolve => setTimeout(resolve, 10000));
-            operation = await ai.operations.getVideosOperation({ operation: operation });
-        }
-
-        const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-        if (!downloadLink) {
-            throw new Error("Video generation did not return a valid link.");
-        }
         
-        const response = await fetch(`${downloadLink}&key=${API_KEY}`);
-        if (!response.ok) {
-            throw new Error(`Failed to download video: ${response.statusText}`);
-        }
-        const videoBlob = await response.blob();
-        
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(videoBlob);
-        });
+        const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
+        const imageUrl = `data:image/jpeg;base64,${base64ImageBytes}`;
+        return imageUrl;
 
     } catch (error) {
-        console.error("Error generating video with Gemini API:", error);
-        throw new Error("Failed to generate the artist video.");
+        console.error("Error generating image with Gemini API:", error);
+        throw new Error("Failed to generate the artist image.");
     }
 };

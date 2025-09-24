@@ -6,7 +6,7 @@ import { StyleGuideViewer } from './components/StyleGuideViewer';
 import { ErrorMessage } from './components/ErrorMessage';
 import { ArtistProfile } from './components/ArtistProfile';
 import { SongEditor } from './components/SongEditor';
-import { generateSong, generateArtistVideo, remixBeat, generateVocalMelody, VocalMelody } from './services/geminiService';
+import { generateSong, generateArtistImage, remixBeat, generateVocalMelody, VocalMelody } from './services/geminiService';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { BeatPlayer } from './components/BeatPlayer';
 import { MusicVisualizer } from './components/MusicVisualizer';
@@ -39,7 +39,7 @@ const App: React.FC = () => {
   
   const [appState, setAppState] = useState<'prompt' | 'editing' | 'display'>('prompt');
   const [isGeneratingText, setIsGeneratingText] = useState<boolean>(false);
-  const [isGeneratingAudioVideo, setIsGeneratingAudioVideo] = useState<boolean>(false);
+  const [isGeneratingAudioVisuals, setIsGeneratingAudioVisuals] = useState<boolean>(false);
   const [generationStatus, setGenerationStatus] = useState<string>('');
   
   const [songData, setSongData] = useState<SongData>({
@@ -55,7 +55,7 @@ const App: React.FC = () => {
     vocalMelody: null,
     bpm: 120,
   });
-  const [artistVideoUrl, setArtistVideoUrl] = useState<string>('');
+  const [artistImageUrl, setArtistImageUrl] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -97,7 +97,7 @@ const App: React.FC = () => {
                       vocalMelody: loadedSong.vocalMelody || null,
                       bpm: loadedSong.bpm || 120,
                     });
-                    setArtistVideoUrl(loadedSong.artistVideoUrl || '');
+                    setArtistImageUrl(loadedSong.artistImageUrl || '');
                     setAppState('display');
                 }
                 
@@ -154,17 +154,16 @@ const App: React.FC = () => {
       setError('Please provide a prompt for the artist image.');
       return;
     }
-    setIsGeneratingAudioVideo(true);
+    setIsGeneratingAudioVisuals(true);
     setError(null);
 
     const messages = [
         "Composing vocal melody...",
-        "Warming up the video cameras...",
-        "Setting the scene...",
+        "Preparing the photo studio...",
+        "Setting up the lighting...",
         "Directing your artist...",
-        "Rolling camera... Action!",
-        "Rendering the final cut...",
-        "This can take a few minutes...",
+        "Snapping the photo...",
+        "Developing the image...",
     ];
     let messageIndex = 0;
     
@@ -172,28 +171,28 @@ const App: React.FC = () => {
     updateStatus();
 
     const intervalId = setInterval(() => {
-        if (messageIndex < messages.length - 2) {
+        if (messageIndex < messages.length - 1) {
             messageIndex = (messageIndex + 1);
             updateStatus();
         }
-    }, 5000);
+    }, 4000);
 
     try {
       const melody = await generateVocalMelody(songData.lyrics, songData.styleGuide);
       setSongData(prev => ({ ...prev, vocalMelody: melody }));
       
-      messageIndex = 1; // Move to video messages
+      messageIndex = 1; // Move to image messages
       updateStatus();
 
-      const videoUrl = await generateArtistVideo(songData.artistImagePrompt);
-      setArtistVideoUrl(videoUrl);
+      const imageUrl = await generateArtistImage(songData.artistImagePrompt);
+      setArtistImageUrl(imageUrl);
       setAppState('display');
     } catch (err) {
       console.error(err);
       setError('Failed to generate the artist assets. Please check the console and try again.');
        setAppState('editing');
     } finally {
-      setIsGeneratingAudioVideo(false);
+      setIsGeneratingAudioVisuals(false);
       clearInterval(intervalId);
       setGenerationStatus('');
     }
@@ -219,7 +218,7 @@ const App: React.FC = () => {
       vocalMelody: null,
       bpm: 120,
     });
-    setArtistVideoUrl('');
+    setArtistImageUrl('');
     setError(null);
     window.history.replaceState({}, document.title, window.location.pathname);
   }, [stopPlayback]);
@@ -331,7 +330,7 @@ const App: React.FC = () => {
 
 
   const renderContent = () => {
-    if (isGeneratingText || isGeneratingAudioVideo) {
+    if (isGeneratingText || isGeneratingAudioVisuals) {
       return (
         <div className="text-center p-10 bg-gray-800/50 rounded-xl">
           <LoadingSpinner size="lg" />
@@ -352,7 +351,7 @@ const App: React.FC = () => {
                   setSongData={setSongData}
                   onFinalize={handleFinalizeSong}
                   onCancel={handleStartOver}
-                  isLoading={isGeneratingAudioVideo}
+                  isLoading={isGeneratingAudioVisuals}
                 />;
       case 'display':
         return (
@@ -361,7 +360,7 @@ const App: React.FC = () => {
               title={songData.title}
               artistName={songData.artistName}
               artistBio={songData.artistBio}
-              artistVideoUrl={artistVideoUrl}
+              artistImageUrl={artistImageUrl}
               lyrics={songData.lyrics}
               styleGuide={songData.styleGuide}
               artistImagePrompt={songData.artistImagePrompt}
