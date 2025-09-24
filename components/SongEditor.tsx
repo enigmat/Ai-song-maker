@@ -21,10 +21,45 @@ interface SongEditorProps {
     songData: SongData;
     setSongData: (songData: SongData) => void;
     onFinalize: () => void;
+    onCancel: () => void;
     isLoading: boolean;
 }
 
-export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, onFinalize, isLoading }) => {
+const CopyButton = ({ textToCopy, positionClasses }: { textToCopy: string; positionClasses: string }) => {
+    const [isCopied, setIsCopied] = useState(false);
+
+    const handleCopy = () => {
+        if (!textToCopy) return;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+        }).catch(err => console.error("Failed to copy text: ", err));
+    };
+
+    return (
+        <button
+            type="button"
+            onClick={handleCopy}
+            className={`absolute ${positionClasses} text-gray-400 hover:text-white transition-colors duration-200 p-1 rounded-full hover:bg-gray-700/50`}
+            title={isCopied ? "Copied!" : "Copy to clipboard"}
+            aria-label={isCopied ? "Content copied" : "Copy content to clipboard"}
+        >
+            {isCopied ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+            ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" />
+                    <path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h6a2 2 0 00-2-2H5z" />
+                </svg>
+            )}
+        </button>
+    );
+};
+
+
+export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, onFinalize, onCancel, isLoading }) => {
     const [lyricsViewMode, setLyricsViewMode] = useState<'edit' | 'structured'>('edit');
     
     const handleChange = (field: keyof SongData, value: string | number) => {
@@ -55,13 +90,16 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
         }
 
         return (
-            <textarea
-                id="lyrics"
-                rows={15}
-                value={songData.lyrics}
-                onChange={(e) => handleChange('lyrics', e.target.value)}
-                className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y font-serif"
-            />
+             <div className="relative">
+                <textarea
+                    id="lyrics"
+                    rows={15}
+                    value={songData.lyrics}
+                    onChange={(e) => handleChange('lyrics', e.target.value)}
+                    className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y font-serif pr-12"
+                />
+                <CopyButton textToCopy={songData.lyrics} positionClasses="top-3 right-3" />
+            </div>
         );
     };
     
@@ -74,35 +112,44 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <label htmlFor="title" className="block text-lg font-medium text-gray-300 mb-2">Song Title</label>
-                    <input
-                        id="title"
-                        type="text"
-                        value={songData.title}
-                        onChange={(e) => handleChange('title', e.target.value)}
-                        className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
-                    />
+                    <div className="relative">
+                        <input
+                            id="title"
+                            type="text"
+                            value={songData.title}
+                            onChange={(e) => handleChange('title', e.target.value)}
+                            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all pr-12"
+                        />
+                        <CopyButton textToCopy={songData.title} positionClasses="top-1/2 right-3 -translate-y-1/2" />
+                    </div>
                 </div>
                 <div>
                     <label htmlFor="artistName" className="block text-lg font-medium text-gray-300 mb-2">Artist Name</label>
-                    <input
-                        id="artistName"
-                        type="text"
-                        value={songData.artistName}
-                        onChange={(e) => handleChange('artistName', e.target.value)}
-                        className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
-                    />
+                    <div className="relative">
+                        <input
+                            id="artistName"
+                            type="text"
+                            value={songData.artistName}
+                            onChange={(e) => handleChange('artistName', e.target.value)}
+                            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all pr-12"
+                        />
+                        <CopyButton textToCopy={songData.artistName} positionClasses="top-1/2 right-3 -translate-y-1/2" />
+                    </div>
                 </div>
             </div>
 
             <div>
                 <label htmlFor="artistBio" className="block text-lg font-medium text-gray-300 mb-2">Artist Bio</label>
-                <textarea
-                    id="artistBio"
-                    rows={3}
-                    value={songData.artistBio}
-                    onChange={(e) => handleChange('artistBio', e.target.value)}
-                    className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y"
-                />
+                <div className="relative">
+                    <textarea
+                        id="artistBio"
+                        rows={3}
+                        value={songData.artistBio}
+                        onChange={(e) => handleChange('artistBio', e.target.value)}
+                        className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y pr-12"
+                    />
+                    <CopyButton textToCopy={songData.artistBio} positionClasses="top-3 right-3" />
+                </div>
             </div>
 
             <div>
@@ -110,13 +157,16 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                     Artist Video Prompt
                     <span className="text-sm text-gray-400 ml-2">(Edit to change the generated video)</span>
                 </label>
-                <textarea
-                    id="artistImagePrompt"
-                    rows={4}
-                    value={songData.artistImagePrompt}
-                    onChange={(e) => handleChange('artistImagePrompt', e.target.value)}
-                    className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all resize-y font-mono text-sm"
-                />
+                <div className="relative">
+                    <textarea
+                        id="artistImagePrompt"
+                        rows={4}
+                        value={songData.artistImagePrompt}
+                        onChange={(e) => handleChange('artistImagePrompt', e.target.value)}
+                        className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all resize-y font-mono text-sm pr-12"
+                    />
+                    <CopyButton textToCopy={songData.artistImagePrompt} positionClasses="top-3 right-3" />
+                </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -124,14 +174,17 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                     <label htmlFor="beatPattern" className="block text-lg font-medium text-gray-300 mb-2">
                         Beat Pattern (JSON)
                     </label>
-                    <textarea
-                        id="beatPattern"
-                        rows={4}
-                        value={songData.beatPattern}
-                        onChange={(e) => handleChange('beatPattern', e.target.value)}
-                        className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all resize-y font-mono text-sm"
-                        placeholder='e.g., {"kick": [0, 8], "snare": [4, 12], "hihat": [0,2,4,6,8,10,12,14]}'
-                    />
+                    <div className="relative">
+                        <textarea
+                            id="beatPattern"
+                            rows={4}
+                            value={songData.beatPattern}
+                            onChange={(e) => handleChange('beatPattern', e.target.value)}
+                            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all resize-y font-mono text-sm pr-12"
+                            placeholder='e.g., {"kick": [0, 8], "snare": [4, 12], "hihat": [0,2,4,6,8,10,12,14]}'
+                        />
+                         <CopyButton textToCopy={songData.beatPattern} positionClasses="top-3 right-3" />
+                    </div>
                 </div>
                 <div>
                     <label htmlFor="bpm" className="block text-lg font-medium text-gray-300 mb-2">
@@ -174,34 +227,49 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
 
             <div>
                 <label htmlFor="styleGuide" className="block text-lg font-medium text-gray-300 mb-2">Production Style Guide</label>
-                <textarea
-                    id="styleGuide"
-                    rows={10}
-                    value={songData.styleGuide}
-                    onChange={(e) => handleChange('styleGuide', e.target.value)}
-                    className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y"
-                />
+                <div className="relative">
+                    <textarea
+                        id="styleGuide"
+                        rows={10}
+                        value={songData.styleGuide}
+                        onChange={(e) => handleChange('styleGuide', e.target.value)}
+                        className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y pr-12"
+                    />
+                    <CopyButton textToCopy={songData.styleGuide} positionClasses="top-3 right-3" />
+                </div>
             </div>
-            
-            <button
-                onClick={onFinalize}
-                disabled={isLoading}
-                className="mt-4 w-full flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg shadow-md hover:from-teal-600 hover:to-cyan-600 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            >
-                {isLoading ? (
-                    <>
-                        <LoadingSpinner />
-                        Creating Artist...
-                    </>
-                ) : (
-                    <>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        Create Artist & Finalize
-                    </>
-                )}
-            </button>
+
+            <div className="mt-6 flex flex-col sm:flex-row-reverse gap-4">
+                <button
+                    onClick={onFinalize}
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg shadow-md hover:from-teal-600 hover:to-cyan-600 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                    {isLoading ? (
+                        <>
+                            <LoadingSpinner />
+                            Creating Artist...
+                        </>
+                    ) : (
+                        <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                            Create Artist & Finalize
+                        </>
+                    )}
+                </button>
+                <button
+                    onClick={onCancel}
+                    disabled={isLoading}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 border-2 border-gray-600 text-gray-300 rounded-lg shadow-md hover:bg-gray-700 hover:text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Back
+                </button>
+            </div>
         </div>
     );
 };

@@ -341,6 +341,7 @@ const App: React.FC = () => {
                   songData={songData}
                   setSongData={setSongData}
                   onFinalize={handleFinalizeSong}
+                  onCancel={handleStartOver}
                   isLoading={isGeneratingAudioVideo}
                 />;
       case 'display':

@@ -24,7 +24,8 @@ export type VocalMelody = MelodyLine[];
 
 
 const styleGuideExample = `🎼 Style – Only a Fool for Love
-Genre: Classic Philly Soul / R&B (1970s Spinners, O’Jays, Harold Melvin vibes)
+Genre: Classic Philly Soul / R&B
+Vibe: Evokes the sound of iconic 1970s Philadelphia soul groups, with lush orchestrations and smooth, heartfelt vocal harmonies.
 Tempo: Mid-tempo ballad groove (~80 BPM)
 Key: C Major
 Mood: Bittersweet, heartfelt, romantic with a touch of melancholy
@@ -80,7 +81,7 @@ Create a single JSON object containing:
 3.  **artistBio:** A short, fictional biography (2-3 sentences) for the invented ${artistTypeLower}.
 4.  **artistImagePrompt:** A descriptive prompt for an AI video generator to create a short, looping music video clip for the ${artistTypeLower} (e.g., "${videoPromptExample}").
 5.  **lyrics:** Write compelling lyrics following a standard song structure. The lyrics must be a single string with each line separated by a newline character ('\\n'). Explicitly include song structure markers like '[Verse]', '[Chorus]', and '[Bridge]' on their own lines. If the artistType is 'Duet', the lyrics MUST be formatted for two singers (a male and a female). Clearly indicate who is singing by starting the line with '(Singer 1)', '(Singer 2)', or '(Both)'.
-6.  **styleGuide:** Create a detailed production style guide for the song, using the provided example as a template for formatting and detail.
+6.  **styleGuide:** Create a detailed production style guide for the song, using the provided example as a template for formatting and detail. IMPORTANT: Do not use real artist names. Instead, describe the style or vibe they are known for (e.g., "in the style of a classic 70s soul group" instead of "like The Spinners").
 7.  **beatPattern:** Based on the generated style guide (especially tempo and feel), create a 16-step drum machine pattern. Represent it as a JSON string with keys for "kick", "snare", and "hihat", and optionally "clap". Each key should have an array of numbers from 0 to 15 indicating the steps where the sound is triggered. Example: '{"kick": [0, 8], "snare": [4, 12], "hihat": [0,2,4,6,8,10,12,14], "clap": [4]}'.
 8.  **bpm:** Extract the tempo (Beats Per Minute) from the style guide and provide it as a single integer (e.g., 80).`,
             config: {
