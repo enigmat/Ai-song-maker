@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
+import { SongStorylineGenerator } from './SongStorylineGenerator';
 import type { SingerGender, ArtistType } from '../App';
 
 interface PromptFormProps {
@@ -20,9 +21,16 @@ const genders: SingerGender[] = ['Female', 'Male'];
 const artistTypes: ArtistType[] = ['Solo Artist', 'Group', 'Duet'];
 
 export const PromptForm: React.FC<PromptFormProps> = ({ prompt, setPrompt, genre, setGenre, singerGender, setSingerGender, artistType, setArtistType, onGenerate, isLoading }) => {
+  const [showStorylineGenerator, setShowStorylineGenerator] = useState(false);
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onGenerate();
+  };
+
+  const handleSelectStoryline = (storyline: string) => {
+    setPrompt(storyline);
+    setShowStorylineGenerator(false);
   };
 
   return (
@@ -98,9 +106,23 @@ export const PromptForm: React.FC<PromptFormProps> = ({ prompt, setPrompt, genre
         </div>
         
         <div>
-            <label htmlFor="song-prompt" className="block text-lg font-medium text-gray-300 mb-2">
-            What's your song about?
-            </label>
+            <div className="flex justify-between items-center mb-2">
+                <label htmlFor="song-prompt" className="block text-lg font-medium text-gray-300">
+                    What's your song about?
+                </label>
+                {!showStorylineGenerator && (
+                    <button
+                        type="button"
+                        onClick={() => setShowStorylineGenerator(true)}
+                        className="text-sm text-teal-400 hover:text-teal-300 font-semibold flex items-center gap-1 transition-colors"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1.333a1 1 0 01-2 0V3a1 1 0 011-1zm4.707 3.293a1 1 0 010 1.414l-1.06 1.06a1 1 0 01-1.414-1.414l1.06-1.06a1 1 0 011.414 0zM3.293 6.707a1 1 0 011.414 0l1.06 1.06a1 1 0 01-1.414 1.414l-1.06-1.06a1 1 0 010-1.414zM10 16a1 1 0 01-1-1v-1.333a1 1 0 112 0V15a1 1 0 01-1 1zm-6.707-3.293a1 1 0 010-1.414l1.06-1.06a1 1 0 111.414 1.414l-1.06 1.06a1 1 0 01-1.414 0zM16.707 11.293a1 1 0 011.414 0l1.06 1.06a1 1 0 01-1.414 1.414l-1.06-1.06a1 1 0 010-1.414zM4 10a1 1 0 01-1-1H1.667a1 1 0 110-2H3a1 1 0 011 1zm14 0a1 1 0 01-1-1h-1.333a1 1 0 110-2H17a1 1 0 011 1zM10 6a4 4 0 100 8 4 4 0 000-8z" clipRule="evenodd" />
+                        </svg>
+                        Need inspiration?
+                    </button>
+                )}
+            </div>
             <textarea
             id="song-prompt"
             rows={3}
@@ -112,6 +134,13 @@ export const PromptForm: React.FC<PromptFormProps> = ({ prompt, setPrompt, genre
             />
         </div>
         
+        {showStorylineGenerator && (
+            <SongStorylineGenerator 
+                onSelectStoryline={handleSelectStoryline} 
+                onClose={() => setShowStorylineGenerator(false)}
+            />
+        )}
+
         <button
           type="submit"
           disabled={isLoading}

@@ -126,6 +126,41 @@ Create a single JSON object containing:
     }
 };
 
+export const generateStorylines = async (topic: string): Promise<string[]> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: `Generate 5 unique and compelling song storylines based on the topic: "${topic}". Each storyline should be a short paragraph, suitable as a creative starting point for a song.`,
+            config: {
+                systemInstruction: "You are a creative assistant for songwriters. Your task is to provide 5 distinct song ideas as a JSON object with a single key 'storylines' which is an array of strings.",
+                temperature: 0.9,
+                topP: 1.0,
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        storylines: {
+                            type: Type.ARRAY,
+                            items: { type: Type.STRING },
+                            description: "An array of 5 song storyline ideas."
+                        }
+                    },
+                    required: ["storylines"]
+                }
+            },
+        });
+        
+        const jsonString = response.text.trim();
+        const responseObject = JSON.parse(jsonString);
+        
+        return responseObject.storylines || [];
+
+    } catch (error) {
+        console.error("Error generating storylines with Gemini API:", error);
+        throw new Error("Failed to generate song storylines.");
+    }
+};
+
 export const remixBeat = async (styleGuide: string): Promise<string> => {
     try {
         const response = await ai.models.generateContent({
