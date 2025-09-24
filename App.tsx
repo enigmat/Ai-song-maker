@@ -9,6 +9,7 @@ import { SongEditor } from './components/SongEditor';
 import { generateSong, generateArtistVideo, remixBeat, generateVocalMelody, VocalMelody } from './services/geminiService';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { BeatPlayer } from './components/BeatPlayer';
+import { MusicVisualizer } from './components/MusicVisualizer';
 
 // Declaration for Tone.js from CDN
 declare const Tone: any;
@@ -69,6 +70,7 @@ const App: React.FC = () => {
       drumSynths: {},
       beatSequence: null,
       melodyPart: null,
+      analyser: null,
   });
   
   useEffect(() => {
@@ -270,9 +272,17 @@ const App: React.FC = () => {
         if (audioResources.current.vocalSynth) audioResources.current.vocalSynth.dispose();
         if (audioResources.current.beatSequence) audioResources.current.beatSequence.dispose();
         if (audioResources.current.melodyPart) audioResources.current.melodyPart.dispose();
-        audioResources.current = { drumSynths: {}, beatSequence: null, melodyPart: null, vocalSynth: null };
+        if (audioResources.current.analyser) {
+            Tone.getDestination().disconnect(audioResources.current.analyser);
+            audioResources.current.analyser.dispose();
+        }
+        audioResources.current = { drumSynths: {}, beatSequence: null, melodyPart: null, vocalSynth: null, analyser: null };
     };
     
+    // Setup Analyser for visualization
+    audioResources.current.analyser = new Tone.Analyser('waveform', 1024);
+    Tone.getDestination().connect(audioResources.current.analyser);
+
     // Setup Synths
     audioResources.current.vocalSynth = new Tone.PolySynth(Tone.Synth, {
         oscillator: { type: "fatsawtooth" },
@@ -363,6 +373,11 @@ const App: React.FC = () => {
               onPlaybackToggle={handlePlaybackToggle}
               bpm={songData.bpm}
               onBpmChange={(newBpm) => setSongData(prev => ({ ...prev, bpm: newBpm }))}
+            />
+
+            <MusicVisualizer 
+              analyser={audioResources.current.analyser}
+              isPlaying={isPlaying}
             />
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">

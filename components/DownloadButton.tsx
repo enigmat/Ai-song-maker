@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import type { SingerGender, ArtistType } from '../App';
+import type { VocalMelody } from '../services/geminiService';
+import { renderStems } from '../services/audioService';
 
 // TypeScript declarations for global libraries from CDN
 declare var JSZip: any;
@@ -15,6 +17,8 @@ interface DownloadButtonProps {
   singerGender: SingerGender;
   artistType: ArtistType;
   bpm: number;
+  beatPattern: string;
+  vocalMelody: VocalMelody | null;
 }
 
 interface FilesToInclude {
@@ -24,6 +28,13 @@ interface FilesToInclude {
     htmlPlayer: boolean;
     video: boolean;
     image: boolean;
+    fullMix: boolean;
+    vocals: boolean;
+    drums: boolean;
+    kick: boolean;
+    snare: boolean;
+    hihat: boolean;
+    clap: boolean;
 }
 
 const DownloadIcon = () => (
@@ -32,8 +43,10 @@ const DownloadIcon = () => (
     </svg>
 );
 
-export const DownloadButton: React.FC<DownloadButtonProps> = ({ title, artistName, artistBio, artistVideoUrl, lyrics, styleGuide, singerGender, artistType, bpm }) => {
-    const [isDownloading, setIsDownloading] = useState(false);
+export const DownloadButton: React.FC<DownloadButtonProps> = ({ 
+    title, artistName, artistBio, artistVideoUrl, lyrics, styleGuide, singerGender, artistType, bpm, beatPattern, vocalMelody
+}) => {
+    const [downloadStatus, setDownloadStatus] = useState<'idle' | 'rendering' | 'zipping'>('idle');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [filesToInclude, setFilesToInclude] = useState<FilesToInclude>({
         lyrics: true,
@@ -42,12 +55,18 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ title, artistNam
         htmlPlayer: true,
         video: true,
         image: true,
+        fullMix: true,
+        vocals: true,
+        drums: true,
+        kick: false,
+        snare: false,
+        hihat: false,
+        clap: false,
     });
 
     const handleFileSelectionChange = (file: keyof FilesToInclude, checked: boolean) => {
         setFilesToInclude(prev => {
             const newState = { ...prev, [file]: checked };
-            // If video is unchecked, also uncheck and disable image
             if (file === 'video' && !checked) {
                 newState.image = false;
             }
@@ -88,7 +107,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ title, artistNam
             };
             
             const onLoadedMetadata = () => {
-                video.currentTime = Math.min(1, video.duration / 2); // Seek to 1s or midpoint
+                video.currentTime = Math.min(1, video.duration / 2);
             };
     
             const onError = () => {
@@ -147,12 +166,35 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ title, artistNam
 
 
     const handleDownload = async () => {
-        if (isDownloading) return;
-        setIsDownloading(true);
+        if (downloadStatus !== 'idle') return;
 
         try {
             const zip = new JSZip();
 
+            // Audio Rendering
+            const audioStemsToRender = {
+                fullMix: filesToInclude.fullMix,
+                vocals: filesToInclude.vocals,
+                drums: filesToInclude.drums,
+                kick: filesToInclude.kick,
+                snare: filesToInclude.snare,
+                hihat: filesToInclude.hihat,
+                clap: filesToInclude.clap,
+            };
+
+            const hasAudioToRender = Object.values(audioStemsToRender).some(v => v);
+
+            if (hasAudioToRender) {
+                setDownloadStatus('rendering');
+                const audioBlobs = await renderStems({ beatPattern, bpm, vocalMelody }, audioStemsToRender);
+                 for (const filename in audioBlobs) {
+                    zip.file(`audio/${filename}`, audioBlobs[filename]);
+                }
+            }
+
+            setDownloadStatus('zipping');
+
+            // Other Assets
             if (filesToInclude.lyrics) zip.file("lyrics.txt", lyrics);
             if (filesToInclude.styleGuide) zip.file("style_guide.txt", styleGuide);
             if (filesToInclude.artistInfo) {
@@ -184,10 +226,32 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ title, artistNam
             console.error("Failed to create zip file:", error);
             alert("Sorry, there was an error creating the download package.");
         } finally {
-            setIsDownloading(false);
+            setDownloadStatus('idle');
             setIsModalOpen(false);
         }
     };
+    
+    const renderDownloadButtonContent = () => {
+        switch (downloadStatus) {
+            case 'rendering':
+                return (
+                    <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        Rendering...
+                    </>
+                );
+            case 'zipping':
+                return (
+                    <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        Zipping...
+                    </>
+                );
+            case 'idle':
+            default:
+                return 'Download ZIP';
+        }
+    }
 
     const CheckboxItem = ({ id, label, checked, onChange, disabled = false, description }: { id: keyof FilesToInclude, label: string, checked: boolean, onChange: (id: keyof FilesToInclude, checked: boolean) => void, disabled?: boolean, description?: string }) => (
         <div className={`relative flex items-start py-3 ${disabled ? 'opacity-50' : ''}`}>
@@ -223,42 +287,55 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ title, artistNam
             </button>
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in" aria-modal="true" role="dialog">
-                    <div className="bg-gray-800 border border-gray-700 rounded-xl shadow-lg w-full max-w-md">
-                        <div className="p-6">
+                    <div className="bg-gray-800 border border-gray-700 rounded-xl shadow-lg w-full max-w-lg">
+                        <div className="p-6 max-h-[80vh] overflow-y-auto">
                             <h2 className="text-xl font-bold text-white">Download Options</h2>
                             <p className="mt-1 text-sm text-gray-400">Select which files to include in the ZIP package.</p>
-                            <div className="mt-4 space-y-1 divide-y divide-gray-700">
-                               <CheckboxItem id="lyrics" label="lyrics.txt" checked={filesToInclude.lyrics} onChange={handleFileSelectionChange} description="The raw song lyrics." />
-                               <CheckboxItem id="styleGuide" label="style_guide.txt" checked={filesToInclude.styleGuide} onChange={handleFileSelectionChange} description="The AI-generated production guide." />
-                               <CheckboxItem id="artistInfo" label="artist_info.txt" checked={filesToInclude.artistInfo} onChange={handleFileSelectionChange} description="Bio, song title, and BPM." />
-                               <CheckboxItem id="htmlPlayer" label="song_lyrics_viewer.html" checked={filesToInclude.htmlPlayer} onChange={handleFileSelectionChange} description="An offline-ready lyrics viewer." />
-                               <CheckboxItem id="video" label="artist_video.mp4" checked={filesToInclude.video} onChange={handleFileSelectionChange} description="The animated artist video loop." />
-                               <CheckboxItem id="image" label="artist_image.jpg" checked={filesToInclude.image} onChange={handleFileSelectionChange} disabled={!filesToInclude.video} description="A still frame from the video." />
+                            
+                            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                                <fieldset>
+                                    <legend className="text-md font-semibold leading-6 text-gray-200">Assets</legend>
+                                    <div className="mt-4 space-y-1 divide-y divide-gray-700">
+                                       <CheckboxItem id="lyrics" label="lyrics.txt" checked={filesToInclude.lyrics} onChange={handleFileSelectionChange} />
+                                       <CheckboxItem id="styleGuide" label="style_guide.txt" checked={filesToInclude.styleGuide} onChange={handleFileSelectionChange} />
+                                       <CheckboxItem id="artistInfo" label="artist_info.txt" checked={filesToInclude.artistInfo} onChange={handleFileSelectionChange} />
+                                       <CheckboxItem id="htmlPlayer" label="song_lyrics_viewer.html" checked={filesToInclude.htmlPlayer} onChange={handleFileSelectionChange} />
+                                       <CheckboxItem id="video" label="artist_video.mp4" checked={filesToInclude.video} onChange={handleFileSelectionChange} />
+                                       <CheckboxItem id="image" label="artist_image.jpg" checked={filesToInclude.image} onChange={handleFileSelectionChange} disabled={!filesToInclude.video} />
+                                    </div>
+                                </fieldset>
+
+                                <fieldset>
+                                    <legend className="text-md font-semibold leading-6 text-gray-200">Audio Stems (.wav)</legend>
+                                    <div className="mt-4 space-y-1 divide-y divide-gray-700">
+                                       <CheckboxItem id="fullMix" label="Full Mix" checked={filesToInclude.fullMix} onChange={handleFileSelectionChange} description="Vocals + All Instruments" />
+                                       <CheckboxItem id="vocals" label="Vocals" checked={filesToInclude.vocals} onChange={handleFileSelectionChange} description="Isolated vocal track" />
+                                       <CheckboxItem id="drums" label="Drums (Combined)" checked={filesToInclude.drums} onChange={handleFileSelectionChange} description="All drum parts mixed" />
+                                       <CheckboxItem id="kick" label="Kick" checked={filesToInclude.kick} onChange={handleFileSelectionChange} />
+                                       <CheckboxItem id="snare" label="Snare" checked={filesToInclude.snare} onChange={handleFileSelectionChange} />
+                                       <CheckboxItem id="hihat" label="Hi-Hat" checked={filesToInclude.hihat} onChange={handleFileSelectionChange} />
+                                       <CheckboxItem id="clap" label="Clap" checked={filesToInclude.clap} onChange={handleFileSelectionChange} />
+                                    </div>
+                                </fieldset>
                             </div>
+
                         </div>
                         <div className="bg-gray-800/50 px-6 py-4 flex justify-end items-center gap-4 rounded-b-xl border-t border-gray-700">
                            <button
                                 type="button"
                                 onClick={() => setIsModalOpen(false)}
-                                className="px-4 py-2 text-sm font-semibold text-gray-300 bg-gray-700 rounded-md hover:bg-gray-600 transition-colors"
+                                disabled={downloadStatus !== 'idle'}
+                                className="px-4 py-2 text-sm font-semibold text-gray-300 bg-gray-700 rounded-md hover:bg-gray-600 transition-colors disabled:opacity-50"
                             >
                                 Cancel
                             </button>
                              <button
                                 type="button"
                                 onClick={handleDownload}
-                                disabled={isDownloading}
-                                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-purple-600 rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-wait"
+                                disabled={downloadStatus !== 'idle'}
+                                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-purple-600 rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-wait w-28"
                             >
-                                {isDownloading ? (
-                                    <>
-                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Zipping...
-                                    </>
-                                ) : 'Download ZIP'}
+                               {renderDownloadButtonContent()}
                             </button>
                         </div>
                     </div>

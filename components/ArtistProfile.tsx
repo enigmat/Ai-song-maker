@@ -92,6 +92,8 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({
                 singerGender={singerGender}
                 artistType={artistType}
                 bpm={bpm}
+                beatPattern={beatPattern}
+                vocalMelody={vocalMelody}
              />
           </div>
           <p className="mt-4 text-gray-400 text-sm sm:text-base leading-relaxed">
