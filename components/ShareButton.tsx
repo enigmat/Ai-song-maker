@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import type { SingerGender, ArtistType } from '../App';
+// Fix: Module '"../App"' has no exported member 'SingerGender' or 'ArtistType'. They are exported from geminiService.
+import type { SingerGender, ArtistType } from '../services/geminiService';
 import type { VocalMelody } from '../services/geminiService';
 
 interface ShareButtonProps {
@@ -15,6 +16,7 @@ interface ShareButtonProps {
   beatPattern: string;
   vocalMelody: VocalMelody | null;
   bpm: number;
+  videoPrompt: string;
 }
 
 const ShareIcon = () => (
@@ -32,7 +34,7 @@ const CheckIcon = () => (
 
 export const ShareButton: React.FC<ShareButtonProps> = ({ 
     title, artistName, artistBio, artistImageUrl, lyrics, styleGuide, 
-    artistImagePrompt, singerGender, artistType, beatPattern, vocalMelody, bpm
+    artistImagePrompt, singerGender, artistType, beatPattern, vocalMelody, bpm, videoPrompt
 }) => {
     const [isCopied, setIsCopied] = useState(false);
 
@@ -50,6 +52,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
             beatPattern,
             vocalMelody,
             bpm,
+            videoPrompt,
         };
 
         const serializedData = JSON.stringify(songData);

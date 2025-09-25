@@ -1,10 +1,8 @@
 import React from 'react';
 import { ShareButton } from './ShareButton';
 import { LoadingSpinner } from './LoadingSpinner';
-import { DownloadButton } from './DownloadButton';
-import { MasterPlayButton } from './MasterPlayButton';
-import type { SingerGender, ArtistType } from '../App';
-import type { VocalMelody } from '../services/geminiService';
+import { DownloadMenu } from './DownloadMenu';
+import type { SingerGender, ArtistType, VocalMelody, SongData } from '../services/geminiService';
 
 interface ArtistProfileProps {
   title: string;
@@ -18,21 +16,28 @@ interface ArtistProfileProps {
   artistType: ArtistType;
   beatPattern: string;
   vocalMelody: VocalMelody | null;
-  isPlaying: boolean;
-  onPlaybackToggle: () => void;
   bpm: number;
-  onBpmChange: (bpm: number) => void;
+  videoPrompt: string;
+  videoUrl: string;
+  genre: string;
 }
 
-export const ArtistProfile: React.FC<ArtistProfileProps> = ({ 
-  title, artistName, artistBio, artistImageUrl, lyrics, styleGuide, 
-  artistImagePrompt, singerGender, artistType, beatPattern, vocalMelody,
-  isPlaying, onPlaybackToggle, bpm, onBpmChange
-}) => {
+export const ArtistProfile: React.FC<ArtistProfileProps> = (props) => { 
+  const { 
+    title, artistName, artistBio, artistImageUrl, lyrics, styleGuide, 
+    artistImagePrompt, singerGender, artistType, beatPattern, vocalMelody,
+    bpm, videoPrompt, videoUrl, genre
+  } = props;
   
   if (!artistName) {
     return null;
   }
+
+  const songDataForDownload: SongData = {
+    title, artistName, artistBio, artistImagePrompt, lyrics, styleGuide, 
+    beatPattern, singerGender, artistType, vocalMelody, bpm, videoPrompt, genre,
+  };
+
 
   return (
     <div className="mt-8 animate-fade-in">
@@ -57,7 +62,8 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({
           <h2 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-transparent bg-clip-text">
             {artistName}
           </h2>
-          <div className="flex items-center justify-center md:justify-start gap-3 mt-1">
+          {genre && <p className="mt-2 inline-block bg-teal-500/20 text-teal-300 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">{genre}</p>}
+          <div className="flex items-center justify-center md:justify-start gap-3 mt-2">
             <p className="text-xl text-gray-300 font-semibold">"{title}"</p>
             <ShareButton
                 title={title}
@@ -72,44 +78,17 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = ({
                 beatPattern={beatPattern}
                 vocalMelody={vocalMelody}
                 bpm={bpm}
+                videoPrompt={videoPrompt}
              />
-             <DownloadButton
-                title={title}
-                artistName={artistName}
-                artistBio={artistBio}
+             <DownloadMenu
+                songData={songDataForDownload}
                 artistImageUrl={artistImageUrl}
-                lyrics={lyrics}
-                styleGuide={styleGuide}
-                singerGender={singerGender}
-                artistType={artistType}
-                bpm={bpm}
-                beatPattern={beatPattern}
-                vocalMelody={vocalMelody}
+                videoUrl={videoUrl}
              />
           </div>
           <p className="mt-4 text-gray-400 text-sm sm:text-base leading-relaxed">
             {artistBio}
           </p>
-          <div className="mt-4 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4">
-            <MasterPlayButton
-                isPlaying={isPlaying}
-                onToggle={onPlaybackToggle}
-                isReady={!!vocalMelody && !!beatPattern}
-            />
-            <div className="flex items-center gap-3 w-full max-w-xs sm:w-auto">
-                <span className="text-sm font-mono text-gray-400">BPM</span>
-                <input 
-                    type="range" 
-                    min="60" 
-                    max="180" 
-                    value={bpm} 
-                    onChange={(e) => onBpmChange(Number(e.target.value))}
-                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-pink-500"
-                    aria-label="Adjust Beats Per Minute"
-                />
-                <span className="text-lg font-mono bg-gray-900/50 w-14 text-center px-2 py-1 rounded-md tabular-nums">{bpm}</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>

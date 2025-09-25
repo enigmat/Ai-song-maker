@@ -2,10 +2,9 @@ import React from 'react';
 
 interface LyricsViewerProps {
   lyrics: string;
-  currentLineIndex: number;
 }
 
-export const LyricsViewer: React.FC<LyricsViewerProps> = ({ lyrics, currentLineIndex }) => {
+export const LyricsViewer: React.FC<LyricsViewerProps> = ({ lyrics }) => {
   const lines = lyrics.split('\n');
 
   return (
@@ -26,7 +25,7 @@ export const LyricsViewer: React.FC<LyricsViewerProps> = ({ lyrics, currentLineI
               {lines.map((line, index) => (
                 <p
                   key={index}
-                  className={`transition-all duration-300 p-1 rounded-md ${currentLineIndex === index ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white scale-105' : 'text-gray-300'}`}
+                  className="transition-all duration-300 p-1 rounded-md text-gray-300"
                 >
                   {line || <>&nbsp;</>}
                 </p>
