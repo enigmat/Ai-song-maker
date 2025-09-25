@@ -3,6 +3,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
 import { analyzeSong, AnalysisReport } from '../services/geminiService';
 import { DownloadButton } from './DownloadButton';
+import { genres, vibes } from '../constants/music';
 
 declare var ID3Writer: any;
 
@@ -52,8 +53,8 @@ export const Mp3Analyzer: React.FC = () => {
     const [status, setStatus] = useState<'idle' | 'analyzing' | 'success' | 'error' | 'processing_art' | 'art_success'>('idle');
     const [file, setFile] = useState<File | null>(null);
     const [coverArt, setCoverArt] = useState<File | null>(null);
-    const [genre, setGenre] = useState('');
-    const [description, setDescription] = useState('');
+    const [genre, setGenre] = useState(genres[0]);
+    const [vibe, setVibe] = useState(vibes[0]);
     const [report, setReport] = useState<AnalysisReport | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -116,16 +117,12 @@ export const Mp3Analyzer: React.FC = () => {
             setError('Please select a file first.');
             return;
         }
-        if (!genre.trim() || !description.trim()) {
-            setError('Please provide a genre and description for the analysis.');
-            return;
-        }
         
         setStatus('analyzing');
         setError(null);
         setReport(null);
         try {
-            const analysisReport = await analyzeSong(file.name, genre, description);
+            const analysisReport = await analyzeSong(file.name, genre, vibe);
             setReport(analysisReport);
             setStatus('success');
         } catch (err) {
@@ -172,9 +169,9 @@ export const Mp3Analyzer: React.FC = () => {
     const handleReset = useCallback(() => {
         setStatus('idle');
         setFile(null);
-        setGenre('');
+        setGenre(genres[0]);
         setCoverArt(null);
-        setDescription('');
+        setVibe(vibes[0]);
         setReport(null);
         setError(null);
         setLastAction(null);
@@ -320,11 +317,27 @@ export const Mp3Analyzer: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label htmlFor="genre" className="block text-sm font-medium text-gray-400 mb-2">Genre</label>
-                        <input id="genre" type="text" value={genre} onChange={e => setGenre(e.target.value)} placeholder="e.g., Synthwave, Indie Rock" required disabled={isProcessing} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500" />
+                        <select
+                          id="genre"
+                          value={genre}
+                          onChange={e => setGenre(e.target.value)}
+                          disabled={isProcessing}
+                          className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500"
+                        >
+                            {genres.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
                     </div>
                     <div>
-                        <label htmlFor="description" className="block text-sm font-medium text-gray-400 mb-2">Description / Vibe</label>
-                         <input id="description" type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g., Upbeat, melancholic, driving..." required disabled={isProcessing} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500" />
+                        <label htmlFor="vibe" className="block text-sm font-medium text-gray-400 mb-2">Vibe</label>
+                         <select
+                           id="vibe"
+                           value={vibe}
+                           onChange={e => setVibe(e.target.value)}
+                           disabled={isProcessing}
+                           className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500"
+                         >
+                            {vibes.map(v => <option key={v} value={v}>{v}</option>)}
+                         </select>
                     </div>
                 </div>
                 
@@ -344,7 +357,7 @@ export const Mp3Analyzer: React.FC = () => {
                 </div>
 
                 <div className="mt-2 pt-4 border-t border-gray-700 flex flex-col sm:flex-row gap-4">
-                    <button type="submit" disabled={isProcessing || !file || !genre || !description} className="w-full flex items-center justify-center gap-3 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                    <button type="submit" disabled={isProcessing || !file} className="w-full flex items-center justify-center gap-3 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
                         {status === 'analyzing' ? <><LoadingSpinner /> Analyzing...</> : <><AnalyzerIcon /> Analyze Song</>}
                     </button>
                     <button type="button" onClick={handleAddArt} disabled={isProcessing || !file || !coverArt} className="w-full flex items-center justify-center gap-3 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg shadow-md hover:from-teal-600 hover:to-cyan-600 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
