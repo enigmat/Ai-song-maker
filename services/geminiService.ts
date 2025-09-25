@@ -108,3 +108,82 @@ export const generateVideo = async (prompt: string): Promise<string> => {
     const videoBlob = await videoResponse.blob();
     return URL.createObjectURL(videoBlob);
 };
+
+// New types and schema for MP3 analysis
+export interface Marketability {
+    targetAudience: string;
+    playlistFit: string[];
+    syncPotential: string;
+}
+
+export interface AnalysisReport {
+    pros: string[];
+    cons: string[];
+    summary: string;
+    marketability: Marketability;
+}
+
+const analysisReportSchema = {
+    type: Type.OBJECT,
+    properties: {
+        pros: { 
+            type: Type.ARRAY, 
+            items: { type: Type.STRING }, 
+            description: "A list of 3-5 potential positive aspects or strengths of the song, written as complete sentences." 
+        },
+        cons: { 
+            type: Type.ARRAY, 
+            items: { type: Type.STRING }, 
+            description: "A list of 3-5 potential negative aspects or areas for improvement for the song, written as complete sentences." 
+        },
+        summary: { 
+            type: Type.STRING, 
+            description: "A concluding summary of the analysis, 2-3 sentences long." 
+        },
+        marketability: {
+            type: Type.OBJECT,
+            properties: {
+                targetAudience: {
+                    type: Type.STRING,
+                    description: "A description of the likely target audience for this song (e.g., age, interests)."
+                },
+                playlistFit: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING },
+                    description: "A list of 3-5 specific, well-known playlist categories or names (e.g., 'Spotify's Lo-fi Beats', 'Chill Hits') where this song would fit well."
+                },
+                syncPotential: {
+                    type: Type.STRING,
+                    description: "A brief analysis of the song's potential for sync licensing in media like films, TV shows, or advertisements."
+                }
+            },
+            required: ["targetAudience", "playlistFit", "syncPotential"]
+        }
+    },
+    required: ["pros", "cons", "summary", "marketability"]
+};
+
+export const analyzeSong = async (fileName: string, genre: string, description: string): Promise<AnalysisReport> => {
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: `Act as an expert A&R scout and music critic. Based on the following information about a song, provide a detailed analysis.
+        The analysis should be hypothetical, as you cannot listen to the audio.
+        File Name: "${fileName}"
+        Genre: "${genre}"
+        Description: "${description}"
+
+        Your analysis must include:
+        1. Pros & Cons: A balanced critique. The pros should highlight potential strengths (composition, arrangement, emotional impact). The cons should point out potential weaknesses or areas for improvement. Be constructive.
+        2. Marketability: A detailed market analysis including:
+            - Target Audience: Describe the ideal listener demographic.
+            - Playlist Fit: Suggest specific, popular playlist categories or names where the song would fit.
+            - Sync Potential: Describe opportunities for licensing in film, TV, or advertising.`,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: analysisReportSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    return JSON.parse(jsonText) as AnalysisReport;
+};

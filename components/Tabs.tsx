@@ -1,8 +1,8 @@
 import React from 'react';
 
 interface TabsProps {
-  activeTool: 'generator' | 'converter';
-  onSelectTool: (tool: 'generator' | 'converter') => void;
+  activeTool: 'generator' | 'converter' | 'analyzer';
+  onSelectTool: (tool: 'generator' | 'converter' | 'analyzer') => void;
 }
 
 const GeneratorIcon = () => (
@@ -17,8 +17,14 @@ const ConverterIcon = () => (
     </svg>
 );
 
+const AnalyzerIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+    </svg>
+);
+
 export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
-  const getButtonClasses = (tool: 'generator' | 'converter') => {
+  const getButtonClasses = (tool: 'generator' | 'converter' | 'analyzer') => {
     const isActive = activeTool === tool;
     return `w-full flex items-center justify-center px-4 py-3 font-semibold text-sm sm:text-base rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
       isActive
@@ -35,7 +41,11 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
       </button>
       <button onClick={() => onSelectTool('converter')} className={getButtonClasses('converter')}>
         <ConverterIcon />
-        AIF to MP3 Converter
+        Audio Converter
+      </button>
+      <button onClick={() => onSelectTool('analyzer')} className={getButtonClasses('analyzer')}>
+        <AnalyzerIcon />
+        MP3 Analyzer
       </button>
     </div>
   );
