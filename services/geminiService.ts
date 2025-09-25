@@ -58,6 +58,24 @@ export const generateSongFromPrompt = async (prompt: string, singerGender: Singe
     return JSON.parse(jsonText) as SongData;
 };
 
+export const generateNewBeatPattern = async (styleGuide: string, genre: string): Promise<string> => {
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `Based on the following music style guide for a "${genre}" song, generate ONLY a JSON string for a new 16-step drum pattern.
+        Style Guide: "${styleGuide}"
+        The JSON should only contain keys for 'kick', 'snare', 'hihat', and 'clap', with values being arrays of integers from 0 to 15.
+        Example format: '{"kick": [0, 8], "snare": [4, 12], "hihat": [0,2,4,6,8,10,12,14]}'
+        Do not include any other text, explanations, or markdown formatting.`,
+        config: {
+            // No schema needed, as we're expecting a raw string that is JSON.
+        },
+    });
+    // Clean up potential markdown formatting from the response
+    const cleanedText = response.text.replace(/```json\n?|\n?```/g, '').trim();
+    return cleanedText;
+};
+
+
 export const generateStorylines = async (topic: string): Promise<string[]> => {
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -110,6 +128,12 @@ export const generateVideo = async (prompt: string): Promise<string> => {
 };
 
 // New types and schema for MP3 analysis
+export interface Ratings {
+    commercialPotential: { score: number; justification: string };
+    originality: { score: number; justification: string };
+    composition: { score: number; justification: string };
+    productionQuality: { score: number; justification: string };
+}
 export interface Marketability {
     targetAudience: string;
     playlistFit: string[];
@@ -117,15 +141,36 @@ export interface Marketability {
 }
 
 export interface AnalysisReport {
+    ratings: Ratings;
     pros: string[];
     cons: string[];
     summary: string;
     marketability: Marketability;
 }
 
+const ratingProperty = {
+    type: Type.OBJECT,
+    properties: {
+        score: { type: Type.INTEGER, description: "A rating score from 1 to 100." },
+        justification: { type: Type.STRING, description: "A brief, one-sentence justification for the score." }
+    },
+    required: ["score", "justification"]
+};
+
+
 const analysisReportSchema = {
     type: Type.OBJECT,
     properties: {
+        ratings: {
+            type: Type.OBJECT,
+            properties: {
+                commercialPotential: { ...ratingProperty, description: "The song's potential for commercial success." },
+                originality: { ...ratingProperty, description: "How unique and creative the song is." },
+                composition: { ...ratingProperty, description: "The quality of the song's structure, melody, and harmony." },
+                productionQuality: { ...ratingProperty, description: "A hypothetical assessment of the mix, mastering, and overall sound quality." }
+            },
+            required: ["commercialPotential", "originality", "composition", "productionQuality"]
+        },
         pros: { 
             type: Type.ARRAY, 
             items: { type: Type.STRING }, 
@@ -160,7 +205,7 @@ const analysisReportSchema = {
             required: ["targetAudience", "playlistFit", "syncPotential"]
         }
     },
-    required: ["pros", "cons", "summary", "marketability"]
+    required: ["ratings", "pros", "cons", "summary", "marketability"]
 };
 
 export const analyzeSong = async (fileName: string, genre: string, description: string): Promise<AnalysisReport> => {
@@ -173,8 +218,9 @@ export const analyzeSong = async (fileName: string, genre: string, description: 
         Description: "${description}"
 
         Your analysis must include:
-        1. Pros & Cons: A balanced critique. The pros should highlight potential strengths (composition, arrangement, emotional impact). The cons should point out potential weaknesses or areas for improvement. Be constructive.
-        2. Marketability: A detailed market analysis including:
+        1. Overall Scorecard: Provide ratings from 1-100 for Commercial Potential, Originality, Composition, and hypothetical Production Quality. Each rating needs a brief justification.
+        2. Pros & Cons: A balanced critique. The pros should highlight potential strengths (composition, arrangement, emotional impact). The cons should point out potential weaknesses or areas for improvement. Be constructive.
+        3. Marketability: A detailed market analysis including:
             - Target Audience: Describe the ideal listener demographic.
             - Playlist Fit: Suggest specific, popular playlist categories or names where the song would fit.
             - Sync Potential: Describe opportunities for licensing in film, TV, or advertising.`,
