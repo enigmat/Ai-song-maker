@@ -126,12 +126,28 @@ export const SongGenerator: React.FC = () => {
     }, [songData, status]);
 
 
-    const handleGenerate = async (prompt: string, singerGender: SingerGender, artistType: ArtistType, genre: string) => {
+    const handleGenerate = async (
+        prompt: string,
+        genre: string,
+        singerGender: SingerGender,
+        artistType: ArtistType,
+        mood: string,
+        tempo: string,
+        melody: string,
+        harmony: string,
+        rhythm: string,
+        instrumentation: string,
+        atmosphere: string,
+        vocalStyle: string
+    ) => {
         setStatus('generating');
         setError(null);
         setArtistImageUrl('');
         try {
-            const data = await generateSongFromPrompt(prompt, singerGender, artistType, genre);
+            const data = await generateSongFromPrompt(
+                prompt, genre, singerGender, artistType, mood, tempo,
+                melody, harmony, rhythm, instrumentation, atmosphere, vocalStyle
+            );
             setSongData(data);
             setStatus('editing');
 
@@ -157,6 +173,10 @@ export const SongGenerator: React.FC = () => {
     };
 
     const handleRemix = async () => {
+        if (!songData.styleGuide || !songData.genre) {
+            setError("Cannot remix beat without a style guide and genre.");
+            return;
+        }
         setIsRemixing(true);
         setError(null);
         try {

@@ -2,52 +2,27 @@ import React, { useState, useEffect, useRef } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { SongStorylineGenerator } from './SongStorylineGenerator';
 import type { SingerGender, ArtistType } from '../services/geminiService';
-import { genres } from '../constants/music';
-
-// Fix for TypeScript errors: Define interfaces for Web Speech API as they are not standard in all TS lib files.
-interface SpeechRecognitionErrorEvent extends Event {
-    readonly error: string;
-    readonly message: string;
-}
-
-interface SpeechRecognitionAlternative {
-    readonly transcript: string;
-    readonly confidence: number;
-}
-
-interface SpeechRecognitionResult {
-    readonly isFinal: boolean;
-    readonly length: number;
-    item(index: number): SpeechRecognitionAlternative;
-    [index: number]: SpeechRecognitionAlternative;
-}
-
-interface SpeechRecognitionResultList {
-    readonly length: number;
-    item(index: number): SpeechRecognitionResult;
-    [index: number]: SpeechRecognitionResult;
-}
-
-interface SpeechRecognitionEvent extends Event {
-    readonly resultIndex: number;
-    readonly results: SpeechRecognitionResultList;
-}
-
-interface SpeechRecognition {
-    continuous: boolean;
-    interimResults: boolean;
-    lang: string;
-    onresult: (event: SpeechRecognitionEvent) => void;
-    onerror: (event: SpeechRecognitionErrorEvent) => void;
-    onend: () => void;
-    start: () => void;
-    stop: () => void;
-}
-
+import {
+    genres, singerGenders, artistTypes, moods, tempos,
+    melodies, harmonies, rhythms, instrumentations, atmospheres, vocalStyles
+} from '../constants/music';
 
 interface SongPromptFormProps {
-  onGenerate: (prompt: string, singerGender: SingerGender, artistType: ArtistType, genre: string) => void;
-  isLoading: boolean;
+    onGenerate: (
+        prompt: string,
+        genre: string,
+        singerGender: SingerGender,
+        artistType: ArtistType,
+        mood: string,
+        tempo: string,
+        melody: string,
+        harmony: string,
+        rhythm: string,
+        instrumentation: string,
+        atmosphere: string,
+        vocalStyle: string
+    ) => void;
+    isLoading: boolean;
 }
 
 const GeneratorIcon = () => (
@@ -56,80 +31,97 @@ const GeneratorIcon = () => (
     </svg>
 );
 
-const MicrophoneIcon: React.FC<{ isListening: boolean }> = ({ isListening }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isListening ? 'text-red-400' : 'text-gray-300'}`} viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93V17a1 1 0 11-2 0v-2.07A5 5 0 015 10V8a1 1 0 012 0v2a3 3 0 006 0V8a1 1 0 012 0v2a5 5 0 01-4 4.93z" clipRule="evenodd" />
+const MicIcon = ({ isListening }: { isListening: boolean }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 transition-colors ${isListening ? 'text-red-500 animate-pulse' : 'text-gray-400 group-hover:text-white'}`} viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-1a6 6 0 11-12 0H3a7.001 7.001 0 006 6.93V17H7a1 1 0 100 2h6a1 1 0 100-2h-2v-2.07z" clipRule="evenodd" />
     </svg>
 );
 
+const SelectInput: React.FC<{ label: string; value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; options: string[]; disabled: boolean; }> =
+    ({ label, value, onChange, options, disabled }) => (
+        <div>
+            <label htmlFor={label} className="block text-sm font-medium text-gray-400 mb-2">{label}</label>
+            <select
+                id={label}
+                value={value}
+                onChange={onChange}
+                className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-colors"
+                disabled={disabled}
+            >
+                {options.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+        </div>
+    );
+
 
 export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLoading }) => {
+    // Core state
     const [prompt, setPrompt] = useState('');
+    const [showStorylineGenerator, setShowStorylineGenerator] = useState(false);
+    
+    // Style parameters state
+    const [genre, setGenre] = useState(genres[0]);
     const [singerGender, setSingerGender] = useState<SingerGender>('any');
     const [artistType, setArtistType] = useState<ArtistType>('any');
-    const [genre, setGenre] = useState<string>('Pop');
-    const [showStorylineGenerator, setShowStorylineGenerator] = useState(false);
+    const [mood, setMood] = useState(moods[0]);
+    const [tempo, setTempo] = useState(tempos[2]); // Default to Medium
+    const [melody, setMelody] = useState(melodies[0]);
+    const [harmony, setHarmony] = useState(harmonies[0]);
+    const [rhythm, setRhythm] = useState(rhythms[0]);
+    const [instrumentation, setInstrumentation] = useState(instrumentations[0]);
+    const [atmosphere, setAtmosphere] = useState(atmospheres[0]);
+    const [vocalStyle, setVocalStyle] = useState(vocalStyles[0]);
 
+    // Speech recognition state
     const [isListening, setIsListening] = useState(false);
-    const [isSpeechSupported, setIsSpeechSupported] = useState(false);
-    const recognitionRef = useRef<SpeechRecognition | null>(null);
-    const promptBeforeSpeechRef = useRef('');
-    const finalTranscriptFromSessionRef = useRef('');
+    const recognitionRef = useRef<any>(null);
+    const [speechSupported, setSpeechSupported] = useState(false);
 
     useEffect(() => {
-        const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-        if (SpeechRecognitionAPI) {
-            setIsSpeechSupported(true);
-            const recognition: SpeechRecognition = new SpeechRecognitionAPI();
-            recognition.continuous = true;
-            recognition.interimResults = true;
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            setSpeechSupported(true);
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
             recognition.lang = 'en-US';
 
-            recognition.onresult = (event: SpeechRecognitionEvent) => {
-                let interimTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    const transcript = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) {
-                        finalTranscriptFromSessionRef.current += transcript + ' ';
-                    } else {
-                        interimTranscript += transcript;
-                    }
-                }
-                setPrompt(promptBeforeSpeechRef.current + finalTranscriptFromSessionRef.current + interimTranscript);
-            };
-
-            recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-                console.error(`Speech recognition error: ${event.error}`);
+            recognition.onstart = () => setIsListening(true);
+            recognition.onend = () => setIsListening(false);
+            recognition.onerror = (event: any) => {
+                console.error('Speech recognition error', event.error);
                 setIsListening(false);
             };
-
-            recognition.onend = () => {
-                setIsListening(false);
+            recognition.onresult = (event: any) => {
+                const transcript = event.results[0][0].transcript;
+                setPrompt(prev => prev ? `${prev.trim()} ${transcript}` : transcript);
             };
-
+            
             recognitionRef.current = recognition;
+        } else {
+            setSpeechSupported(false);
         }
+
+        return () => {
+            if (recognitionRef.current) {
+                recognitionRef.current.abort();
+            }
+        };
     }, []);
 
     const toggleListening = () => {
-        const recognition = recognitionRef.current;
-        if (!recognition) return;
-
+        if (!recognitionRef.current) return;
         if (isListening) {
-            recognition.stop();
+            recognitionRef.current.stop();
         } else {
-            promptBeforeSpeechRef.current = prompt ? prompt + ' ' : '';
-            finalTranscriptFromSessionRef.current = '';
-            recognition.start();
-            setIsListening(true);
+            recognitionRef.current.start();
         }
     };
 
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onGenerate(prompt, singerGender, artistType, genre);
+        if (!prompt.trim()) return;
+        onGenerate(prompt, genre, singerGender, artistType, mood, tempo, melody, harmony, rhythm, instrumentation, atmosphere, vocalStyle);
     };
 
     const handleSelectStoryline = (storyline: string) => {
@@ -139,98 +131,97 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
 
     return (
         <div className="p-4 sm:p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700">
-            <h2 className="text-2xl font-bold text-center mb-1 text-gray-200">Describe Your Song Idea</h2>
-            <p className="text-center text-gray-400 mb-6">Enter a theme, story, or feeling to get started.</p>
+            <h1 className="text-4xl text-center font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-transparent bg-clip-text">
+                Music Prompt Generator
+            </h1>
+            <p className="text-center text-gray-400 mt-2 mb-6">
+                Describe your song idea and select the style to generate a complete song package.
+            </p>
 
-            <form onSubmit={handleSubmit}>
-                <div className="relative">
-                    <textarea
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        placeholder="e.g., A cyberpunk detective story about finding a lost digital consciousness in a sprawling metropolis."
-                        className="w-full p-4 pr-48 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y text-lg"
-                        rows={4}
-                        disabled={isLoading}
-                    />
-                     <div className="absolute top-3 right-3 flex items-center gap-2">
-                        {isSpeechSupported && (
-                           <button
-                             type="button"
-                             onClick={toggleListening}
-                             disabled={isLoading}
-                             className={`p-2.5 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 
-                             ${isListening ? 'bg-red-900/50 animate-pulse ring-red-500' : 'bg-gray-700/50 hover:bg-gray-600/50 focus:ring-purple-500'}`}
-                             title={isListening ? "Stop listening" : "Start listening"}
-                           >
-                             <MicrophoneIcon isListening={isListening} />
-                           </button>
-                        )}
-                        <button 
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                    <div className="flex justify-between items-center mb-2">
+                        <label htmlFor="prompt" className="block text-sm font-medium text-gray-400">Your Song Idea</label>
+                        <button
                             type="button"
-                            onClick={() => setShowStorylineGenerator(s => !s)}
-                            className="flex items-center gap-2 text-sm font-semibold px-3 py-2 bg-teal-600 rounded-md shadow-md hover:bg-teal-500 transition-all duration-300 disabled:opacity-50"
-                            disabled={isLoading}
-                            title="Get AI-powered song ideas"
+                            onClick={() => setShowStorylineGenerator(!showStorylineGenerator)}
+                            className="flex items-center gap-2 text-sm font-semibold px-3 py-1 bg-teal-600 rounded-full shadow-md hover:bg-teal-500 transition-all duration-300 disabled:opacity-50"
+                            aria-expanded={showStorylineGenerator}
                         >
                             ✨ Get Ideas
                         </button>
                     </div>
+                    <div className="relative">
+                        <textarea
+                            id="prompt"
+                            rows={5}
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y pr-12"
+                            placeholder="e.g., 'A synthwave song about a lonely robot watching the stars.'"
+                            disabled={isLoading}
+                        />
+                         {speechSupported && (
+                            <button
+                                type="button"
+                                onClick={toggleListening}
+                                disabled={isLoading}
+                                className="group absolute top-3 right-3 p-2 rounded-full hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                aria-label={isListening ? 'Stop listening' : 'Start listening'}
+                                title={isListening ? 'Stop listening' : 'Use microphone'}
+                            >
+                                <MicIcon isListening={isListening} />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {showStorylineGenerator && (
-                    <SongStorylineGenerator 
+                    <SongStorylineGenerator
                         onSelectStoryline={handleSelectStoryline}
                         onClose={() => setShowStorylineGenerator(false)}
                     />
                 )}
 
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                    <SelectInput label="Genre" value={genre} onChange={(e) => setGenre(e.target.value)} options={genres} disabled={isLoading} />
                     <div>
-                        <label htmlFor="singerGender" className="block text-sm font-medium text-gray-400 mb-2">Singer</label>
-                        <select 
-                            id="singerGender"
+                        <label htmlFor="singer-gender" className="block text-sm font-medium text-gray-400 mb-2">Singer</label>
+                        <select
+                            id="singer-gender"
                             value={singerGender}
                             onChange={(e) => setSingerGender(e.target.value as SingerGender)}
-                            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500"
+                            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-colors"
+                            disabled={isLoading}
                         >
-                            <option value="any">Any Gender</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="non-binary">Non-binary</option>
+                            {singerGenders.map((sg) => <option key={sg.value} value={sg.value}>{sg.label}</option>)}
                         </select>
                     </div>
                      <div>
-                        <label htmlFor="artistType" className="block text-sm font-medium text-gray-400 mb-2">Artist Type</label>
-                        <select 
-                            id="artistType"
+                        <label htmlFor="artist-type" className="block text-sm font-medium text-gray-400 mb-2">Artist Type</label>
+                        <select
+                            id="artist-type"
                             value={artistType}
                             onChange={(e) => setArtistType(e.target.value as ArtistType)}
-                            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500"
+                            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-colors"
+                            disabled={isLoading}
                         >
-                            <option value="any">Any Type</option>
-                            <option value="solo">Solo Artist</option>
-                            <option value="duo">Duo</option>
-                            <option value="band">Band</option>
+                            {artistTypes.map((at) => <option key={at.value} value={at.value}>{at.label}</option>)}
                         </select>
                     </div>
-                     <div>
-                        <label htmlFor="genre" className="block text-sm font-medium text-gray-400 mb-2">Genre</label>
-                        <select
-                            id="genre"
-                            value={genre}
-                            onChange={(e) => setGenre(e.target.value)}
-                            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500"
-                        >
-                            {genres.map((g) => (
-                                <option key={g} value={g}>{g}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <SelectInput label="Mood" value={mood} onChange={(e) => setMood(e.target.value)} options={moods} disabled={isLoading} />
+                    <SelectInput label="Tempo" value={tempo} onChange={(e) => setTempo(e.target.value)} options={tempos} disabled={isLoading} />
+                    <SelectInput label="Vocal Style" value={vocalStyle} onChange={(e) => setVocalStyle(e.target.value)} options={vocalStyles} disabled={isLoading} />
+                    <SelectInput label="Melody" value={melody} onChange={(e) => setMelody(e.target.value)} options={melodies} disabled={isLoading} />
+                    <SelectInput label="Harmony" value={harmony} onChange={(e) => setHarmony(e.target.value)} options={harmonies} disabled={isLoading} />
+                    <SelectInput label="Rhythm" value={rhythm} onChange={(e) => setRhythm(e.target.value)} options={rhythms} disabled={isLoading} />
+                    <SelectInput label="Instrumentation" value={instrumentation} onChange={(e) => setInstrumentation(e.target.value)} options={instrumentations} disabled={isLoading} />
+                    <SelectInput label="Atmosphere/FX" value={atmosphere} onChange={(e) => setAtmosphere(e.target.value)} options={atmospheres} disabled={isLoading} />
                 </div>
-
+                
                 <button
                     type="submit"
-                    disabled={isLoading || !prompt}
+                    disabled={isLoading || !prompt.trim()}
                     className="mt-6 w-full flex items-center justify-center gap-3 text-xl font-semibold px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                     {isLoading ? (

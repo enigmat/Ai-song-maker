@@ -44,10 +44,43 @@ const songDataSchema = {
 };
 
 
-export const generateSongFromPrompt = async (prompt: string, singerGender: SingerGender, artistType: ArtistType, genre: string): Promise<SongData> => {
+export const generateSongFromPrompt = async (
+    prompt: string,
+    genre: string,
+    singerGender: SingerGender,
+    artistType: ArtistType,
+    mood: string,
+    tempo: string,
+    melody: string,
+    harmony: string,
+    rhythm: string,
+    instrumentation: string,
+    atmosphere: string,
+    vocalStyle: string
+): Promise<SongData> => {
+    
+    const fullPrompt = `Based on the following idea and parameters, generate a complete song package.
+
+    **Main Idea:** "${prompt}"
+
+    **Stylistic Parameters:**
+    - **Genre:** ${genre}
+    - **Singer:** ${singerGender}
+    - **Artist Type:** ${artistType}
+    - **Mood:** ${mood}
+    - **Tempo:** ${tempo}
+    - **Vocal Style:** ${vocalStyle}
+    - **Melodic Style:** ${melody}
+    - **Harmonic Style:** ${harmony}
+    - **Rhythmic Feel:** ${rhythm}
+    - **Key Instrumentation:** ${instrumentation}
+    - **Atmosphere/FX:** ${atmosphere}
+    
+    Adhere to all stylistic parameters when generating the song components. The 'Vocal Style' should heavily influence the generated lyrics and the 'styleGuide' description of the vocal performance.`;
+
     const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
-        contents: `Based on the following idea, generate a complete song package. Idea: "${prompt}". The singer should be ${singerGender}, the artist type is ${artistType}, and the genre should be ${genre}.`,
+        contents: fullPrompt,
         config: {
             responseMimeType: "application/json",
             responseSchema: songDataSchema,
@@ -84,7 +117,6 @@ export const generateStorylines = async (topic: string): Promise<string[]> => {
     // Split by newlines and filter out any empty lines or list markers.
     return response.text.split('\n').map(line => line.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
 };
-
 
 export const generateImage = async (prompt: string): Promise<string> => {
     const response = await ai.models.generateImages({

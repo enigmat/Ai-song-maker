@@ -34,10 +34,10 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
   };
 
   return (
-    <div className="mt-8 p-1.5 bg-gray-900/50 rounded-xl border border-gray-700 flex items-center gap-2">
+    <div className="mt-8 p-1.5 bg-gray-900/50 rounded-xl border border-gray-700 grid grid-cols-3 items-center gap-2">
       <button onClick={() => onSelectTool('generator')} className={getButtonClasses('generator')}>
         <GeneratorIcon />
-        AI Song Generator
+        Song Generator
       </button>
       <button onClick={() => onSelectTool('converter')} className={getButtonClasses('converter')}>
         <ConverterIcon />

@@ -3,7 +3,8 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
 import { analyzeSong, AnalysisReport } from '../services/geminiService';
 import { DownloadButton } from './DownloadButton';
-import { genres, vibes } from '../constants/music';
+// Fix: Module '"../constants/music"' has no exported member 'vibes'. 'moods' should be used instead.
+import { genres, moods } from '../constants/music';
 
 declare var ID3Writer: any;
 
@@ -54,7 +55,8 @@ export const Mp3Analyzer: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
     const [coverArt, setCoverArt] = useState<File | null>(null);
     const [genre, setGenre] = useState(genres[0]);
-    const [vibe, setVibe] = useState(vibes[0]);
+    // Fix: 'vibes' is not defined, using 'moods' instead.
+    const [vibe, setVibe] = useState(moods[0]);
     const [report, setReport] = useState<AnalysisReport | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -171,7 +173,8 @@ export const Mp3Analyzer: React.FC = () => {
         setFile(null);
         setGenre(genres[0]);
         setCoverArt(null);
-        setVibe(vibes[0]);
+        // Fix: 'vibes' is not defined, using 'moods' instead.
+        setVibe(moods[0]);
         setReport(null);
         setError(null);
         setLastAction(null);
@@ -336,7 +339,8 @@ export const Mp3Analyzer: React.FC = () => {
                            disabled={isProcessing}
                            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500"
                          >
-                            {vibes.map(v => <option key={v} value={v}>{v}</option>)}
+                            {/* Fix: 'vibes' is not defined, using 'moods' instead. */}
+                            {moods.map(v => <option key={v} value={v}>{v}</option>)}
                          </select>
                     </div>
                 </div>
