@@ -1,8 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { SongStorylineGenerator } from './SongStorylineGenerator';
 import type { SingerGender, ArtistType } from '../services/geminiService';
 import { genres } from '../constants/music';
+
+// Fix for TypeScript errors: Define interfaces for Web Speech API as they are not standard in all TS lib files.
+interface SpeechRecognitionErrorEvent extends Event {
+    readonly error: string;
+    readonly message: string;
+}
+
+interface SpeechRecognitionAlternative {
+    readonly transcript: string;
+    readonly confidence: number;
+}
+
+interface SpeechRecognitionResult {
+    readonly isFinal: boolean;
+    readonly length: number;
+    item(index: number): SpeechRecognitionAlternative;
+    [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionResultList {
+    readonly length: number;
+    item(index: number): SpeechRecognitionResult;
+    [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionEvent extends Event {
+    readonly resultIndex: number;
+    readonly results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognition {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    onresult: (event: SpeechRecognitionEvent) => void;
+    onerror: (event: SpeechRecognitionErrorEvent) => void;
+    onend: () => void;
+    start: () => void;
+    stop: () => void;
+}
+
 
 interface SongPromptFormProps {
   onGenerate: (prompt: string, singerGender: SingerGender, artistType: ArtistType, genre: string) => void;
@@ -15,12 +56,76 @@ const GeneratorIcon = () => (
     </svg>
 );
 
+const MicrophoneIcon: React.FC<{ isListening: boolean }> = ({ isListening }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isListening ? 'text-red-400' : 'text-gray-300'}`} viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93V17a1 1 0 11-2 0v-2.07A5 5 0 015 10V8a1 1 0 012 0v2a3 3 0 006 0V8a1 1 0 012 0v2a5 5 0 01-4 4.93z" clipRule="evenodd" />
+    </svg>
+);
+
+
 export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLoading }) => {
     const [prompt, setPrompt] = useState('');
     const [singerGender, setSingerGender] = useState<SingerGender>('any');
     const [artistType, setArtistType] = useState<ArtistType>('any');
     const [genre, setGenre] = useState<string>('Pop');
     const [showStorylineGenerator, setShowStorylineGenerator] = useState(false);
+
+    const [isListening, setIsListening] = useState(false);
+    const [isSpeechSupported, setIsSpeechSupported] = useState(false);
+    const recognitionRef = useRef<SpeechRecognition | null>(null);
+    const promptBeforeSpeechRef = useRef('');
+    const finalTranscriptFromSessionRef = useRef('');
+
+    useEffect(() => {
+        const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+        if (SpeechRecognitionAPI) {
+            setIsSpeechSupported(true);
+            const recognition: SpeechRecognition = new SpeechRecognitionAPI();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event: SpeechRecognitionEvent) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscriptFromSessionRef.current += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                setPrompt(promptBeforeSpeechRef.current + finalTranscriptFromSessionRef.current + interimTranscript);
+            };
+
+            recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+                console.error(`Speech recognition error: ${event.error}`);
+                setIsListening(false);
+            };
+
+            recognition.onend = () => {
+                setIsListening(false);
+            };
+
+            recognitionRef.current = recognition;
+        }
+    }, []);
+
+    const toggleListening = () => {
+        const recognition = recognitionRef.current;
+        if (!recognition) return;
+
+        if (isListening) {
+            recognition.stop();
+        } else {
+            promptBeforeSpeechRef.current = prompt ? prompt + ' ' : '';
+            finalTranscriptFromSessionRef.current = '';
+            recognition.start();
+            setIsListening(true);
+        }
+    };
+
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -43,19 +148,33 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
                         placeholder="e.g., A cyberpunk detective story about finding a lost digital consciousness in a sprawling metropolis."
-                        className="w-full p-4 pr-32 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y text-lg"
+                        className="w-full p-4 pr-48 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y text-lg"
                         rows={4}
                         disabled={isLoading}
                     />
-                    <button 
-                        type="button"
-                        onClick={() => setShowStorylineGenerator(s => !s)}
-                        className="absolute top-3 right-3 flex items-center gap-2 text-sm font-semibold px-3 py-2 bg-teal-600 rounded-md shadow-md hover:bg-teal-500 transition-all duration-300 disabled:opacity-50"
-                        disabled={isLoading}
-                        title="Get AI-powered song ideas"
-                    >
-                        ✨ Get Ideas
-                    </button>
+                     <div className="absolute top-3 right-3 flex items-center gap-2">
+                        {isSpeechSupported && (
+                           <button
+                             type="button"
+                             onClick={toggleListening}
+                             disabled={isLoading}
+                             className={`p-2.5 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 
+                             ${isListening ? 'bg-red-900/50 animate-pulse ring-red-500' : 'bg-gray-700/50 hover:bg-gray-600/50 focus:ring-purple-500'}`}
+                             title={isListening ? "Stop listening" : "Start listening"}
+                           >
+                             <MicrophoneIcon isListening={isListening} />
+                           </button>
+                        )}
+                        <button 
+                            type="button"
+                            onClick={() => setShowStorylineGenerator(s => !s)}
+                            className="flex items-center gap-2 text-sm font-semibold px-3 py-2 bg-teal-600 rounded-md shadow-md hover:bg-teal-500 transition-all duration-300 disabled:opacity-50"
+                            disabled={isLoading}
+                            title="Get AI-powered song ideas"
+                        >
+                            ✨ Get Ideas
+                        </button>
+                    </div>
                 </div>
 
                 {showStorylineGenerator && (

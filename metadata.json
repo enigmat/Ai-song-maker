@@ -1,5 +1,7 @@
 {
   "name": "MustBMusic Song Maker",
   "description": "Generate unique song lyrics based on your ideas and hear them sung back to you using advanced AI.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }
