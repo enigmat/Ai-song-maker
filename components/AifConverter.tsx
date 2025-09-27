@@ -6,6 +6,7 @@ import { DownloadButton } from './DownloadButton';
 import { audioBufferToMp3 } from '../services/audioService';
 
 declare var ID3Writer: any;
+declare var AV: any; // For aurora.js
 
 export const AifConverter: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -49,6 +50,59 @@ export const AifConverter: React.FC = () => {
         setError(null);
     }
   };
+  
+  const decodeWithAurora = (file: File): Promise<AudioBuffer> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            if (!e.target?.result) {
+                return reject(new Error('FileReader failed to read the file.'));
+            }
+            
+            try {
+                const asset = AV.Asset.fromBuffer(e.target.result as ArrayBuffer);
+
+                asset.on('error', (err: any) => {
+                    console.error('Aurora.js decoding error:', err);
+                    reject(new Error('Failed to decode AIF file with custom decoder.'));
+                });
+
+                asset.decodeToBuffer((interleavedPcm: Float32Array) => {
+                    if (!interleavedPcm || interleavedPcm.length === 0) {
+                        return reject(new Error('AIF decoder produced an empty buffer.'));
+                    }
+
+                    const numChannels = asset.format.channelsPerFrame;
+                    const sampleRate = asset.format.sampleRate;
+                    const frameCount = interleavedPcm.length / numChannels;
+                    
+                    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                    const audioBuffer = audioContext.createBuffer(numChannels, frameCount, sampleRate);
+
+                    // De-interleave the PCM data into the AudioBuffer
+                    for (let channel = 0; channel < numChannels; channel++) {
+                        const channelData = audioBuffer.getChannelData(channel);
+                        for (let i = 0; i < frameCount; i++) {
+                            channelData[i] = interleavedPcm[i * numChannels + channel];
+                        }
+                    }
+                    resolve(audioBuffer);
+                });
+            } catch (err) {
+                console.error("Error initializing Aurora asset from buffer:", err);
+                reject(err);
+            }
+        };
+
+        reader.onerror = (e) => {
+            console.error('FileReader error:', e);
+            reject(new Error('Failed to read the AIF file.'));
+        };
+
+        reader.readAsArrayBuffer(file);
+    });
+  };
 
   const handleConvert = async () => {
     if (!file) {
@@ -90,9 +144,18 @@ export const AifConverter: React.FC = () => {
         }
       } else {
         // It's AIF or WAV, so we need to convert it to MP3.
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const arrayBuffer = await file.arrayBuffer();
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        let audioBuffer: AudioBuffer;
+        const isAif = file.name.toLowerCase().endsWith('.aif') || file.name.toLowerCase().endsWith('.aiff') || file.type.startsWith('audio/aiff');
+        
+        if (isAif) {
+            audioBuffer = await decodeWithAurora(file);
+        } else {
+            // Use native Web Audio API for WAV and others
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const arrayBuffer = await file.arrayBuffer();
+            audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        }
+        
         const mp3Blob = audioBufferToMp3(audioBuffer);
         
         const originalFileName = file.name.substring(0, file.name.lastIndexOf('.'));

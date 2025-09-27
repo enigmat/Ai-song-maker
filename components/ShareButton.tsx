@@ -10,7 +10,7 @@ interface ShareButtonProps {
   artistImageUrl: string;
   lyrics: string;
   styleGuide: string;
-  artistImagePrompt: string;
+  albumCoverPrompt: string;
   singerGender: SingerGender;
   artistType: ArtistType;
   beatPattern: string;
@@ -34,7 +34,7 @@ const CheckIcon = () => (
 
 export const ShareButton: React.FC<ShareButtonProps> = ({ 
     title, artistName, artistBio, artistImageUrl, lyrics, styleGuide, 
-    artistImagePrompt, singerGender, artistType, beatPattern, vocalMelody, bpm, videoPrompt
+    albumCoverPrompt, singerGender, artistType, beatPattern, vocalMelody, bpm, videoPrompt
 }) => {
     const [isCopied, setIsCopied] = useState(false);
 
@@ -46,7 +46,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
             artistImageUrl,
             lyrics,
             styleGuide,
-            artistImagePrompt,
+            albumCoverPrompt,
             singerGender,
             artistType,
             beatPattern,

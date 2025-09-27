@@ -11,7 +11,7 @@ export interface SongData {
     title: string;
     artistName: string;
     artistBio: string;
-    artistImagePrompt: string;
+    albumCoverPrompt: string;
     lyrics: string;
     styleGuide: string;
     beatPattern: string;
@@ -29,7 +29,7 @@ const songDataSchema = {
         title: { type: Type.STRING, description: "A creative and fitting title for the song." },
         artistName: { type: Type.STRING, description: "A plausible name for the artist or band." },
         artistBio: { type: Type.STRING, description: "A short, creative biography for the artist, fitting their style." },
-        artistImagePrompt: { type: Type.STRING, description: "A detailed DALL-E prompt to generate a compelling image of the artist. Should describe the artist, setting, style, and composition. For example: 'Photo of a mysterious solo female singer in a dimly lit, smoky jazz club, vintage microphone, 1950s film noir style, high contrast black and white.'" },
+        albumCoverPrompt: { type: Type.STRING, description: "A detailed, artistic prompt for an image generation model to create a compelling album cover. The prompt should reflect the song's title, genre, mood, and artist's persona. It should describe the subject, setting, style, composition, and color palette. For example: 'Surrealist oil painting of a lone astronaut playing a glowing guitar on a desolate moon, with Earth hanging in the star-filled sky. Melancholic, dreamy, shades of deep blue and purple.'" },
         lyrics: { type: Type.STRING, description: "The complete song lyrics, formatted with sections like [Verse 1], [Chorus], [Bridge], etc." },
         styleGuide: { type: Type.STRING, description: "A detailed guide for music production, including genre, mood, instrumentation, vocal style, and tempo. Should be a few sentences long." },
         beatPattern: { type: Type.STRING, description: "A JSON string representing a 16-step drum pattern. Keys can be 'kick', 'snare', 'hihat', 'clap'. Values are arrays of integers from 0 to 15. Example: '{\"kick\": [0, 8], \"snare\": [4, 12], \"hihat\": [0,2,4,6,8,10,12,14]}'" },
@@ -40,7 +40,7 @@ const songDataSchema = {
         videoPrompt: { type: Type.STRING, description: "A concise, evocative prompt for generating a music video. Focus on visual themes, colors, and actions. For example: 'A lone astronaut drifting through a vibrant, psychedelic nebula, slow-motion shots of cosmic dust, lens flare.'" },
         genre: { type: Type.STRING, description: "The musical genre of the song (e.g., 'Synthwave', 'Indie Rock', 'Lo-fi Hip Hop')." },
     },
-    required: ["title", "artistName", "artistBio", "artistImagePrompt", "lyrics", "styleGuide", "beatPattern", "singerGender", "artistType", "vocalMelody", "bpm", "videoPrompt", "genre"]
+    required: ["title", "artistName", "artistBio", "albumCoverPrompt", "lyrics", "styleGuide", "beatPattern", "singerGender", "artistType", "vocalMelody", "bpm", "videoPrompt", "genre"]
 };
 
 

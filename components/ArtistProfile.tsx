@@ -11,7 +11,7 @@ interface ArtistProfileProps {
   artistImageUrl: string;
   lyrics: string;
   styleGuide: string;
-  artistImagePrompt: string;
+  albumCoverPrompt: string;
   singerGender: SingerGender;
   artistType: ArtistType;
   beatPattern: string;
@@ -25,7 +25,7 @@ interface ArtistProfileProps {
 export const ArtistProfile: React.FC<ArtistProfileProps> = (props) => { 
   const { 
     title, artistName, artistBio, artistImageUrl, lyrics, styleGuide, 
-    artistImagePrompt, singerGender, artistType, beatPattern, vocalMelody,
+    albumCoverPrompt, singerGender, artistType, beatPattern, vocalMelody,
     bpm, videoPrompt, videoUrl, genre
   } = props;
   
@@ -34,7 +34,7 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = (props) => {
   }
 
   const songDataForDownload: SongData = {
-    title, artistName, artistBio, artistImagePrompt, lyrics, styleGuide, 
+    title, artistName, artistBio, albumCoverPrompt, lyrics, styleGuide, 
     beatPattern, singerGender, artistType, vocalMelody, bpm, videoPrompt, genre,
   };
 
@@ -52,9 +52,9 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = (props) => {
             <img 
               key={artistImageUrl}
               src={artistImageUrl} 
-              alt={`Portrait of ${artistName}`}
+              alt={`Album cover for ${title} by ${artistName}`}
               className="w-full h-full object-cover shadow-lg"
-              aria-label={`Visual portrait of ${artistName}`}
+              aria-label={`Album cover for ${title} by ${artistName}`}
             />
           )}
         </div>
@@ -72,7 +72,7 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = (props) => {
                 artistImageUrl={artistImageUrl}
                 lyrics={lyrics}
                 styleGuide={styleGuide}
-                artistImagePrompt={artistImagePrompt}
+                albumCoverPrompt={albumCoverPrompt}
                 singerGender={singerGender}
                 artistType={artistType}
                 beatPattern={beatPattern}

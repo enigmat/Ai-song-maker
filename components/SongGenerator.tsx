@@ -19,7 +19,7 @@ const defaultSongData: SongData = {
     title: '',
     artistName: '',
     artistBio: '',
-    artistImagePrompt: '',
+    albumCoverPrompt: '',
     lyrics: '',
     styleGuide: '',
     beatPattern: '',
@@ -153,7 +153,7 @@ export const SongGenerator: React.FC = () => {
 
             // Asynchronously generate the initial image after moving to the editor screen
             setIsGeneratingImage(true);
-            generateImage(data.artistImagePrompt)
+            generateImage(data.albumCoverPrompt)
                 .then(imageUrl => {
                     setArtistImageUrl(imageUrl);
                 })
@@ -191,11 +191,11 @@ export const SongGenerator: React.FC = () => {
     };
 
     const handleRegenerateImage = async () => {
-        if (!songData.artistImagePrompt) return;
+        if (!songData.albumCoverPrompt) return;
         setIsGeneratingImage(true);
         setError(null);
         try {
-            const imageUrl = await generateImage(songData.artistImagePrompt);
+            const imageUrl = await generateImage(songData.albumCoverPrompt);
             setArtistImageUrl(imageUrl);
         } catch (err) {
             console.error("Image regeneration failed:", err);

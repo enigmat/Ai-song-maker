@@ -8,7 +8,7 @@ interface SongData {
     title: string;
     artistName: string;
     artistBio: string;
-    artistImagePrompt: string;
+    albumCoverPrompt: string;
     lyrics: string;
     styleGuide: string;
     beatPattern: string;
@@ -174,9 +174,9 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
 
             <div>
                 <div className="flex justify-between items-center mb-2">
-                    <label htmlFor="artistImagePrompt" className="block text-lg font-medium text-gray-300">
-                        Artist Image Prompt
-                        <span className="text-sm text-gray-400 ml-2">(Edit to change the image)</span>
+                    <label htmlFor="albumCoverPrompt" className="block text-lg font-medium text-gray-300">
+                        Album Cover Prompt
+                        <span className="text-sm text-gray-400 ml-2">(Edit to change the album cover)</span>
                     </label>
                     <button
                         type="button"
@@ -190,13 +190,13 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                 </div>
                 <div className="relative">
                     <textarea
-                        id="artistImagePrompt"
+                        id="albumCoverPrompt"
                         rows={4}
-                        value={songData.artistImagePrompt}
-                        onChange={(e) => handleChange('artistImagePrompt', e.target.value)}
+                        value={songData.albumCoverPrompt}
+                        onChange={(e) => handleChange('albumCoverPrompt', e.target.value)}
                         className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all resize-y font-mono text-sm pr-12"
                     />
-                    <CopyButton textToCopy={songData.artistImagePrompt} positionClasses="top-3 right-3" />
+                    <CopyButton textToCopy={songData.albumCoverPrompt} positionClasses="top-3 right-3" />
                 </div>
                 <div className="mt-4 p-4 bg-gray-900 rounded-lg border border-gray-600 flex justify-center items-center h-48">
                     {isRegeneratingImage ? (
@@ -205,13 +205,13 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                             <p className="mt-2 animate-pulse">Generating new image...</p>
                         </div>
                     ) : artistImageUrl ? (
-                        <img src={artistImageUrl} alt="Generated artist" className="max-h-full max-w-full object-contain rounded-md shadow-lg" />
+                        <img src={artistImageUrl} alt="Generated album cover" className="max-h-full max-w-full object-contain rounded-md shadow-lg" />
                     ) : (
                         <div className="text-center text-gray-500">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <p className="mt-2 text-sm">Artist image will appear here.</p>
+                            <p className="mt-2 text-sm">Album cover will appear here.</p>
                         </div>
                     )}
                 </div>
