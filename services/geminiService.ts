@@ -227,7 +227,7 @@ const analysisReportSchema = {
                 playlistFit: {
                     type: Type.ARRAY,
                     items: { type: Type.STRING },
-                    description: "A list of 3-5 specific, well-known playlist categories or names (e.g., 'Spotify's Lo-fi Beats', 'Chill Hits') where this song would fit well."
+                    description: "A list of 3-5 specific Spotify playlist names or categories (e.g., 'Spotify's Lo-fi Beats', 'Chill Hits', 'Today's Top Hits') where this song would be a good fit. Be specific with playlist names."
                 },
                 syncPotential: {
                     type: Type.STRING,
@@ -254,7 +254,7 @@ export const analyzeSong = async (fileName: string, genre: string, description: 
         2. Pros & Cons: A balanced critique. The pros should highlight potential strengths (composition, arrangement, emotional impact). The cons should point out potential weaknesses or areas for improvement. Be constructive.
         3. Marketability: A detailed market analysis including:
             - Target Audience: Describe the ideal listener demographic.
-            - Playlist Fit: Suggest specific, popular playlist categories or names where the song would fit.
+            - Playlist Fit: Suggest specific, popular Spotify playlist names where the song would fit. Think about both editorial and algorithmic playlists.
             - Sync Potential: Describe opportunities for licensing in film, TV, or advertising.`,
         config: {
             responseMimeType: "application/json",
