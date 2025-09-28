@@ -1,8 +1,8 @@
 import React from 'react';
 
 interface TabsProps {
-  activeTool: 'generator' | 'converter' | 'analyzer';
-  onSelectTool: (tool: 'generator' | 'converter' | 'analyzer') => void;
+  activeTool: 'generator' | 'converter' | 'analyzer' | 'comparator';
+  onSelectTool: (tool: 'generator' | 'converter' | 'analyzer' | 'comparator') => void;
 }
 
 const GeneratorIcon = () => (
@@ -23,8 +23,15 @@ const AnalyzerIcon = () => (
     </svg>
 );
 
+const ComparatorIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.036.243c-2.132 0-4.14-.356-6.032-.975m-6.75-.47c-1.01-.143-2.01-.317-3-.52m3 .52l-2.62 10.726c-.122.499.106 1.028.589 1.202a5.988 5.988 0 002.036.243c2.132 0 4.14-.356 6.032-.975" />
+    </svg>
+);
+
+
 export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
-  const getButtonClasses = (tool: 'generator' | 'converter' | 'analyzer') => {
+  const getButtonClasses = (tool: 'generator' | 'converter' | 'analyzer' | 'comparator') => {
     const isActive = activeTool === tool;
     return `w-full flex items-center justify-center px-4 py-3 font-semibold text-sm sm:text-base rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
       isActive
@@ -34,7 +41,7 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
   };
 
   return (
-    <div className="mt-8 p-1.5 bg-gray-900/50 rounded-xl border border-gray-700 grid grid-cols-3 items-center gap-2">
+    <div className="mt-8 p-1.5 bg-gray-900/50 rounded-xl border border-gray-700 grid grid-cols-2 lg:grid-cols-4 items-center gap-2">
       <button onClick={() => onSelectTool('generator')} className={getButtonClasses('generator')}>
         <GeneratorIcon />
         Song Generator
@@ -46,6 +53,10 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
       <button onClick={() => onSelectTool('analyzer')} className={getButtonClasses('analyzer')}>
         <AnalyzerIcon />
         MP3 Analyzer
+      </button>
+      <button onClick={() => onSelectTool('comparator')} className={getButtonClasses('comparator')}>
+        <ComparatorIcon />
+        Song Comparator
       </button>
     </div>
   );

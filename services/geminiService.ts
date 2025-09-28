@@ -265,3 +265,110 @@ export const analyzeSong = async (fileName: string, genre: string, description: 
     const jsonText = response.text.trim();
     return JSON.parse(jsonText) as AnalysisReport;
 };
+
+// Types and schema for song comparison
+export interface SongComparisonMetrics {
+    commercialPotential: { score: number; justification: string };
+    originality: { score: number; justification: string };
+    composition: { score: number; justification: string };
+    productionQuality: { score: number; justification: string };
+    summary: string;
+}
+
+export interface ComparisonReport {
+    overallWinner: { song: 'song1' | 'song2' | 'tie'; justification: string };
+    marketabilityWinner: { song: 'song1' | 'song2' | 'tie'; justification: string };
+    spotifyWinner: { song: 'song1' | 'song2' | 'tie'; justification: string };
+    song1Analysis: SongComparisonMetrics;
+    song2Analysis: SongComparisonMetrics;
+    recommendationsForSong1: string[];
+    recommendationsForSong2: string[];
+}
+
+const songComparisonMetricsProperty = {
+    type: Type.OBJECT,
+    properties: {
+        commercialPotential: { ...ratingProperty, description: "The song's potential for commercial success." },
+        originality: { ...ratingProperty, description: "How unique and creative the song is." },
+        composition: { ...ratingProperty, description: "The quality of the song's structure, melody, and harmony." },
+        productionQuality: { ...ratingProperty, description: "A hypothetical assessment of the mix, mastering, and overall sound quality." },
+        summary: { type: Type.STRING, description: "A brief 2-3 sentence summary of the song's strengths and weaknesses." }
+    },
+    required: ["commercialPotential", "originality", "composition", "productionQuality", "summary"]
+};
+
+const winnerProperty = {
+    type: Type.OBJECT,
+    properties: {
+        song: { type: Type.STRING, description: "The winning song, either 'song1', 'song2', or 'tie'." },
+        justification: { type: Type.STRING, description: "A detailed justification for why this song was chosen as the winner." }
+    },
+    required: ["song", "justification"]
+};
+
+const comparisonReportSchema = {
+    type: Type.OBJECT,
+    properties: {
+        overallWinner: { ...winnerProperty, description: "The song that is better overall in terms of artistic and technical merit." },
+        marketabilityWinner: { ...winnerProperty, description: "The song with higher commercial potential and broader appeal." },
+        spotifyWinner: { ...winnerProperty, description: "The song better suited for popular Spotify playlists and streaming success." },
+        song1Analysis: songComparisonMetricsProperty,
+        song2Analysis: songComparisonMetricsProperty,
+        recommendationsForSong1: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "A list of 2-3 actionable recommendations for improving Song 1."
+        },
+        recommendationsForSong2: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "A list of 2-3 actionable recommendations for improving Song 2."
+        }
+    },
+    required: ["overallWinner", "marketabilityWinner", "spotifyWinner", "song1Analysis", "song2Analysis", "recommendationsForSong1", "recommendationsForSong2"]
+};
+
+export const compareSongs = async (
+    song1Name: string,
+    song1Genre: string,
+    song1Vibe: string,
+    song2Name: string,
+    song2Genre: string,
+    song2Vibe: string
+): Promise<ComparisonReport> => {
+    const fullPrompt = `Act as an expert A&R scout and music critic. You are given metadata for two songs. Your task is to provide a detailed, hypothetical comparison based on this information, as you cannot listen to the audio.
+
+    **Song 1:**
+    - File Name: "${song1Name}"
+    - Genre: "${song1Genre}"
+    - Description/Vibe: "${song1Vibe}"
+
+    **Song 2:**
+    - File Name: "${song2Name}"
+    - Genre: "${song2Genre}"
+    - Description/Vibe: "${song2Vibe}"
+
+    **Your Task:**
+    1.  **Declare Winners:** For each of the following categories, declare a clear winner ('song1', 'song2', or 'tie') and provide a strong justification.
+        -   **Overall Winner:** The song with superior artistic and technical merit.
+        -   **Marketability Winner:** The song with broader commercial appeal.
+        -   **Spotify Winner:** The song better suited for popular streaming playlists.
+    2.  **Detailed Analysis:** For each song, provide a detailed analysis including:
+        -   Ratings from 1-100 for Commercial Potential, Originality, Composition, and hypothetical Production Quality, each with a brief justification.
+        -   A concise summary of the song's strengths and weaknesses.
+    3.  **Actionable Recommendations:** Provide 2-3 specific, constructive recommendations for improving each song.
+
+    Your response must be strictly in the specified JSON format.`;
+    
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: fullPrompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: comparisonReportSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    return JSON.parse(jsonText) as ComparisonReport;
+};
