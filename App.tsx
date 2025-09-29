@@ -5,9 +5,10 @@ import { SongGenerator } from './components/SongGenerator';
 import { AifConverter } from './components/AifConverter';
 import { Mp3Analyzer } from './components/Mp3Analyzer';
 import { SongComparator } from './components/SongComparator';
+import { LyricsEnhancer } from './components/LyricsEnhancer';
 
 const App: React.FC = () => {
-  const [activeTool, setActiveTool] = useState<'generator' | 'converter' | 'analyzer' | 'comparator'>('generator');
+  const [activeTool, setActiveTool] = useState<'generator' | 'converter' | 'analyzer' | 'comparator' | 'enhancer'>('generator');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white font-sans p-4 sm:p-6 md:p-8">
@@ -16,6 +17,7 @@ const App: React.FC = () => {
         <Tabs activeTool={activeTool} onSelectTool={setActiveTool} />
         <main className="mt-8">
           {activeTool === 'generator' && <SongGenerator />}
+          {activeTool === 'enhancer' && <LyricsEnhancer />}
           {activeTool === 'converter' && <AifConverter />}
           {activeTool === 'analyzer' && <Mp3Analyzer />}
           {activeTool === 'comparator' && <SongComparator />}

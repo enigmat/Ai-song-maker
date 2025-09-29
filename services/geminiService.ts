@@ -372,3 +372,24 @@ export const compareSongs = async (
     const jsonText = response.text.trim();
     return JSON.parse(jsonText) as ComparisonReport;
 };
+
+export const enhanceLyrics = async (originalLyrics: string): Promise<string> => {
+    const prompt = `Act as an expert songwriter and lyricist. Your task is to enhance the following lyrics.
+Focus on improving imagery, storytelling, rhythm, and emotional impact.
+Maintain the original core theme and meaning, but elevate the language and structure.
+Return ONLY the enhanced lyrics, formatted with sections like [Verse 1], [Chorus], etc.
+Do not include any additional commentary, introductory phrases like "Here are the enhanced lyrics:", or markdown formatting.
+
+Original Lyrics:
+---
+${originalLyrics}
+---
+`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+    });
+
+    return response.text.trim();
+};
