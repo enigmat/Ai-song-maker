@@ -1,8 +1,8 @@
 import React from 'react';
 
 interface TabsProps {
-  activeTool: 'generator' | 'converter' | 'analyzer' | 'comparator' | 'enhancer';
-  onSelectTool: (tool: 'generator' | 'converter' | 'analyzer' | 'comparator' | 'enhancer') => void;
+  activeTool: 'generator' | 'enhancer' | 'chords' | 'converter' | 'analyzer' | 'comparator';
+  onSelectTool: (tool: 'generator' | 'enhancer' | 'chords' | 'converter' | 'analyzer' | 'comparator') => void;
 }
 
 const GeneratorIcon = () => (
@@ -17,6 +17,13 @@ const EnhancerIcon = () => (
         <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
     </svg>
 );
+
+const ChordsIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3V7.82l8-1.6v5.894A4.369 4.369 0 0015 12c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3V4a1 1 0 00-1-1z" />
+    </svg>
+);
+
 
 const ConverterIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -38,7 +45,7 @@ const ComparatorIcon = () => (
 
 
 export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
-  const getButtonClasses = (tool: 'generator' | 'converter' | 'analyzer' | 'comparator' | 'enhancer') => {
+  const getButtonClasses = (tool: 'generator' | 'enhancer' | 'chords' | 'converter' | 'analyzer' | 'comparator') => {
     const isActive = activeTool === tool;
     return `w-full flex items-center justify-center px-4 py-3 font-semibold text-sm sm:text-base rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
       isActive
@@ -48,7 +55,7 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
   };
 
   return (
-    <div className="mt-8 p-1.5 bg-gray-900/50 rounded-xl border border-gray-700 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 items-center gap-2">
+    <div className="mt-8 p-1.5 bg-gray-900/50 rounded-xl border border-gray-700 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 items-center gap-2">
       <button onClick={() => onSelectTool('generator')} className={getButtonClasses('generator')}>
         <GeneratorIcon />
         Song Generator
@@ -56,6 +63,10 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
       <button onClick={() => onSelectTool('enhancer')} className={getButtonClasses('enhancer')}>
         <EnhancerIcon />
         Lyrics Enhancer
+      </button>
+      <button onClick={() => onSelectTool('chords')} className={getButtonClasses('chords')}>
+        <ChordsIcon />
+        Chord Progressions
       </button>
       <button onClick={() => onSelectTool('converter')} className={getButtonClasses('converter')}>
         <ConverterIcon />

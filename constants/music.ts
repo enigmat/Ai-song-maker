@@ -85,3 +85,21 @@ export const artistTypes: { value: ArtistType, label: string }[] = [
     { value: 'band', label: 'Band' },
     { value: 'duo', label: 'Duo' },
 ];
+
+export const musicalKeys = [
+    'C Major / A Minor',
+    'G Major / E Minor',
+    'D Major / B Minor',
+    'A Major / F# Minor',
+    'E Major / C# Minor',
+    'B Major / G# Minor',
+    'F# Major / D# Minor',
+    'C# Major / A# Minor',
+    'F Major / D Minor',
+    'Bb Major / G Minor',
+    'Eb Major / C Minor',
+    'Ab Major / F Minor',
+    'Db Major / Bb Minor',
+    'Gb Major / Eb Minor',
+    'Cb Major / Ab Minor',
+];

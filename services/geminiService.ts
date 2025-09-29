@@ -393,3 +393,52 @@ ${originalLyrics}
 
     return response.text.trim();
 };
+
+// Types and schema for chord progressions
+export interface ChordProgression {
+    progression: string;
+    description: string;
+}
+
+const chordProgressionSchema = {
+    type: Type.ARRAY,
+    items: {
+        type: Type.OBJECT,
+        properties: {
+            progression: {
+                type: Type.STRING,
+                description: "A chord progression written as a series of chord names separated by dashes, like 'C-G-Am-F' or 'i-V-VI-IV'."
+            },
+            description: {
+                type: Type.STRING,
+                description: "A brief, one-sentence description of the progression's feel or common use case."
+            }
+        },
+        required: ["progression", "description"]
+    }
+};
+
+export const generateChordProgressions = async (
+    key: string,
+    genre: string,
+    mood: string
+): Promise<ChordProgression[]> => {
+    const prompt = `Act as an expert music theorist and songwriter. Generate 5 unique and creative chord progressions based on the following parameters:
+- Key: ${key}
+- Genre: ${genre}
+- Mood: ${mood}
+
+For each progression, provide both the chord sequence and a brief description of its character. Ensure the chords are appropriate for the specified key.`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: chordProgressionSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    return JSON.parse(jsonText) as ChordProgression[];
+};
