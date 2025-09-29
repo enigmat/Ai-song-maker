@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { enhanceLyrics } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
@@ -44,7 +44,7 @@ const CopyButton: React.FC<{ textToCopy: string }> = ({ textToCopy }) => {
 };
 
 const LyricsColumn: React.FC<{ title: string; lyrics: string; isLoading?: boolean; children?: React.ReactNode }> = ({ title, lyrics, isLoading = false, children }) => (
-    <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700 flex-1 min-w-[300px] flex flex-col">
+    <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700 flex-1 w-full flex flex-col">
         <div className="flex justify-between items-center mb-3">
             <h3 className="text-xl font-bold text-gray-300">{title}</h3>
             {children}
@@ -68,8 +68,29 @@ const LyricsColumn: React.FC<{ title: string; lyrics: string; isLoading?: boolea
 export const LyricsEnhancer: React.FC = () => {
     const [originalLyrics, setOriginalLyrics] = useState('');
     const [enhancedLyrics, setEnhancedLyrics] = useState('');
+    const [displayedEnhancedLyrics, setDisplayedEnhancedLyrics] = useState('');
     const [status, setStatus] = useState<'idle' | 'enhancing' | 'success' | 'error'>('idle');
     const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (status === 'success' && enhancedLyrics) {
+            setDisplayedEnhancedLyrics(''); // Reset before typing
+            let i = 0;
+            const typingInterval = 10; // Speed of typing in milliseconds
+
+            const typeCharacter = () => {
+                if (i < enhancedLyrics.length) {
+                    setDisplayedEnhancedLyrics(prev => prev + enhancedLyrics.charAt(i));
+                    i++;
+                    setTimeout(typeCharacter, typingInterval);
+                }
+            };
+            
+            const timeoutId = setTimeout(typeCharacter, typingInterval);
+            
+            return () => clearTimeout(timeoutId);
+        }
+    }, [enhancedLyrics, status]);
 
     const handleEnhance = async () => {
         if (!originalLyrics.trim()) {
@@ -78,6 +99,8 @@ export const LyricsEnhancer: React.FC = () => {
         }
         setStatus('enhancing');
         setError(null);
+        setEnhancedLyrics('');
+        setDisplayedEnhancedLyrics('');
         try {
             const result = await enhanceLyrics(originalLyrics);
             setEnhancedLyrics(result);
@@ -92,20 +115,27 @@ export const LyricsEnhancer: React.FC = () => {
     const handleReset = useCallback(() => {
         setOriginalLyrics('');
         setEnhancedLyrics('');
+        setDisplayedEnhancedLyrics('');
         setStatus('idle');
         setError(null);
     }, []);
 
     if (status === 'enhancing' || status === 'success') {
+        const isTypingFinished = enhancedLyrics.length > 0 && enhancedLyrics.length === displayedEnhancedLyrics.length;
         return (
             <div className="p-4 sm:p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 animate-fade-in">
                 <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-transparent bg-clip-text">
                     Lyrics Comparison
                 </h2>
-                <div className="mt-6 flex flex-col md:flex-row gap-6">
+                <div className="mt-6 flex flex-col md:flex-row gap-4 items-center">
                     <LyricsColumn title="Original" lyrics={originalLyrics} />
-                    <LyricsColumn title="Enhanced" lyrics={enhancedLyrics} isLoading={status === 'enhancing'}>
-                        {status === 'success' && <CopyButton textToCopy={enhancedLyrics} />}
+                    <div className="hidden md:flex text-purple-500/80 transform rotate-90 md:rotate-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                    <LyricsColumn title="Enhanced" lyrics={displayedEnhancedLyrics} isLoading={status === 'enhancing'}>
+                        {isTypingFinished && <CopyButton textToCopy={enhancedLyrics} />}
                     </LyricsColumn>
                 </div>
                 <div className="mt-8 text-center">
