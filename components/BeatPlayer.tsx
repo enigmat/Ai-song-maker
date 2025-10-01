@@ -7,6 +7,7 @@ interface BeatPlayerProps {
     currentStep: number;
     onRemix: () => void;
     isRemixing: boolean;
+    trackUrl: string | null;
 }
 
 const RemixIcon = () => (
@@ -24,7 +25,7 @@ interface ParsedBeat {
     clap?: number[];
 }
 
-export const BeatPlayer: React.FC<BeatPlayerProps> = ({ beatPattern, isPlaying, currentStep, onRemix, isRemixing }) => {
+export const BeatPlayer: React.FC<BeatPlayerProps> = ({ beatPattern, isPlaying, currentStep, onRemix, isRemixing, trackUrl }) => {
 
     const parsedBeat = useMemo<ParsedBeat>(() => {
         try {
@@ -36,7 +37,19 @@ export const BeatPlayer: React.FC<BeatPlayerProps> = ({ beatPattern, isPlaying, 
         }
     }, [beatPattern]);
 
-    const renderGrid = () => {
+    const renderContent = () => {
+        if (trackUrl) {
+            return (
+                <div className="flex-grow flex flex-col items-center justify-center text-center text-gray-400 p-4">
+                     <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-teal-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3V7.82l8-1.6v5.894A4.369 4.369 0 0015 12c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3V4a1 1 0 00-1-1z" />
+                    </svg>
+                    <p className="mt-2 font-semibold">Instrumental Track Loaded</p>
+                    <p className="text-xs text-gray-500">The master play button controls playback.</p>
+                </div>
+            );
+        }
+
         const instruments = [
             { name: 'Kick', steps: parsedBeat.kick || [], color: 'bg-purple-500' },
             { name: 'Snare', steps: parsedBeat.snare || [], color: 'bg-pink-500' },
@@ -75,8 +88,8 @@ export const BeatPlayer: React.FC<BeatPlayerProps> = ({ beatPattern, isPlaying, 
                 <h3 className="text-xl font-bold text-gray-200">Beat Machine</h3>
                 <button
                     onClick={onRemix}
-                    disabled={isRemixing}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 bg-teal-600 text-white shadow-lg hover:bg-teal-500 disabled:opacity-50 disabled:cursor-wait"
+                    disabled={isRemixing || !!trackUrl}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 bg-teal-600 text-white shadow-lg hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     aria-label="Remix beat"
                 >
                     {isRemixing ? <LoadingSpinner size="sm" /> : <RemixIcon />}
@@ -84,14 +97,14 @@ export const BeatPlayer: React.FC<BeatPlayerProps> = ({ beatPattern, isPlaying, 
                 </button>
             </div>
 
-            {(isRemixing || !beatPattern) ? (
+            {(isRemixing || (!beatPattern && !trackUrl)) ? (
                  <div className="text-center p-10 flex-grow flex flex-col justify-center items-center">
                     <LoadingSpinner />
                     <p className="mt-4 text-gray-400 text-sm animate-pulse">
                         {isRemixing ? 'Creating new beat...' : 'No beat generated yet.'}
                     </p>
                 </div>
-            ) : renderGrid()}
+            ) : renderContent()}
         </div>
     );
 };

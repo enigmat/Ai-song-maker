@@ -74,7 +74,7 @@ export const RemixPromptForm: React.FC<RemixPromptFormProps> = ({ onGenerate, is
                             value={originalTitle}
                             onChange={(e) => setOriginalTitle(e.target.value)}
                             className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
-                            placeholder="e.g., 'Jolene'"
+                            placeholder="Title of the song to remix"
                             disabled={isLoading}
                         />
                     </div>
@@ -86,7 +86,7 @@ export const RemixPromptForm: React.FC<RemixPromptFormProps> = ({ onGenerate, is
                             value={originalArtist}
                             onChange={(e) => setOriginalArtist(e.target.value)}
                             className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
-                            placeholder="e.g., 'Dolly Parton'"
+                            placeholder="Artist of the original song"
                             disabled={isLoading}
                         />
                     </div>

@@ -278,6 +278,7 @@ export const SongRemixer: React.FC = () => {
                         onRegenerateImage={handleRegenerateImage}
                         artistImageUrl={artistImageUrl}
                         isRegeneratingImage={isGeneratingImage}
+                        onImageUpdate={setArtistImageUrl}
                     />
                 );
             

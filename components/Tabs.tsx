@@ -1,8 +1,8 @@
 import React from 'react';
 
 interface TabsProps {
-  activeTool: 'generator' | 'enhancer' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer';
-  onSelectTool: (tool: 'generator' | 'enhancer' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer') => void;
+  activeTool: 'generator' | 'enhancer' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter';
+  onSelectTool: (tool: 'generator' | 'enhancer' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter') => void;
 }
 
 const GeneratorIcon = () => (
@@ -49,9 +49,16 @@ const ComparatorIcon = () => (
     </svg>
 );
 
+const SplitterIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M17.293 3.293a1 1 0 011.414 1.414l-13 13A1 1 0 014 18H3a1 1 0 01-1-1v-1a1 1 0 01.293-.707l13-13zM10 4a1 1 0 10-2 0v1.586l-1.293-1.293a1 1 0 00-1.414 1.414L6.586 7 5.293 8.293a1 1 0 001.414 1.414L8 8.414v1.586a1 1 0 102 0v-1.586l1.293 1.293a1 1 0 001.414-1.414L11.414 7l1.293-1.293a1 1 0 00-1.414-1.414L10 5.586V4z" />
+        <path d="M16 4a2 2 0 11-4 0 2 2 0 014 0zM6 14a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+);
+
 
 export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
-  const getButtonClasses = (tool: 'generator' | 'enhancer' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer') => {
+  const getButtonClasses = (tool: 'generator' | 'enhancer' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter') => {
     const isActive = activeTool === tool;
     return `w-full flex items-center justify-center px-4 py-3 font-semibold text-sm sm:text-base rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
       isActive
@@ -89,6 +96,10 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
       <button onClick={() => onSelectTool('comparator')} className={getButtonClasses('comparator')}>
         <ComparatorIcon />
         Song Comparator
+      </button>
+      <button onClick={() => onSelectTool('splitter')} className={getButtonClasses('splitter')}>
+        <SplitterIcon />
+        Stem Splitter
       </button>
     </div>
   );

@@ -15,6 +15,11 @@ declare var Tone: any; // Using Tone.js from CDN
 
 type AppStatus = 'prompt' | 'generating' | 'editing' | 'finalizing' | 'display' | 'error';
 
+interface SongGeneratorProps {
+    instrumentalTrackUrl: string | null;
+    clearInstrumentalTrack: () => void;
+}
+
 const defaultSongData: SongData = {
     title: '',
     artistName: '',
@@ -31,7 +36,7 @@ const defaultSongData: SongData = {
     genre: '',
 };
 
-export const SongGenerator: React.FC = () => {
+export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackUrl, clearInstrumentalTrack }) => {
     const [status, setStatus] = useState<AppStatus>('prompt');
     const [songData, setSongData] = useState<SongData>(defaultSongData);
     const [error, setError] = useState<string | null>(null);
@@ -50,66 +55,89 @@ export const SongGenerator: React.FC = () => {
     // Tone.js refs
     const synths = useRef<any>({});
     const sequence = useRef<any>(null);
+    const player = useRef<any>(null);
 
 
     useEffect(() => {
         // This effect sets up the audio components whenever songData changes
         // It's only active when in the 'display' status.
-        if (status !== 'display' || !songData.beatPattern) {
+        if (status !== 'display') {
             setIsAudioReady(false);
             return;
         }
 
         // Cleanup previous Tone instances
         if (sequence.current) sequence.current.dispose();
+        if (player.current) player.current.dispose();
         Object.values(synths.current).forEach((synth: any) => synth.dispose());
-
-        try {
-            const parsedBeat = JSON.parse(songData.beatPattern);
-            if (!parsedBeat || typeof parsedBeat !== 'object') {
-                throw new Error("Invalid beat pattern format");
-            }
-
-            synths.current = {
-                kick: new Tone.MembraneSynth().toDestination(),
-                snare: new Tone.NoiseSynth({
-                    noise: { type: 'white' },
-                    envelope: { attack: 0.005, decay: 0.1, sustain: 0 },
-                }).toDestination(),
-                hihat: new Tone.MetalSynth({
-                    frequency: 200,
-                    envelope: { attack: 0.001, decay: 0.1, release: 0.01 },
-                    harmonicity: 5.1,
-                    modulationIndex: 32,
-                    resonance: 4000,
-                    octaves: 1.5
-                }).toDestination(),
-                clap: new Tone.NoiseSynth({
-                    noise: { type: 'pink' },
-                    envelope: { attack: 0.001, decay: 0.15, sustain: 0, release: 0.2 },
-                }).toDestination(),
-            };
-            
-            const steps = Array.from({ length: 16 }, (_, i) => i);
-
-            sequence.current = new Tone.Sequence((time, step) => {
-                if (parsedBeat.kick?.includes(step)) synths.current.kick.triggerAttackRelease("C1", "8n", time);
-                if (parsedBeat.snare?.includes(step)) synths.current.snare.triggerAttackRelease("16n", time);
-                if (parsedBeat.hihat?.includes(step)) synths.current.hihat.triggerAttackRelease("16n", time, 0.6);
-                if (parsedBeat.clap?.includes(step)) synths.current.clap.triggerAttackRelease("16n", time);
+        setIsAudioReady(false);
+        
+        if (instrumentalTrackUrl) {
+            try {
+                player.current = new Tone.Player({
+                    url: instrumentalTrackUrl,
+                    onload: () => {
+                        setIsAudioReady(true);
+                    },
+                    loop: true,
+                }).toDestination();
                 
-                Tone.Draw.schedule(() => {
-                    setCurrentStep(step);
-                }, time);
+                player.current.sync().start(0);
+                Tone.Transport.bpm.value = songData.bpm;
 
-            }, steps, "16n").start(0);
+            } catch(e) {
+                console.error("Failed to load instrumental track:", e);
+                setError("The instrumental track is invalid and cannot be played.");
+                setIsAudioReady(false);
+            }
+        } else if (songData.beatPattern) {
+            try {
+                const parsedBeat = JSON.parse(songData.beatPattern);
+                if (!parsedBeat || typeof parsedBeat !== 'object') {
+                    throw new Error("Invalid beat pattern format");
+                }
 
-            Tone.Transport.bpm.value = songData.bpm;
-            setIsAudioReady(true);
-        } catch (e) {
-            console.error("Failed to parse beat pattern or initialize Tone.js:", e);
-            setError("The generated beat pattern is invalid and cannot be played.");
-            setIsAudioReady(false);
+                synths.current = {
+                    kick: new Tone.MembraneSynth().toDestination(),
+                    snare: new Tone.NoiseSynth({
+                        noise: { type: 'white' },
+                        envelope: { attack: 0.005, decay: 0.1, sustain: 0 },
+                    }).toDestination(),
+                    hihat: new Tone.MetalSynth({
+                        frequency: 200,
+                        envelope: { attack: 0.001, decay: 0.1, release: 0.01 },
+                        harmonicity: 5.1,
+                        modulationIndex: 32,
+                        resonance: 4000,
+                        octaves: 1.5
+                    }).toDestination(),
+                    clap: new Tone.NoiseSynth({
+                        noise: { type: 'pink' },
+                        envelope: { attack: 0.001, decay: 0.15, sustain: 0, release: 0.2 },
+                    }).toDestination(),
+                };
+                
+                const steps = Array.from({ length: 16 }, (_, i) => i);
+
+                sequence.current = new Tone.Sequence((time, step) => {
+                    if (parsedBeat.kick?.includes(step)) synths.current.kick.triggerAttackRelease("C1", "8n", time);
+                    if (parsedBeat.snare?.includes(step)) synths.current.snare.triggerAttackRelease("16n", time);
+                    if (parsedBeat.hihat?.includes(step)) synths.current.hihat.triggerAttackRelease("16n", time, 0.6);
+                    if (parsedBeat.clap?.includes(step)) synths.current.clap.triggerAttackRelease("16n", time);
+                    
+                    Tone.Draw.schedule(() => {
+                        setCurrentStep(step);
+                    }, time);
+
+                }, steps, "16n").start(0);
+
+                Tone.Transport.bpm.value = songData.bpm;
+                setIsAudioReady(true);
+            } catch (e) {
+                console.error("Failed to parse beat pattern or initialize Tone.js:", e);
+                setError("The generated beat pattern is invalid and cannot be played.");
+                setIsAudioReady(false);
+            }
         }
 
         // Cleanup on component unmount or when songData changes again
@@ -119,11 +147,12 @@ export const SongGenerator: React.FC = () => {
                 Tone.Transport.cancel();
              }
              if (sequence.current) sequence.current.dispose();
+             if (player.current) player.current.dispose();
              Object.values(synths.current).forEach((synth: any) => synth.dispose());
              setCurrentStep(-1);
              setIsPlaying(false);
         };
-    }, [songData, status]);
+    }, [songData, status, instrumentalTrackUrl]);
 
 
     const handleGenerate = async (
@@ -143,11 +172,21 @@ export const SongGenerator: React.FC = () => {
         setStatus('generating');
         setError(null);
         setArtistImageUrl('');
+        if (instrumentalTrackUrl) {
+            // When generating a new song with an existing instrumental,
+            // we keep the instrumental but clear the old beat pattern data.
+            setSongData(prev => ({ ...defaultSongData, bpm: prev.bpm }));
+        }
         try {
             const data = await generateSongFromPrompt(
                 prompt, genre, singerGender, artistType, mood, tempo,
                 melody, harmony, rhythm, instrumentation, atmosphere, vocalStyle
             );
+             // If we used an instrumental, don't overwrite the BPM and clear the new beat pattern
+            if (instrumentalTrackUrl) {
+                data.beatPattern = '';
+                data.bpm = songData.bpm; 
+            }
             setSongData(data);
             setStatus('editing');
 
@@ -249,7 +288,8 @@ export const SongGenerator: React.FC = () => {
         setError(null);
         setIsPlaying(false);
         setCurrentStep(-1);
-    }, []);
+        clearInstrumentalTrack();
+    }, [clearInstrumentalTrack]);
 
     const renderContent = () => {
         switch (status) {
@@ -280,6 +320,7 @@ export const SongGenerator: React.FC = () => {
                         onRegenerateImage={handleRegenerateImage}
                         artistImageUrl={artistImageUrl}
                         isRegeneratingImage={isGeneratingImage}
+                        onImageUpdate={setArtistImageUrl}
                     />
                 );
             
@@ -309,6 +350,7 @@ export const SongGenerator: React.FC = () => {
                                 currentStep={currentStep} 
                                 onRemix={handleRemix} 
                                 isRemixing={isRemixing}
+                                trackUrl={instrumentalTrackUrl}
                             />
                         </div>
                         

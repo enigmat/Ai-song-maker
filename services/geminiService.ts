@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, Modality } from "@google/genai";
 
 const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
 
@@ -166,6 +166,48 @@ export const generateImage = async (prompt: string): Promise<string> => {
     const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
     return `data:image/jpeg;base64,${base64ImageBytes}`;
 };
+
+/**
+ * Edits an image based on a text prompt using the gemini-2.5-flash-image-preview model.
+ * @param base64ImageData The base64-encoded string of the original image.
+ * @param mimeType The MIME type of the original image (e.g., 'image/jpeg').
+ * @param prompt The text prompt describing the desired edit.
+ * @returns A new data URL (e.g., 'data:image/png;base64,...') for the edited image.
+ */
+export const editImage = async (base64ImageData: string, mimeType: string, prompt: string): Promise<string> => {
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image-preview',
+        contents: {
+            parts: [
+                {
+                    inlineData: {
+                        data: base64ImageData,
+                        mimeType: mimeType,
+                    },
+                },
+                {
+                    text: prompt,
+                },
+            ],
+        },
+        config: {
+            responseModalities: [Modality.IMAGE, Modality.TEXT],
+        },
+    });
+
+    // Find the image part in the response
+    for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+            const newBase64 = part.inlineData.data;
+            const newMimeType = part.inlineData.mimeType;
+            return `data:${newMimeType};base64,${newBase64}`;
+        }
+    }
+
+    // If no image is returned, throw an error. The model might just respond with text.
+    throw new Error("The AI did not return an edited image. It may have responded: " + response.text);
+};
+
 
 export const generateVideo = async (prompt: string): Promise<string> => {
     let operation = await ai.models.generateVideos({

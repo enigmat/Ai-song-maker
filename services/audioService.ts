@@ -1,4 +1,5 @@
 
+
 // Declaration for lamejs from CDN
 declare var lamejs: any;
 
@@ -6,9 +7,10 @@ declare var lamejs: any;
 /**
  * Encodes an AudioBuffer into an MP3 file format Blob using lamejs.
  * @param buffer The Web Audio API AudioBuffer to encode.
+ * @param onProgress An optional callback to report encoding progress (0-100).
  * @returns A Blob representing the MP3 file.
  */
-export const audioBufferToMp3 = (buffer: AudioBuffer): Blob => {
+export const audioBufferToMp3 = (buffer: AudioBuffer, onProgress?: (progress: number) => void): Blob => {
     const numChannels = buffer.numberOfChannels;
     const sampleRate = buffer.sampleRate;
     const kbps = 128; // Bitrate
@@ -33,8 +35,9 @@ export const audioBufferToMp3 = (buffer: AudioBuffer): Blob => {
 
     const pcmLeft = floatTo16BitPCM(samplesLeft);
     const pcmRight = floatTo16BitPCM(samplesRight);
+    const totalSamples = pcmLeft.length;
 
-    for (let i = 0; i < pcmLeft.length; i += sampleBlockSize) {
+    for (let i = 0; i < totalSamples; i += sampleBlockSize) {
         const leftChunk = pcmLeft.subarray(i, i + sampleBlockSize);
         const rightChunk = pcmRight.subarray(i, i + sampleBlockSize);
         
@@ -42,11 +45,18 @@ export const audioBufferToMp3 = (buffer: AudioBuffer): Blob => {
         if (mp3buf.length > 0) {
             mp3Data.push(mp3buf);
         }
+        if (onProgress) {
+            onProgress((i / totalSamples) * 100);
+        }
     }
     
     const mp3buf = mp3encoder.flush();
     if (mp3buf.length > 0) {
         mp3Data.push(mp3buf);
+    }
+    
+    if (onProgress) {
+        onProgress(100);
     }
 
     return new Blob(mp3Data, { type: 'audio/mp3' });
