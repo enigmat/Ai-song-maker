@@ -91,6 +91,40 @@ export const generateSongFromPrompt = async (
     return JSON.parse(jsonText) as SongData;
 };
 
+export const generateRemixedSong = async (
+    originalTitle: string,
+    originalArtist: string,
+    targetGenre: string,
+    singerGender: SingerGender,
+    artistType: ArtistType,
+    mood: string,
+): Promise<SongData> => {
+    
+    const fullPrompt = `Act as an expert music producer and songwriter specializing in recreating songs for different eras. Your task is to reimagine a song based on the provided inspiration and parameters. The new song should capture the core theme and emotional essence of the original but be completely new in its composition, lyrics, and production style, fitting perfectly into the target genre. Do not copy lyrics or melodies from the original.
+
+    **Inspiration Song:** "${originalTitle}" by ${originalArtist}
+
+    **Target Style:**
+    - **Genre:** ${targetGenre}
+    - **Singer:** ${singerGender}
+    - **Artist Type:** ${artistType}
+    - **Mood:** ${mood}
+
+    Generate a complete song package based on this, creating a new, plausible artist that would fit this remixed style. The genre you return in the final JSON output must be the same as the target genre provided above.`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: fullPrompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: songDataSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    return JSON.parse(jsonText) as SongData;
+};
+
 export const generateNewBeatPattern = async (styleGuide: string, genre: string): Promise<string> => {
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
