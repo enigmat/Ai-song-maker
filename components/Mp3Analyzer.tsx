@@ -3,6 +3,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
 import { analyzeSong, AnalysisReport } from '../services/geminiService';
 import { DownloadButton } from './DownloadButton';
+import { ReportViewer } from './ReportViewer';
 // Fix: Module '"../constants/music"' has no exported member 'vibes'. 'moods' should be used instead.
 import { genres, moods } from '../constants/music';
 
@@ -27,55 +28,18 @@ const AddArtIcon = () => (
     </svg>
 );
 
-const MarketabilityIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
-        <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
-    </svg>
-);
-const AudienceIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-    </svg>
-);
-const PlaylistIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1z" />
-    </svg>
-);
-const SyncIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm3 2h6v4H7V5zm8 8H5v-2h10v2z" clipRule="evenodd" />
-    </svg>
-);
+const ScoreCard: React.FC<{ label: string; score: number }> = ({ label, score }) => {
+    const getScoreColor = (s: number) => {
+        if (s >= 85) return 'text-green-400';
+        if (s >= 60) return 'text-yellow-400';
+        return 'text-red-400';
+    };
 
-const CopyIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" />
-        <path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h6a2 2 0 00-2-2H5z" />
-    </svg>
-);
-
-const CheckIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-    </svg>
-);
-
-const TabButton: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({ active, onClick, children }) => {
     return (
-        <button
-            onClick={onClick}
-            role="tab"
-            aria-selected={active}
-            className={`px-4 py-2 -mb-px font-semibold border-b-2 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-800 rounded-t-md ${
-                active
-                    ? 'border-purple-500 text-purple-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-300'
-            }`}
-        >
-            {children}
-        </button>
+        <div className="bg-gray-900/50 p-4 rounded-lg text-center border border-gray-700">
+            <p className="text-sm text-gray-400">{label}</p>
+            <p className={`text-4xl font-bold mt-1 ${getScoreColor(score)}`}>{score}</p>
+        </div>
     );
 };
 
@@ -93,8 +57,7 @@ export const Mp3Analyzer: React.FC = () => {
     const [downloadableUrl, setDownloadableUrl] = useState<string | null>(null);
     const [downloadableFileName, setDownloadableFileName] = useState<string>('');
     const [lastAction, setLastAction] = useState<'analyze' | 'add_art' | null>(null);
-    const [reportView, setReportView] = useState<'formatted' | 'text'>('formatted');
-    const [isCopied, setIsCopied] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
 
 
     const handleFileSelect = (selectedFile: File | null) => {
@@ -200,50 +163,6 @@ export const Mp3Analyzer: React.FC = () => {
         }
     };
 
-    const getReportAsText = useCallback((): string => {
-        if (!report || !file) return '';
-        const sections = [
-            `Analysis Report for: ${file.name}`,
-            `Genre: ${genre}`,
-            `Vibe: ${vibe}`,
-            '',
-            '====================',
-            'PROS',
-            '====================',
-            ...report.pros.map(pro => `- ${pro}`),
-            '',
-            '====================',
-            'CONS',
-            '====================',
-            ...report.cons.map(con => `- ${con}`),
-            '',
-            '====================',
-            'MARKETABILITY',
-            '====================',
-            `- Target Audience: ${report.marketability.targetAudience}`,
-            '- Playlist Fit:',
-            ...report.marketability.playlistFit.map(p => `  - ${p}`),
-            `- Sync Potential: ${report.marketability.syncPotential}`,
-            '',
-            '====================',
-            'SUMMARY',
-            '====================',
-            report.summary
-        ];
-        return sections.join('\n');
-    }, [report, file, genre, vibe]);
-
-    const handleCopyReport = useCallback(() => {
-        const reportText = getReportAsText();
-        if (!reportText) return;
-        navigator.clipboard.writeText(reportText).then(() => {
-            setIsCopied(true);
-            setTimeout(() => setIsCopied(false), 2000);
-        }).catch(err => {
-            console.error('Failed to copy report:', err);
-        });
-    }, [getReportAsText]);
-
     const handleReset = useCallback(() => {
         setStatus('idle');
         setFile(null);
@@ -257,114 +176,44 @@ export const Mp3Analyzer: React.FC = () => {
         if (downloadableUrl) URL.revokeObjectURL(downloadableUrl);
         setDownloadableUrl(null);
         setDownloadableFileName('');
-        setReportView('formatted');
-        setIsCopied(false);
+        setShowReportModal(false);
     }, [downloadableUrl]);
 
     if (status === 'success' && report) {
         return (
-            <div className="p-4 sm:p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 animate-fade-in">
+            <>
+            {showReportModal && (
+                <ReportViewer
+                    report={report}
+                    fileName={file?.name || 'Unknown File'}
+                    onClose={() => setShowReportModal(false)}
+                />
+            )}
+            <div className="p-4 sm:p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 animate-fade-in text-center">
                 <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2 bg-gradient-to-r from-teal-400 via-cyan-500 to-sky-500 text-transparent bg-clip-text">
-                    Analysis Report
+                    Analysis Summary
                 </h2>
                 <p className="text-center text-gray-400 mb-6 break-words">For: <span className="font-semibold text-gray-300">{file?.name}</span></p>
 
-                <div className="flex justify-center mb-6 border-b border-gray-700">
-                    <TabButton active={reportView === 'formatted'} onClick={() => setReportView('formatted')}>
-                        Visual Report
-                    </TabButton>
-                    <TabButton active={reportView === 'text'} onClick={() => setReportView('text')}>
-                        Copy as Text
-                    </TabButton>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
+                    <ScoreCard label="Commercial Potential" score={report.ratings.commercialPotential.score} />
+                    <ScoreCard label="Originality" score={report.ratings.originality.score} />
+                    <ScoreCard label="Composition" score={report.ratings.composition.score} />
+                    <ScoreCard label="Production Quality" score={report.ratings.productionQuality.score} />
                 </div>
                 
-                {reportView === 'formatted' ? (
-                    <div className="space-y-8 animate-fade-in">
-                        <div>
-                            <h3 className="text-xl font-semibold text-green-400 flex items-center gap-2 mb-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                                Pros
-                            </h3>
-                            <ul className="list-disc list-inside space-y-2 text-gray-300 pl-2">
-                                {report.pros.map((pro, i) => <li key={`pro-${i}`}>{pro}</li>)}
-                            </ul>
-                        </div>
-                         <div>
-                            <h3 className="text-xl font-semibold text-red-400 flex items-center gap-2 mb-2">
-                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
-                                Cons
-                            </h3>
-                            <ul className="list-disc list-inside space-y-2 text-gray-300 pl-2">
-                                {report.cons.map((con, i) => <li key={`con-${i}`}>{con}</li>)}
-                            </ul>
-                        </div>
-                        
-                        <div>
-                            <h3 className="text-xl font-semibold text-cyan-400 flex items-center gap-2 mb-4">
-                                <MarketabilityIcon />
-                                Marketability Analysis
-                            </h3>
-                            <div className="space-y-4 pl-4 border-l-2 border-cyan-500/30">
-                                <div>
-                                    <h4 className="text-lg font-semibold text-gray-300 flex items-center gap-2 mb-1">
-                                        <AudienceIcon />
-                                        Target Audience
-                                    </h4>
-                                    <p className="text-gray-400">{report.marketability.targetAudience}</p>
-                                </div>
-                                <div>
-                                    <h4 className="text-lg font-semibold text-gray-300 flex items-center gap-2 mb-1">
-                                        <PlaylistIcon />
-                                        Playlist Fit
-                                    </h4>
-                                    <ul className="list-disc list-inside space-y-1 text-gray-400 pl-2">
-                                        {report.marketability.playlistFit.map((playlist, i) => <li key={`playlist-${i}`}>{playlist}</li>)}
-                                    </ul>
-                                </div>
-                                <div>
-                                    <h4 className="text-lg font-semibold text-gray-300 flex items-center gap-2 mb-1">
-                                        <SyncIcon />
-                                        Sync Potential
-                                    </h4>
-                                    <p className="text-gray-400">{report.marketability.syncPotential}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 className="text-xl font-semibold text-gray-300 mb-2">Summary</h3>
-                            <p className="text-gray-400 whitespace-pre-wrap">{report.summary}</p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="relative animate-fade-in">
-                        <button
-                            onClick={handleCopyReport}
-                            className="absolute top-3 right-3 flex items-center gap-2 text-sm font-semibold px-3 py-1 bg-gray-700 text-gray-300 rounded-md shadow-md hover:bg-purple-600 hover:text-white transition-all duration-200"
-                        >
-                            {isCopied ? (
-                                <>
-                                    <CheckIcon /> Copied!
-                                </>
-                            ) : (
-                                <>
-                                    <CopyIcon /> Copy
-                                </>
-                            )}
-                        </button>
-                        <pre className="p-4 bg-gray-900 rounded-lg text-gray-300 whitespace-pre-wrap font-mono text-sm overflow-x-auto max-h-[60vh]">
-                            {getReportAsText()}
-                        </pre>
-                    </div>
-                )}
-
-
-                <div className="mt-8 text-center">
-                    <button onClick={handleReset} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 border-2 border-purple-500 text-purple-400 rounded-lg shadow-md hover:bg-purple-500 hover:text-white transition-all duration-300">
-                        Analyze Another MP3
+                <p className="mt-6 text-gray-400 max-w-xl mx-auto">{report.summary}</p>
+                
+                <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
+                     <button onClick={() => setShowReportModal(true)} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105">
+                        View Full Report
+                    </button>
+                    <button onClick={handleReset} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 border-2 border-gray-600 text-gray-300 rounded-lg shadow-md hover:bg-gray-700 hover:text-white transition-all duration-300">
+                        Analyze Another
                     </button>
                 </div>
             </div>
+            </>
         );
     }
     
