@@ -153,7 +153,23 @@ export const RemixPromptForm: React.FC<RemixPromptFormProps> = ({ onGenerate, is
                         <div className="text-center">
                             <UploadIcon />
                             {audioFile ? (
-                                <p className="mt-2 text-lg font-semibold text-teal-400 truncate" title={audioFile.name}>{audioFile.name}</p>
+                                <div className="mt-2 text-center">
+                                    <p className="text-lg font-semibold text-teal-400 truncate" title={audioFile.name}>{audioFile.name}</p>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setAudioFile(null);
+                                            if (fileInputRef.current) {
+                                                fileInputRef.current.value = "";
+                                            }
+                                        }}
+                                        className="mt-1 text-xs px-2 py-1 text-gray-400 hover:text-white hover:bg-red-600/50 rounded-md transition-colors"
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+
                             ) : (
                                 <>
                                     <p className="mt-2 text-lg font-semibold text-gray-300">Drag & Drop MP3/WAV file</p>
