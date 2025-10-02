@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type, Modality } from "@google/genai";
+import { GoogleGenAI, Type, Modality, LiveServerMessage, Blob } from "@google/genai";
 
 const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
 
@@ -21,6 +21,18 @@ export interface SongData {
     bpm: number;
     videoPrompt: string;
     genre: string;
+}
+
+// New type for hummed melody notes
+export interface MelodyNote {
+    pitch: string; // e.g., "C4"
+    startTime: number; // in seconds
+    duration: number; // in seconds
+}
+
+export interface MelodyAnalysis {
+    bpm: number;
+    notes: MelodyNote[];
 }
 
 const songDataSchema = {
@@ -124,6 +136,114 @@ export const generateRemixedSong = async (
     const jsonText = response.text.trim();
     return JSON.parse(jsonText) as SongData;
 };
+
+export const generateRemixedSongFromLyrics = async (
+    originalLyrics: string,
+    originalFileName: string,
+    targetGenre: string,
+    singerGender: SingerGender,
+    artistType: ArtistType,
+    mood: string,
+): Promise<SongData> => {
+    
+    const fullPrompt = `Act as an expert music producer and songwriter specializing in recreating songs for different eras. Your task is to reimagine a song based on the provided lyrics and parameters. The new song should capture the core theme and emotional essence of the original lyrics but be completely new in its composition, lyrics, and production style, fitting perfectly into the target genre. Do not copy the original lyrics verbatim; instead, write new lyrics inspired by their themes and story.
+
+    **Inspiration Lyrics (from file "${originalFileName}"):**
+    ---
+    ${originalLyrics}
+    ---
+
+    **Target Style:**
+    - **Genre:** ${targetGenre}
+    - **Singer:** ${singerGender}
+    - **Artist Type:** ${artistType}
+    - **Mood:** ${mood}
+
+    Generate a complete song package based on this, creating a new, plausible artist that would fit this remixed style. The genre you return in the final JSON output must be the same as the target genre provided above.`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: fullPrompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: songDataSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    return JSON.parse(jsonText) as SongData;
+};
+
+const melodyNoteSchema = {
+    type: Type.OBJECT,
+    properties: {
+        pitch: { type: Type.STRING, description: "The musical pitch of the note in scientific notation (e.g., 'A4', 'C#5')." },
+        startTime: { type: Type.NUMBER, description: "The start time of the note in seconds from the beginning of the audio." },
+        duration: { type: Type.NUMBER, description: "The duration of the note in seconds." }
+    },
+    required: ["pitch", "startTime", "duration"]
+};
+
+const melodyAnalysisSchema = {
+    type: Type.OBJECT,
+    properties: {
+        bpm: { type: Type.INTEGER, description: "The estimated tempo of the hummed melody in beats per minute." },
+        notes: {
+            type: Type.ARRAY,
+            items: melodyNoteSchema
+        }
+    },
+    required: ["bpm", "notes"]
+};
+
+// Helper to convert Blob to Base64
+const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64data = reader.result as string;
+            // The result includes the data URL prefix, which needs to be removed.
+            resolve(base64data.split(',')[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+};
+
+export const generateMelodyFromHum = async (audioBlob: Blob): Promise<MelodyAnalysis> => {
+    const base64Audio = await blobToBase64(audioBlob);
+
+    const audioPart = {
+        inlineData: {
+            mimeType: audioBlob.type,
+            data: base64Audio,
+        },
+    };
+
+    const textPart = {
+        text: `You are an expert audio analyst specializing in music theory. Your task is to perform pitch detection on the provided audio file, which contains a person humming a single melodic line. Transcribe this melody into a structured JSON format.
+- Analyze the fundamental frequencies to identify the musical pitch of each note.
+- Represent pitches using scientific pitch notation (e.g., 'C4', 'F#5').
+- Determine the precise start time and duration for each note in seconds.
+- Estimate the overall tempo (BPM) of the performance.
+- Ignore non-pitched sounds like breaths, clicks, or background noise.
+- The output must be ONLY the JSON object, without any markdown formatting or explanatory text.
+`
+    };
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: { parts: [audioPart, textPart] },
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: melodyAnalysisSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    return JSON.parse(jsonText) as MelodyAnalysis;
+};
+
 
 export const generateNewBeatPattern = async (styleGuide: string, genre: string): Promise<string> => {
     const response = await ai.models.generateContent({
@@ -517,4 +637,94 @@ For each progression, provide both the chord sequence and a brief description of
 
     const jsonText = response.text.trim();
     return JSON.parse(jsonText) as ChordProgression[];
+};
+
+function encode(bytes: Uint8Array) {
+  let binary = '';
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function createPcmBlob(data: Float32Array): Blob {
+  const l = data.length;
+  const int16 = new Int16Array(l);
+  for (let i = 0; i < l; i++) {
+    // Clamp the values to the -1.0 to 1.0 range before converting
+    const s = Math.max(-1, Math.min(1, data[i]));
+    int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+  }
+  return {
+    data: encode(new Uint8Array(int16.buffer)),
+    mimeType: 'audio/pcm;rate=16000',
+  };
+}
+
+export const transcribeAudio = async (audioFile: File): Promise<string> => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const arrayBuffer = await audioFile.arrayBuffer();
+            const originalBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+            const targetSampleRate = 16000;
+            const offlineContext = new OfflineAudioContext(
+                originalBuffer.numberOfChannels,
+                originalBuffer.duration * targetSampleRate,
+                targetSampleRate
+            );
+            const source = offlineContext.createBufferSource();
+            source.buffer = originalBuffer;
+            source.connect(offlineContext.destination);
+            source.start();
+
+            const resampledBuffer = await offlineContext.startRendering();
+            const pcmData = resampledBuffer.getChannelData(0); // Use mono
+            
+            let fullTranscription = '';
+            let transcriptionComplete = false;
+
+            const sessionPromise = ai.live.connect({
+                model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+                callbacks: {
+                    onopen: () => {
+                        const pcmBlob = createPcmBlob(pcmData);
+                        sessionPromise.then((session) => {
+                            session.sendRealtimeInput({ media: pcmBlob });
+                        });
+                    },
+                    onmessage: (message: LiveServerMessage) => {
+                        if (message.serverContent?.inputTranscription) {
+                            fullTranscription += message.serverContent.inputTranscription.text;
+                        }
+                        if (message.serverContent?.turnComplete) {
+                            transcriptionComplete = true;
+                            sessionPromise.then(session => session.close());
+                        }
+                    },
+                    onerror: (e: ErrorEvent) => {
+                        console.error('Live API Error:', e);
+                        reject(new Error('Transcription failed due to a connection error.'));
+                    },
+                    onclose: (e: CloseEvent) => {
+                        if (transcriptionComplete) {
+                           resolve(fullTranscription.trim());
+                        } else {
+                           reject(new Error('Connection closed before transcription was complete.'));
+                        }
+                    },
+                },
+                config: {
+                    responseModalities: [Modality.AUDIO], // Per API requirements
+                    inputAudioTranscription: {},
+                },
+            });
+            
+        } catch (err) {
+            console.error("Audio processing for transcription failed:", err);
+            reject(new Error("Failed to process the audio file. It might be corrupted or in an unsupported format."));
+        }
+    });
 };

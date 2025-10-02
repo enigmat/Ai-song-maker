@@ -9,7 +9,7 @@ import { MusicVideoPlayer } from './MusicVideoPlayer';
 import { StyleGuideViewer } from './StyleGuideViewer';
 import { ErrorMessage } from './ErrorMessage';
 import { LoadingSpinner } from './LoadingSpinner';
-import { generateRemixedSong, generateNewBeatPattern, generateImage, generateVideo, SongData, SingerGender, ArtistType } from '../services/geminiService';
+import { generateRemixedSong, generateRemixedSongFromLyrics, generateNewBeatPattern, generateImage, generateVideo, transcribeAudio, SongData, SingerGender, ArtistType } from '../services/geminiService';
 
 declare var Tone: any; // Using Tone.js from CDN
 
@@ -40,6 +40,7 @@ export const SongRemixer: React.FC = () => {
     const [videoUrl, setVideoUrl] = useState('');
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+    const [generationStatusText, setGenerationStatusText] = useState('Remixing your song...');
 
     // Audio State
     const [isPlaying, setIsPlaying] = useState(false);
@@ -127,8 +128,7 @@ export const SongRemixer: React.FC = () => {
 
 
     const handleGenerate = async (
-        originalTitle: string,
-        originalArtist: string,
+        details: { originalTitle: string; originalArtist: string; audioFile: File | null },
         targetGenre: string,
         singerGender: SingerGender,
         artistType: ArtistType,
@@ -138,14 +138,35 @@ export const SongRemixer: React.FC = () => {
         setError(null);
         setArtistImageUrl('');
         try {
-            const data = await generateRemixedSong(
-                originalTitle,
-                originalArtist,
-                targetGenre,
-                singerGender,
-                artistType,
-                mood
-            );
+            let data: SongData;
+
+            if (details.audioFile) {
+                setGenerationStatusText('Transcribing audio...');
+                const transcribedLyrics = await transcribeAudio(details.audioFile);
+                if (!transcribedLyrics || transcribedLyrics.trim().length === 0) {
+                    throw new Error("Transcription failed or the audio contains no speech.");
+                }
+                setGenerationStatusText('Generating remix from lyrics...');
+                data = await generateRemixedSongFromLyrics(
+                    transcribedLyrics,
+                    details.audioFile.name,
+                    targetGenre,
+                    singerGender,
+                    artistType,
+                    mood
+                );
+            } else {
+                setGenerationStatusText('Remixing from title...');
+                data = await generateRemixedSong(
+                    details.originalTitle,
+                    details.originalArtist,
+                    targetGenre,
+                    singerGender,
+                    artistType,
+                    mood
+                );
+            }
+
             setSongData(data);
             setStatus('editing');
 
@@ -163,9 +184,9 @@ export const SongRemixer: React.FC = () => {
                     setIsGeneratingImage(false);
                 });
 
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            setError('Failed to generate song data. Please try a different prompt.');
+            setError(err.message || 'Failed to generate song data. Please try a different prompt.');
             setStatus('error');
         }
     };
@@ -253,14 +274,14 @@ export const SongRemixer: React.FC = () => {
         switch (status) {
             case 'prompt':
             case 'error':
-                 return <RemixPromptForm onGenerate={handleGenerate} isLoading={false} />;
+                 return <RemixPromptForm onGenerate={handleGenerate} isLoading={status === 'generating'} />;
 
             case 'generating':
                 return (
                     <div className="text-center p-10 bg-gray-800/50 rounded-xl">
                         <LoadingSpinner size="lg" />
                         <p className="mt-4 text-gray-400 text-lg animate-pulse">
-                            Remixing your song...
+                            {generationStatusText}
                         </p>
                         <p className="text-gray-500">
                             This can take up to a minute.
@@ -308,6 +329,7 @@ export const SongRemixer: React.FC = () => {
                                 currentStep={currentStep} 
                                 onRemix={handleRemix} 
                                 isRemixing={isRemixing}
+                                trackUrl={null}
                             />
                         </div>
                         

@@ -1,8 +1,8 @@
 import React from 'react';
 
 interface TabsProps {
-  activeTool: 'generator' | 'enhancer' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter';
-  onSelectTool: (tool: 'generator' | 'enhancer' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter') => void;
+  activeTool: 'generator' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter';
+  onSelectTool: (tool: 'generator' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter') => void;
 }
 
 const GeneratorIcon = () => (
@@ -17,10 +17,9 @@ const RemixerIcon = () => (
     </svg>
 );
 
-const EnhancerIcon = () => (
+const VocalToolsIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
-        <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+        <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-1a6 6 0 11-12 0H3a7.001 7.001 0 006 6.93V17H7a1 1 0 100 2h6a1 1 0 100-2h-2v-2.07z" clipRule="evenodd" />
     </svg>
 );
 
@@ -58,7 +57,7 @@ const SplitterIcon = () => (
 
 
 export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
-  const getButtonClasses = (tool: 'generator' | 'enhancer' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter') => {
+  const getButtonClasses = (tool: 'generator' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter') => {
     const isActive = activeTool === tool;
     return `w-full flex items-center justify-center px-4 py-3 font-semibold text-sm sm:text-base rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
       isActive
@@ -77,9 +76,9 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
         <RemixerIcon />
         Song Remixer
       </button>
-      <button onClick={() => onSelectTool('enhancer')} className={getButtonClasses('enhancer')}>
-        <EnhancerIcon />
-        Lyrics Enhancer
+      <button onClick={() => onSelectTool('vocaltools')} className={getButtonClasses('vocaltools')}>
+        <VocalToolsIcon />
+        Vocal Tools
       </button>
       <button onClick={() => onSelectTool('chords')} className={getButtonClasses('chords')}>
         <ChordsIcon />

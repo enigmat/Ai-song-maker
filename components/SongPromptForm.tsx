@@ -23,6 +23,7 @@ interface SongPromptFormProps {
         vocalStyle: string
     ) => void;
     isLoading: boolean;
+    onOpenMelodyStudio: () => void;
 }
 
 const GeneratorIcon = () => (
@@ -54,7 +55,7 @@ const SelectInput: React.FC<{ label: string; value: string; onChange: (e: React.
     );
 
 
-export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLoading }) => {
+export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLoading, onOpenMelodyStudio }) => {
     // Core state
     const [prompt, setPrompt] = useState('');
     const [showStorylineGenerator, setShowStorylineGenerator] = useState(false);
@@ -142,14 +143,24 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
                 <div>
                     <div className="flex justify-between items-center mb-2">
                         <label htmlFor="prompt" className="block text-sm font-medium text-gray-400">Your Song Idea</label>
-                        <button
-                            type="button"
-                            onClick={() => setShowStorylineGenerator(!showStorylineGenerator)}
-                            className="flex items-center gap-2 text-sm font-semibold px-3 py-1 bg-teal-600 rounded-full shadow-md hover:bg-teal-500 transition-all duration-300 disabled:opacity-50"
-                            aria-expanded={showStorylineGenerator}
-                        >
-                            ✨ Get Ideas
-                        </button>
+                         <div className="flex items-center gap-2">
+                             <button
+                                type="button"
+                                onClick={onOpenMelodyStudio}
+                                disabled={isLoading}
+                                className="flex items-center gap-2 text-sm font-semibold px-3 py-1 bg-gray-700 text-gray-200 rounded-full shadow-md hover:bg-purple-600 hover:text-white transition-all duration-300 disabled:opacity-50"
+                            >
+                                🎤 Hum Melody
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setShowStorylineGenerator(!showStorylineGenerator)}
+                                className="flex items-center gap-2 text-sm font-semibold px-3 py-1 bg-teal-600 rounded-full shadow-md hover:bg-teal-500 transition-all duration-300 disabled:opacity-50"
+                                aria-expanded={showStorylineGenerator}
+                            >
+                                ✨ Get Ideas
+                            </button>
+                        </div>
                     </div>
                     <div className="relative">
                         <textarea

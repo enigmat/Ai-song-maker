@@ -5,6 +5,7 @@ import { audioBufferToMp3 } from '../services/audioService';
 
 interface StemSplitterProps {
     onInstrumentalSelect: (blob: Blob) => void;
+    onVocalSelect: (blob: Blob) => void;
 }
 
 const UploadIcon = () => (
@@ -32,8 +33,14 @@ const UseAsBeatIcon = () => (
     </svg>
 );
 
+const VocalToolsIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-1a6 6 0 11-12 0H3a7.001 7.001 0 006 6.93V17H7a1 1 0 100 2h6a1 1 0 100-2h-2v-2.07z" clipRule="evenodd" />
+    </svg>
+);
 
-export const StemSplitter: React.FC<StemSplitterProps> = ({ onInstrumentalSelect }) => {
+
+export const StemSplitter: React.FC<StemSplitterProps> = ({ onInstrumentalSelect, onVocalSelect }) => {
     const [status, setStatus] = useState<'idle' | 'splitting' | 'success' | 'error'>('idle');
     const [file, setFile] = useState<File | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -43,6 +50,7 @@ export const StemSplitter: React.FC<StemSplitterProps> = ({ onInstrumentalSelect
     const [vocalUrl, setVocalUrl] = useState<string | null>(null);
     const [instrumentalUrl, setInstrumentalUrl] = useState<string | null>(null);
     const [instrumentalBlob, setInstrumentalBlob] = useState<Blob | null>(null);
+    const [vocalBlob, setVocalBlob] = useState<Blob | null>(null);
 
 
     // Clean up Object URLs when component unmounts or new files are processed
@@ -135,6 +143,7 @@ export const StemSplitter: React.FC<StemSplitterProps> = ({ onInstrumentalSelect
             
             setInstrumentalBlob(instrumentalMp3Blob);
             setInstrumentalUrl(URL.createObjectURL(instrumentalMp3Blob));
+            setVocalBlob(vocalMp3Blob);
             setVocalUrl(URL.createObjectURL(vocalMp3Blob));
             
             setProgress(100);
@@ -153,6 +162,12 @@ export const StemSplitter: React.FC<StemSplitterProps> = ({ onInstrumentalSelect
         }
     };
 
+    const handleUseVocals = () => {
+        if (vocalBlob) {
+            onVocalSelect(vocalBlob);
+        }
+    };
+
     const handleReset = useCallback(() => {
         setStatus('idle');
         setFile(null);
@@ -163,6 +178,7 @@ export const StemSplitter: React.FC<StemSplitterProps> = ({ onInstrumentalSelect
         setVocalUrl(null);
         setInstrumentalUrl(null);
         setInstrumentalBlob(null);
+        setVocalBlob(null);
     }, [vocalUrl, instrumentalUrl]);
     
     if (status === 'success') {
@@ -179,9 +195,14 @@ export const StemSplitter: React.FC<StemSplitterProps> = ({ onInstrumentalSelect
                             <h3 className="text-xl font-semibold text-purple-400">A Cappella (Vocals)</h3>
                             <p className="text-sm text-gray-500 mt-1 mb-4">The isolated vocal track.</p>
                         </div>
-                        <a href={vocalUrl!} download={`${baseFileName}_acappella.mp3`} className="w-full inline-flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105">
-                           <DownloadIcon /> Download
-                        </a>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                           <a href={vocalUrl!} download={`${baseFileName}_acappella.mp3`} className="flex-1 w-full inline-flex items-center justify-center gap-2 font-semibold px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105">
+                               <DownloadIcon /> Download
+                           </a>
+                           <button onClick={handleUseVocals} className="flex-1 w-full inline-flex items-center justify-center gap-2 font-semibold px-4 py-3 bg-gray-700 text-gray-200 rounded-lg shadow-md hover:bg-gray-600 transition-all duration-300 transform hover:scale-105">
+                               <VocalToolsIcon /> Transcribe
+                           </button>
+                        </div>
                     </div>
                     <div className="bg-gray-900/50 p-6 rounded-lg border border-gray-700 text-center flex flex-col justify-between">
                         <div>

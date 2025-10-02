@@ -9,6 +9,7 @@ import { MusicVideoPlayer } from './MusicVideoPlayer';
 import { StyleGuideViewer } from './StyleGuideViewer';
 import { ErrorMessage } from './ErrorMessage';
 import { LoadingSpinner } from './LoadingSpinner';
+import { MelodyStudio } from './MelodyStudio';
 import { generateSongFromPrompt, generateNewBeatPattern, generateImage, generateVideo, SongData, SingerGender, ArtistType } from '../services/geminiService';
 
 declare var Tone: any; // Using Tone.js from CDN
@@ -40,6 +41,8 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
     const [status, setStatus] = useState<AppStatus>('prompt');
     const [songData, setSongData] = useState<SongData>(defaultSongData);
     const [error, setError] = useState<string | null>(null);
+    const [isMelodyStudioOpen, setIsMelodyStudioOpen] = useState(false);
+    const [hummedInstrumental, setHummedInstrumental] = useState<{ url: string; blob: Blob } | null>(null);
 
     const [artistImageUrl, setArtistImageUrl] = useState('');
     const [videoUrl, setVideoUrl] = useState('');
@@ -57,6 +60,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
     const sequence = useRef<any>(null);
     const player = useRef<any>(null);
 
+    const effectiveInstrumentalUrl = hummedInstrumental?.url || instrumentalTrackUrl;
 
     useEffect(() => {
         // This effect sets up the audio components whenever songData changes
@@ -72,10 +76,10 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
         Object.values(synths.current).forEach((synth: any) => synth.dispose());
         setIsAudioReady(false);
         
-        if (instrumentalTrackUrl) {
+        if (effectiveInstrumentalUrl) {
             try {
                 player.current = new Tone.Player({
-                    url: instrumentalTrackUrl,
+                    url: effectiveInstrumentalUrl,
                     onload: () => {
                         setIsAudioReady(true);
                     },
@@ -152,7 +156,16 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
              setCurrentStep(-1);
              setIsPlaying(false);
         };
-    }, [songData, status, instrumentalTrackUrl]);
+    }, [songData, status, effectiveInstrumentalUrl]);
+    
+    // Cleanup for hummed instrumental URL
+    useEffect(() => {
+      return () => {
+        if (hummedInstrumental?.url) {
+          URL.revokeObjectURL(hummedInstrumental.url);
+        }
+      };
+    }, [hummedInstrumental]);
 
 
     const handleGenerate = async (
@@ -172,7 +185,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
         setStatus('generating');
         setError(null);
         setArtistImageUrl('');
-        if (instrumentalTrackUrl) {
+        if (effectiveInstrumentalUrl) {
             // When generating a new song with an existing instrumental,
             // we keep the instrumental but clear the old beat pattern data.
             setSongData(prev => ({ ...defaultSongData, bpm: prev.bpm }));
@@ -183,7 +196,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
                 melody, harmony, rhythm, instrumentation, atmosphere, vocalStyle
             );
              // If we used an instrumental, don't overwrite the BPM and clear the new beat pattern
-            if (instrumentalTrackUrl) {
+            if (effectiveInstrumentalUrl) {
                 data.beatPattern = '';
                 data.bpm = songData.bpm; 
             }
@@ -288,14 +301,27 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
         setError(null);
         setIsPlaying(false);
         setCurrentStep(-1);
+        setHummedInstrumental(null);
         clearInstrumentalTrack();
     }, [clearInstrumentalTrack]);
+    
+    const handleHummedMelodySelect = (blob: Blob, bpm: number) => {
+        if (hummedInstrumental?.url) {
+            URL.revokeObjectURL(hummedInstrumental.url);
+        }
+        clearInstrumentalTrack(); // Clear any track from other tools
+
+        const newUrl = URL.createObjectURL(blob);
+        setHummedInstrumental({ url: newUrl, blob });
+        setSongData(prev => ({...prev, bpm, beatPattern: '' })); // Use BPM from melody and clear beat
+        setIsMelodyStudioOpen(false);
+    };
 
     const renderContent = () => {
         switch (status) {
             case 'prompt':
             case 'error':
-                 return <SongPromptForm onGenerate={handleGenerate} isLoading={false} />;
+                 return <SongPromptForm onGenerate={handleGenerate} isLoading={false} onOpenMelodyStudio={() => setIsMelodyStudioOpen(true)} />;
 
             case 'generating':
                 return (
@@ -350,7 +376,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
                                 currentStep={currentStep} 
                                 onRemix={handleRemix} 
                                 isRemixing={isRemixing}
-                                trackUrl={instrumentalTrackUrl}
+                                trackUrl={effectiveInstrumentalUrl}
                             />
                         </div>
                         
@@ -375,6 +401,12 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
 
     return (
         <div>
+            {isMelodyStudioOpen && (
+                <MelodyStudio
+                    onClose={() => setIsMelodyStudioOpen(false)}
+                    onMelodySelect={handleHummedMelodySelect}
+                />
+            )}
             {error && <ErrorMessage message={error} />}
             {renderContent()}
         </div>

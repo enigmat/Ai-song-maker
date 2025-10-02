@@ -6,13 +6,14 @@ import { SongRemixer } from './components/SongRemixer';
 import { AifConverter } from './components/AifConverter';
 import { Mp3Analyzer } from './components/Mp3Analyzer';
 import { SongComparator } from './components/SongComparator';
-import { LyricsEnhancer } from './components/LyricsEnhancer';
+import { VocalTools } from './components/VocalTools';
 import { ChordProgressionGenerator } from './components/ChordProgressionGenerator';
 import { StemSplitter } from './components/StemSplitter';
 
 const App: React.FC = () => {
-  const [activeTool, setActiveTool] = useState<'generator' | 'remixer' | 'enhancer' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter'>('generator');
+  const [activeTool, setActiveTool] = useState<'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter'>('generator');
   const [instrumentalTrackUrl, setInstrumentalTrackUrl] = useState<string | null>(null);
+  const [vocalTrack, setVocalTrack] = useState<Blob | null>(null);
 
   const handleInstrumentalSelect = (blob: Blob) => {
     if (instrumentalTrackUrl) {
@@ -20,7 +21,18 @@ const App: React.FC = () => {
     }
     const newUrl = URL.createObjectURL(blob);
     setInstrumentalTrackUrl(newUrl);
+    setVocalTrack(null);
     setActiveTool('generator');
+  };
+
+  const handleVocalSelect = (blob: Blob) => {
+    setVocalTrack(blob);
+    clearInstrumentalTrack();
+    setActiveTool('vocaltools');
+  };
+
+  const clearVocalTrack = () => {
+    setVocalTrack(null);
   };
 
   const clearInstrumentalTrack = () => {
@@ -39,12 +51,12 @@ const App: React.FC = () => {
         <main className="mt-8">
           {activeTool === 'generator' && <SongGenerator instrumentalTrackUrl={instrumentalTrackUrl} clearInstrumentalTrack={clearInstrumentalTrack} />}
           {activeTool === 'remixer' && <SongRemixer />}
-          {activeTool === 'enhancer' && <LyricsEnhancer />}
+          {activeTool === 'vocaltools' && <VocalTools initialVocalTrack={vocalTrack} clearVocalTrack={clearVocalTrack} />}
           {activeTool === 'chords' && <ChordProgressionGenerator />}
           {activeTool === 'converter' && <AifConverter />}
           {activeTool === 'analyzer' && <Mp3Analyzer />}
           {activeTool === 'comparator' && <SongComparator />}
-          {activeTool === 'splitter' && <StemSplitter onInstrumentalSelect={handleInstrumentalSelect} />}
+          {activeTool === 'splitter' && <StemSplitter onInstrumentalSelect={handleInstrumentalSelect} onVocalSelect={handleVocalSelect} />}
         </main>
       </div>
     </div>
