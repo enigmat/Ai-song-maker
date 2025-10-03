@@ -26,6 +26,21 @@ interface SongPromptFormProps {
     onOpenMelodyStudio: () => void;
 }
 
+// Defines the parameters that make up an artist's signature style.
+interface ArtistProfile {
+  genre: string;
+  singerGender: SingerGender;
+  artistType: ArtistType;
+  mood: string;
+  tempo: string;
+  melody: string;
+  harmony: string;
+  rhythm: string;
+  instrumentation: string;
+  atmosphere: string;
+  vocalStyle: string;
+}
+
 const GeneratorIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -77,6 +92,42 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
     const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef<any>(null);
     const [speechSupported, setSpeechSupported] = useState(false);
+    
+    // Artist Profile state
+    const [savedProfiles, setSavedProfiles] = useState<Record<string, ArtistProfile>>({});
+    const [selectedProfile, setSelectedProfile] = useState<string>('custom');
+
+    // Load profiles from local storage on mount
+    useEffect(() => {
+        try {
+            const storedProfiles = localStorage.getItem('mustbmusic_artist_profiles');
+            if (storedProfiles) {
+                setSavedProfiles(JSON.parse(storedProfiles));
+            }
+        } catch (e) {
+            console.error("Failed to load artist profiles:", e);
+        }
+    }, []);
+    
+    const handleProfileChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const profileName = e.target.value;
+        setSelectedProfile(profileName);
+        if (profileName !== 'custom' && savedProfiles[profileName]) {
+            const profile = savedProfiles[profileName];
+            setGenre(profile.genre);
+            setSingerGender(profile.singerGender);
+            setArtistType(profile.artistType);
+            setMood(profile.mood);
+            setTempo(profile.tempo);
+            setMelody(profile.melody);
+            setHarmony(profile.harmony);
+            setRhythm(profile.rhythm);
+            setInstrumentation(profile.instrumentation);
+            setAtmosphere(profile.atmosphere);
+            setVocalStyle(profile.vocalStyle);
+        }
+    };
+
 
     useEffect(() => {
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -194,40 +245,57 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
                     />
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-                    <SelectInput label="Genre" value={genre} onChange={(e) => setGenre(e.target.value)} options={genres} disabled={isLoading} />
-                    <div>
-                        <label htmlFor="singer-gender" className="block text-sm font-medium text-gray-400 mb-2">Singer</label>
-                        <select
-                            id="singer-gender"
-                            value={singerGender}
-                            onChange={(e) => setSingerGender(e.target.value as SingerGender)}
-                            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-colors"
-                            disabled={isLoading}
-                        >
-                            {singerGenders.map((sg) => <option key={sg.value} value={sg.value}>{sg.label}</option>)}
-                        </select>
-                    </div>
+                <div className="pt-2 space-y-4">
                      <div>
-                        <label htmlFor="artist-type" className="block text-sm font-medium text-gray-400 mb-2">Artist Type</label>
+                        <label htmlFor="artist-profile" className="block text-sm font-medium text-gray-400 mb-2">Artist Profile</label>
                         <select
-                            id="artist-type"
-                            value={artistType}
-                            onChange={(e) => setArtistType(e.target.value as ArtistType)}
+                            id="artist-profile"
+                            value={selectedProfile}
+                            onChange={handleProfileChange}
                             className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-colors"
                             disabled={isLoading}
                         >
-                            {artistTypes.map((at) => <option key={at.value} value={at.value}>{at.label}</option>)}
+                            <option value="custom">-- Custom Style --</option>
+                            {Object.keys(savedProfiles).sort().map(name => (
+                                <option key={name} value={name}>{name}</option>
+                            ))}
                         </select>
                     </div>
-                    <SelectInput label="Mood" value={mood} onChange={(e) => setMood(e.target.value)} options={moods} disabled={isLoading} />
-                    <SelectInput label="Tempo" value={tempo} onChange={(e) => setTempo(e.target.value)} options={tempos} disabled={isLoading} />
-                    <SelectInput label="Vocal Style" value={vocalStyle} onChange={(e) => setVocalStyle(e.target.value)} options={vocalStyles} disabled={isLoading} />
-                    <SelectInput label="Melody" value={melody} onChange={(e) => setMelody(e.target.value)} options={melodies} disabled={isLoading} />
-                    <SelectInput label="Harmony" value={harmony} onChange={(e) => setHarmony(e.target.value)} options={harmonies} disabled={isLoading} />
-                    <SelectInput label="Rhythm" value={rhythm} onChange={(e) => setRhythm(e.target.value)} options={rhythms} disabled={isLoading} />
-                    <SelectInput label="Instrumentation" value={instrumentation} onChange={(e) => setInstrumentation(e.target.value)} options={instrumentations} disabled={isLoading} />
-                    <SelectInput label="Atmosphere/FX" value={atmosphere} onChange={(e) => setAtmosphere(e.target.value)} options={atmospheres} disabled={isLoading} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <SelectInput label="Genre" value={genre} onChange={(e) => { setGenre(e.target.value); setSelectedProfile('custom'); }} options={genres} disabled={isLoading} />
+                        <div>
+                            <label htmlFor="singer-gender" className="block text-sm font-medium text-gray-400 mb-2">Singer</label>
+                            <select
+                                id="singer-gender"
+                                value={singerGender}
+                                onChange={(e) => { setSingerGender(e.target.value as SingerGender); setSelectedProfile('custom'); }}
+                                className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-colors"
+                                disabled={isLoading}
+                            >
+                                {singerGenders.map((sg) => <option key={sg.value} value={sg.value}>{sg.label}</option>)}
+                            </select>
+                        </div>
+                         <div>
+                            <label htmlFor="artist-type" className="block text-sm font-medium text-gray-400 mb-2">Artist Type</label>
+                            <select
+                                id="artist-type"
+                                value={artistType}
+                                onChange={(e) => { setArtistType(e.target.value as ArtistType); setSelectedProfile('custom'); }}
+                                className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-colors"
+                                disabled={isLoading}
+                            >
+                                {artistTypes.map((at) => <option key={at.value} value={at.value}>{at.label}</option>)}
+                            </select>
+                        </div>
+                        <SelectInput label="Mood" value={mood} onChange={(e) => { setMood(e.target.value); setSelectedProfile('custom'); }} options={moods} disabled={isLoading} />
+                        <SelectInput label="Tempo" value={tempo} onChange={(e) => { setTempo(e.target.value); setSelectedProfile('custom'); }} options={tempos} disabled={isLoading} />
+                        <SelectInput label="Vocal Style" value={vocalStyle} onChange={(e) => { setVocalStyle(e.target.value); setSelectedProfile('custom'); }} options={vocalStyles} disabled={isLoading} />
+                        <SelectInput label="Melody" value={melody} onChange={(e) => { setMelody(e.target.value); setSelectedProfile('custom'); }} options={melodies} disabled={isLoading} />
+                        <SelectInput label="Harmony" value={harmony} onChange={(e) => { setHarmony(e.target.value); setSelectedProfile('custom'); }} options={harmonies} disabled={isLoading} />
+                        <SelectInput label="Rhythm" value={rhythm} onChange={(e) => { setRhythm(e.target.value); setSelectedProfile('custom'); }} options={rhythms} disabled={isLoading} />
+                        <SelectInput label="Instrumentation" value={instrumentation} onChange={(e) => { setInstrumentation(e.target.value); setSelectedProfile('custom'); }} options={instrumentations} disabled={isLoading} />
+                        <SelectInput label="Atmosphere/FX" value={atmosphere} onChange={(e) => { setAtmosphere(e.target.value); setSelectedProfile('custom'); }} options={atmospheres} disabled={isLoading} />
+                    </div>
                 </div>
                 
                 <button
