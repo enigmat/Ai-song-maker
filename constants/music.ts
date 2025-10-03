@@ -105,15 +105,15 @@ export const musicalKeys = [
 ];
 
 export const styleFieldDescriptions = {
-    genre: "The primary musical genre that defines the song's overall sound and structure.",
-    singerGender: "The perceived gender of the lead vocalist.",
-    artistType: "The configuration of the musical act (e.g., a single person, a group, etc.).",
-    mood: "The dominant emotion or feeling the song evokes.",
-    tempo: "The speed of the music, measured in beats per minute (BPM).",
-    melody: "The style of the main musical tune or sequence of notes.",
-    harmony: "The combination of different notes played or sung simultaneously to create chords and chord progressions.",
-    rhythm: "The pattern of sounds and silences in time; the song's beat and groove.",
-    instrumentation: "The selection of instruments used to perform the music.",
-    atmosphere: "The overall sonic texture and feeling created by production effects like reverb, delay, and distortion.",
-    vocalStyle: "The specific manner of singing (e.g., smooth, aggressive, spoken-word)."
+    genre: "Defines the song's overall sound, structure, and instrumentation. For example, 'Synthwave' will feature synthesizers, while 'Acoustic' will be more organic.",
+    singerGender: "Influences the vocal tone and range the AI will aim for in its style description.",
+    artistType: "The configuration of the musical act. A 'Solo' artist might have a more intimate sound, while a 'Band' could have a fuller, layered arrangement.",
+    mood: "The dominant emotion the song evokes. 'Upbeat' often leads to faster tempos and major keys, whereas 'Melancholic' will likely result in slower tempos and minor keys.",
+    tempo: "The speed of the music, measured in Beats Per Minute (BPM). This is a crucial element in defining a song's energy level, from a slow ballad to a fast-paced dance track.",
+    melody: "The main musical tune that a listener often remembers. 'Simple and Catchy' is great for pop hooks, while 'Complex and Technical' might be better for jazz or progressive rock.",
+    harmony: "The combination of notes played simultaneously to create chords. 'Diatonic and Simple' harmony feels stable and predictable, while 'Dissonant and Tense' harmony creates unease or complexity.",
+    rhythm: "The song's beat and groove. 'Steady and Driving' is common in rock music, while 'Syncopated and Funky' adds a more complex, danceable feel.",
+    instrumentation: "The selection of instruments used in the music. This choice is fundamental to the song's genre and texture. For example, 'Rock Band' implies guitars, bass, and drums.",
+    atmosphere: "The sonic texture created by production effects like reverb or distortion. 'Spacious and Reverb-heavy' creates a sense of vastness, while 'Dry and Intimate' feels close and personal.",
+    vocalStyle: "The specific manner of singing. 'Clear & Melodic' focuses on the tune, while 'Rhythmic & Spoken' is closer to rap. This heavily influences the performance's character."
 };
