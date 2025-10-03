@@ -1,8 +1,8 @@
 import React from 'react';
 
 interface TabsProps {
-  activeTool: 'generator' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter';
-  onSelectTool: (tool: 'generator' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter') => void;
+  activeTool: 'generator' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter' | 'profiles';
+  onSelectTool: (tool: 'generator' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter' | 'profiles') => void;
 }
 
 const GeneratorIcon = () => (
@@ -29,6 +29,11 @@ const ChordsIcon = () => (
     </svg>
 );
 
+const ProfileIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+    </svg>
+);
 
 const ConverterIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -57,7 +62,7 @@ const SplitterIcon = () => (
 
 
 export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
-  const getButtonClasses = (tool: 'generator' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter') => {
+  const getButtonClasses = (tool: 'generator' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter' | 'profiles') => {
     const isActive = activeTool === tool;
     return `w-full flex items-center justify-center px-4 py-3 font-semibold text-sm sm:text-base rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
       isActive
@@ -67,7 +72,7 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
   };
 
   return (
-    <div className="mt-8 p-1.5 bg-gray-900/50 rounded-xl border border-gray-700 grid grid-cols-2 md:grid-cols-4 items-center gap-2">
+    <div className="mt-8 p-1.5 bg-gray-900/50 rounded-xl border border-gray-700 grid grid-cols-3 items-center gap-2">
       <button onClick={() => onSelectTool('generator')} className={getButtonClasses('generator')}>
         <GeneratorIcon />
         Song Generator
@@ -83,6 +88,10 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
       <button onClick={() => onSelectTool('chords')} className={getButtonClasses('chords')}>
         <ChordsIcon />
         Chord Progressions
+      </button>
+      <button onClick={() => onSelectTool('profiles')} className={getButtonClasses('profiles')}>
+        <ProfileIcon />
+        Artist Profiles
       </button>
       <button onClick={() => onSelectTool('converter')} className={getButtonClasses('converter')}>
         <ConverterIcon />

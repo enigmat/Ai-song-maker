@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { SongStorylineGenerator } from './SongStorylineGenerator';
-import type { SingerGender, ArtistType } from '../services/geminiService';
+import type { SingerGender, ArtistType, ArtistStyleProfile } from '../services/geminiService';
 import {
     genres, singerGenders, artistTypes, moods, tempos,
-    melodies, harmonies, rhythms, instrumentations, atmospheres, vocalStyles
+    melodies, harmonies, rhythms, instrumentations, atmospheres, vocalStyles,
+    styleFieldDescriptions
 } from '../constants/music';
 
 interface SongPromptFormProps {
@@ -24,21 +25,6 @@ interface SongPromptFormProps {
     ) => void;
     isLoading: boolean;
     onOpenMelodyStudio: () => void;
-}
-
-// Defines the parameters that make up an artist's signature style.
-interface ArtistProfile {
-  genre: string;
-  singerGender: SingerGender;
-  artistType: ArtistType;
-  mood: string;
-  tempo: string;
-  melody: string;
-  harmony: string;
-  rhythm: string;
-  instrumentation: string;
-  atmosphere: string;
-  vocalStyle: string;
 }
 
 const GeneratorIcon = () => (
@@ -94,15 +80,26 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
     const [speechSupported, setSpeechSupported] = useState(false);
     
     // Artist Profile state
-    const [savedProfiles, setSavedProfiles] = useState<Record<string, ArtistProfile>>({});
+    const [savedProfiles, setSavedProfiles] = useState<Record<string, ArtistStyleProfile>>({});
     const [selectedProfile, setSelectedProfile] = useState<string>('custom');
 
     // Load profiles from local storage on mount
     useEffect(() => {
         try {
-            const storedProfiles = localStorage.getItem('mustbmusic_artist_profiles');
-            if (storedProfiles) {
-                setSavedProfiles(JSON.parse(storedProfiles));
+            const storedProfilesRaw = localStorage.getItem('mustbmusic_artist_profiles');
+            if (storedProfilesRaw) {
+                const storedProfiles = JSON.parse(storedProfilesRaw);
+                // We only need the style from the new profile structure
+                const styleProfiles: Record<string, ArtistStyleProfile> = {};
+                for (const name in storedProfiles) {
+                    if (storedProfiles[name].style) {
+                        styleProfiles[name] = storedProfiles[name].style;
+                    } else {
+                         // Handle potential old format for backward compatibility
+                         styleProfiles[name] = storedProfiles[name];
+                    }
+                }
+                setSavedProfiles(styleProfiles);
             }
         } catch (e) {
             console.error("Failed to load artist profiles:", e);
@@ -262,8 +259,8 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
                         </select>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <SelectInput label="Genre" value={genre} onChange={(e) => { setGenre(e.target.value); setSelectedProfile('custom'); }} options={genres} disabled={isLoading} />
-                        <div>
+                        <div title={styleFieldDescriptions.genre}><SelectInput label="Genre" value={genre} onChange={(e) => { setGenre(e.target.value); setSelectedProfile('custom'); }} options={genres} disabled={isLoading} /></div>
+                        <div title={styleFieldDescriptions.singerGender}>
                             <label htmlFor="singer-gender" className="block text-sm font-medium text-gray-400 mb-2">Singer</label>
                             <select
                                 id="singer-gender"
@@ -275,7 +272,7 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
                                 {singerGenders.map((sg) => <option key={sg.value} value={sg.value}>{sg.label}</option>)}
                             </select>
                         </div>
-                         <div>
+                         <div title={styleFieldDescriptions.artistType}>
                             <label htmlFor="artist-type" className="block text-sm font-medium text-gray-400 mb-2">Artist Type</label>
                             <select
                                 id="artist-type"
@@ -287,14 +284,14 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
                                 {artistTypes.map((at) => <option key={at.value} value={at.value}>{at.label}</option>)}
                             </select>
                         </div>
-                        <SelectInput label="Mood" value={mood} onChange={(e) => { setMood(e.target.value); setSelectedProfile('custom'); }} options={moods} disabled={isLoading} />
-                        <SelectInput label="Tempo" value={tempo} onChange={(e) => { setTempo(e.target.value); setSelectedProfile('custom'); }} options={tempos} disabled={isLoading} />
-                        <SelectInput label="Vocal Style" value={vocalStyle} onChange={(e) => { setVocalStyle(e.target.value); setSelectedProfile('custom'); }} options={vocalStyles} disabled={isLoading} />
-                        <SelectInput label="Melody" value={melody} onChange={(e) => { setMelody(e.target.value); setSelectedProfile('custom'); }} options={melodies} disabled={isLoading} />
-                        <SelectInput label="Harmony" value={harmony} onChange={(e) => { setHarmony(e.target.value); setSelectedProfile('custom'); }} options={harmonies} disabled={isLoading} />
-                        <SelectInput label="Rhythm" value={rhythm} onChange={(e) => { setRhythm(e.target.value); setSelectedProfile('custom'); }} options={rhythms} disabled={isLoading} />
-                        <SelectInput label="Instrumentation" value={instrumentation} onChange={(e) => { setInstrumentation(e.target.value); setSelectedProfile('custom'); }} options={instrumentations} disabled={isLoading} />
-                        <SelectInput label="Atmosphere/FX" value={atmosphere} onChange={(e) => { setAtmosphere(e.target.value); setSelectedProfile('custom'); }} options={atmospheres} disabled={isLoading} />
+                        <div title={styleFieldDescriptions.mood}><SelectInput label="Mood" value={mood} onChange={(e) => { setMood(e.target.value); setSelectedProfile('custom'); }} options={moods} disabled={isLoading} /></div>
+                        <div title={styleFieldDescriptions.tempo}><SelectInput label="Tempo" value={tempo} onChange={(e) => { setTempo(e.target.value); setSelectedProfile('custom'); }} options={tempos} disabled={isLoading} /></div>
+                        <div title={styleFieldDescriptions.vocalStyle}><SelectInput label="Vocal Style" value={vocalStyle} onChange={(e) => { setVocalStyle(e.target.value); setSelectedProfile('custom'); }} options={vocalStyles} disabled={isLoading} /></div>
+                        <div title={styleFieldDescriptions.melody}><SelectInput label="Melody" value={melody} onChange={(e) => { setMelody(e.target.value); setSelectedProfile('custom'); }} options={melodies} disabled={isLoading} /></div>
+                        <div title={styleFieldDescriptions.harmony}><SelectInput label="Harmony" value={harmony} onChange={(e) => { setHarmony(e.target.value); setSelectedProfile('custom'); }} options={harmonies} disabled={isLoading} /></div>
+                        <div title={styleFieldDescriptions.rhythm}><SelectInput label="Rhythm" value={rhythm} onChange={(e) => { setRhythm(e.target.value); setSelectedProfile('custom'); }} options={rhythms} disabled={isLoading} /></div>
+                        <div title={styleFieldDescriptions.instrumentation}><SelectInput label="Instrumentation" value={instrumentation} onChange={(e) => { setInstrumentation(e.target.value); setSelectedProfile('custom'); }} options={instrumentations} disabled={isLoading} /></div>
+                        <div title={styleFieldDescriptions.atmosphere}><SelectInput label="Atmosphere/FX" value={atmosphere} onChange={(e) => { setAtmosphere(e.target.value); setSelectedProfile('custom'); }} options={atmospheres} disabled={isLoading} /></div>
                     </div>
                 </div>
                 

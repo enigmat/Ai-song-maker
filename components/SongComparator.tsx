@@ -82,17 +82,18 @@ const AnalysisColumn: React.FC<{ title: string; analysis: SongComparisonMetrics;
         <h3 className={`text-xl font-bold text-center ${color}`}>{title}</h3>
         <p className="text-sm text-gray-400 italic text-center">{analysis.summary}</p>
         <div className="space-y-2 text-sm">
-            {Object.entries(analysis).filter(([key]) => key !== 'summary').map(([key, value]) => (
-                <div key={key} className="bg-gray-800/50 p-2 rounded-md">
-                    <div className="flex justify-between items-baseline">
-                        <span className="font-semibold text-gray-300 capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
-                        {/* FIX: `value` is of type unknown here. Cast to access `score` property. */}
-                        <span className={`font-bold text-lg ${color}`}>{(value as any).score}</span>
+            {Object.entries(analysis).filter(([key]) => key !== 'summary').map(([key, val]) => {
+                const value = val as { score: number; justification: string };
+                return (
+                    <div key={key} className="bg-gray-800/50 p-2 rounded-md">
+                        <div className="flex justify-between items-baseline">
+                            <span className="font-semibold text-gray-300 capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
+                            <span className={`font-bold text-lg ${color}`}>{value.score}</span>
+                        </div>
+                        <p className="text-xs text-gray-500">{value.justification}</p>
                     </div>
-                    {/* FIX: `value` is of type unknown here. Cast to access `justification` property. */}
-                    <p className="text-xs text-gray-500">{(value as any).justification}</p>
-                </div>
-            ))}
+                );
+            })}
         </div>
          <div>
             <h4 className="font-semibold text-gray-300 mb-1">Recommendations:</h4>

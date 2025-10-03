@@ -103,3 +103,17 @@ export const musicalKeys = [
     'Gb Major / Eb Minor',
     'Cb Major / Ab Minor',
 ];
+
+export const styleFieldDescriptions = {
+    genre: "The primary musical genre that defines the song's overall sound and structure.",
+    singerGender: "The perceived gender of the lead vocalist.",
+    artistType: "The configuration of the musical act (e.g., a single person, a group, etc.).",
+    mood: "The dominant emotion or feeling the song evokes.",
+    tempo: "The speed of the music, measured in beats per minute (BPM).",
+    melody: "The style of the main musical tune or sequence of notes.",
+    harmony: "The combination of different notes played or sung simultaneously to create chords and chord progressions.",
+    rhythm: "The pattern of sounds and silences in time; the song's beat and groove.",
+    instrumentation: "The selection of instruments used to perform the music.",
+    atmosphere: "The overall sonic texture and feeling created by production effects like reverb, delay, and distortion.",
+    vocalStyle: "The specific manner of singing (e.g., smooth, aggressive, spoken-word)."
+};

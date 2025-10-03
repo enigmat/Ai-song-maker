@@ -9,9 +9,10 @@ import { SongComparator } from './components/SongComparator';
 import { VocalTools } from './components/VocalTools';
 import { ChordProgressionGenerator } from './components/ChordProgressionGenerator';
 import { StemSplitter } from './components/StemSplitter';
+import { ArtistProfileManager } from './components/ArtistProfileManager';
 
 const App: React.FC = () => {
-  const [activeTool, setActiveTool] = useState<'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter'>('generator');
+  const [activeTool, setActiveTool] = useState<'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter' | 'profiles'>('generator');
   const [instrumentalTrackUrl, setInstrumentalTrackUrl] = useState<string | null>(null);
   const [vocalTrack, setVocalTrack] = useState<Blob | null>(null);
 
@@ -53,6 +54,7 @@ const App: React.FC = () => {
           {activeTool === 'remixer' && <SongRemixer />}
           {activeTool === 'vocaltools' && <VocalTools initialVocalTrack={vocalTrack} clearVocalTrack={clearVocalTrack} />}
           {activeTool === 'chords' && <ChordProgressionGenerator />}
+          {activeTool === 'profiles' && <ArtistProfileManager />}
           {activeTool === 'converter' && <AifConverter />}
           {activeTool === 'analyzer' && <Mp3Analyzer />}
           {activeTool === 'comparator' && <SongComparator />}

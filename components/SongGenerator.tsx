@@ -10,7 +10,7 @@ import { StyleGuideViewer } from './StyleGuideViewer';
 import { ErrorMessage } from './ErrorMessage';
 import { LoadingSpinner } from './LoadingSpinner';
 import { MelodyStudio } from './MelodyStudio';
-import { generateSongFromPrompt, generateNewBeatPattern, generateImage, generateVideo, SongData, SingerGender, ArtistType } from '../services/geminiService';
+import { generateSongFromPrompt, generateNewBeatPattern, generateImage, generateVideo, SongData, SingerGender, ArtistType, ArtistStyleProfile, StoredArtistProfile, ArtistSong } from '../services/geminiService';
 
 declare var Tone: any; // Using Tone.js from CDN
 
@@ -19,21 +19,6 @@ type AppStatus = 'prompt' | 'generating' | 'editing' | 'finalizing' | 'display' 
 interface SongGeneratorProps {
     instrumentalTrackUrl: string | null;
     clearInstrumentalTrack: () => void;
-}
-
-// Defines the parameters that make up an artist's signature style.
-interface ArtistStyleProfile {
-  genre: string;
-  singerGender: SingerGender;
-  artistType: ArtistType;
-  mood: string;
-  tempo: string;
-  melody: string;
-  harmony: string;
-  rhythm: string;
-  instrumentation: string;
-  atmosphere: string;
-  vocalStyle: string;
 }
 
 const defaultSongData: SongData = {
@@ -56,6 +41,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
     const [status, setStatus] = useState<AppStatus>('prompt');
     const [songData, setSongData] = useState<SongData>(defaultSongData);
     const [generationParams, setGenerationParams] = useState<ArtistStyleProfile | null>(null);
+    const [originalPrompt, setOriginalPrompt] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [isMelodyStudioOpen, setIsMelodyStudioOpen] = useState(false);
     const [hummedInstrumental, setHummedInstrumental] = useState<{ url: string; blob: Blob } | null>(null);
@@ -198,6 +184,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
         atmosphere: string,
         vocalStyle: string
     ) => {
+        setOriginalPrompt(prompt);
         // Save params for later saving as a profile
         const profileParams: ArtistStyleProfile = {
             genre, singerGender, artistType, mood, tempo, melody,
@@ -281,14 +268,36 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
     };
     
     const handleFinalize = async () => {
-        // Save the artist profile with the final artist name
+        // Save the artist profile with the final artist name and song data
         if (generationParams && songData.artistName) {
+            const newSong: ArtistSong = {
+                title: songData.title,
+                songPrompt: originalPrompt,
+                videoPrompt: songData.videoPrompt,
+                lyrics: songData.lyrics,
+                albumCoverPrompt: songData.albumCoverPrompt,
+                createdAt: new Date().toISOString(),
+            };
+            
             try {
                 const storedProfilesRaw = localStorage.getItem('mustbmusic_artist_profiles');
-                const storedProfiles = storedProfilesRaw ? JSON.parse(storedProfilesRaw) : {};
+                const storedProfiles: Record<string, StoredArtistProfile> = storedProfilesRaw ? JSON.parse(storedProfilesRaw) : {};
                 
-                storedProfiles[songData.artistName] = generationParams;
+                const artistName = songData.artistName;
+                const existingProfile = storedProfiles[artistName];
 
+                if (existingProfile) {
+                    // Artist exists, add song to their list, preventing duplicates by title
+                    if (!existingProfile.songs.some(s => s.title === newSong.title)) {
+                        existingProfile.songs.push(newSong);
+                    }
+                } else {
+                    // New artist, create a full profile for them
+                    storedProfiles[artistName] = {
+                        style: generationParams,
+                        songs: [newSong]
+                    };
+                }
                 localStorage.setItem('mustbmusic_artist_profiles', JSON.stringify(storedProfiles));
             } catch (e) {
                 console.error("Failed to save artist profile:", e);
@@ -342,6 +351,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
         setHummedInstrumental(null);
         clearInstrumentalTrack();
         setGenerationParams(null);
+        setOriginalPrompt('');
     }, [clearInstrumentalTrack]);
     
     const handleHummedMelodySelect = (blob: Blob, bpm: number) => {

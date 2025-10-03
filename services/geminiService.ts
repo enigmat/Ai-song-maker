@@ -7,6 +7,38 @@ export type SingerGender = 'male' | 'female' | 'non-binary' | 'any';
 export type ArtistType = 'solo' | 'band' | 'duo' | 'any';
 export type VocalMelody = Record<string, any>; // Placeholder for a more complex type if needed
 
+// Defines the parameters that make up an artist's signature style.
+export interface ArtistStyleProfile {
+  genre: string;
+  singerGender: SingerGender;
+  artistType: ArtistType;
+  mood: string;
+  tempo: string;
+  melody: string;
+  harmony: string;
+  rhythm: string;
+  instrumentation: string;
+  atmosphere: string;
+  vocalStyle: string;
+}
+
+// This defines a single song saved under an artist
+export interface ArtistSong {
+    title: string;
+    songPrompt: string;
+    videoPrompt: string;
+    lyrics: string;
+    albumCoverPrompt: string;
+    createdAt: string; // ISO Date string
+}
+
+// This is the structure of the value in our localStorage dictionary
+export interface StoredArtistProfile {
+    style: ArtistStyleProfile;
+    songs: ArtistSong[];
+}
+
+
 export interface SongData {
     title: string;
     artistName: string;
@@ -288,7 +320,7 @@ export const generateImage = async (prompt: string): Promise<string> => {
 };
 
 /**
- * Edits an image based on a text prompt using the gemini-2.5-flash-image-preview model.
+ * Edits an image based on a text prompt using the gemini-2.5-flash-image model.
  * @param base64ImageData The base64-encoded string of the original image.
  * @param mimeType The MIME type of the original image (e.g., 'image/jpeg').
  * @param prompt The text prompt describing the desired edit.
@@ -296,7 +328,7 @@ export const generateImage = async (prompt: string): Promise<string> => {
  */
 export const editImage = async (base64ImageData: string, mimeType: string, prompt: string): Promise<string> => {
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image-preview',
+        model: 'gemini-2.5-flash-image',
         contents: {
             parts: [
                 {
@@ -727,4 +759,54 @@ export const transcribeAudio = async (audioFile: File): Promise<string> => {
             reject(new Error("Failed to process the audio file. It might be corrupted or in an unsupported format."));
         }
     });
+};
+
+const artistProfileSchema = {
+    type: Type.OBJECT,
+    properties: {
+        genre: { type: Type.STRING, description: "The primary musical genre of the track." },
+        singerGender: { type: Type.STRING, description: "The perceived gender of the singer ('male', 'female', 'non-binary', or 'any' if unclear)." },
+        artistType: { type: Type.STRING, description: "The type of artist ('solo', 'band', 'duo', or 'any')." },
+        mood: { type: Type.STRING, description: "The dominant mood or emotion of the song." },
+        tempo: { type: Type.STRING, description: "The tempo described as 'Very Slow', 'Slow', 'Medium', 'Fast', or 'Very Fast'." },
+        melody: { type: Type.STRING, description: "The style of the main melody (e.g., 'Simple and Catchy', 'Complex and Technical')." },
+        harmony: { type: Type.STRING, description: "The harmonic style (e.g., 'Diatonic and Simple', 'Chromatic and Complex')." },
+        rhythm: { type: Type.STRING, description: "The rhythmic feel (e.g., 'Steady and Driving', 'Syncopated and Funky')." },
+        instrumentation: { type: Type.STRING, description: "The key instrumentation used (e.g., 'Acoustic', 'Electronic', 'Rock Band')." },
+        atmosphere: { type: Type.STRING, description: "The overall atmosphere or production effects (e.g., 'Spacious and Reverb-heavy', 'Dry and Intimate')." },
+        vocalStyle: { type: Type.STRING, description: "The style of the vocals (e.g., 'Clear & Melodic', 'Rhythmic & Spoken')." },
+        artistNameSuggestion: { type: Type.STRING, description: "A creative and plausible artist name that fits the generated musical profile." }
+    },
+    required: ["genre", "singerGender", "artistType", "mood", "tempo", "melody", "harmony", "rhythm", "instrumentation", "atmosphere", "vocalStyle", "artistNameSuggestion"]
+};
+
+export const analyzeAudioForProfile = async (audioBlob: Blob): Promise<ArtistStyleProfile & { artistNameSuggestion: string }> => {
+    const base64Audio = await blobToBase64(audioBlob);
+
+    const audioPart = {
+        inlineData: {
+            mimeType: audioBlob.type,
+            data: base64Audio,
+        },
+    };
+
+    const textPart = {
+        text: `You are an expert music A&R scout with a deep understanding of music theory and genres. Analyze the provided audio file and generate a detailed "Artist Style Profile" based on its characteristics. 
+        Your analysis must be comprehensive, covering all the required fields. For fields like tempo, melody, harmony, etc., choose the most fitting description from the common music terminology.
+        Finally, suggest a creative and plausible artist name that would fit this style of music.
+        The output must be ONLY a single JSON object that strictly adheres to the provided schema, without any markdown formatting or explanatory text.
+`
+    };
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: { parts: [audioPart, textPart] },
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: artistProfileSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    return JSON.parse(jsonText) as ArtistStyleProfile & { artistNameSuggestion: string };
 };
