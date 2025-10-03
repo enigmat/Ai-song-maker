@@ -39,21 +39,42 @@ const MicIcon = ({ isListening }: { isListening: boolean }) => (
     </svg>
 );
 
-const SelectInput: React.FC<{ label: string; value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; options: string[]; disabled: boolean; }> =
-    ({ label, value, onChange, options, disabled }) => (
-        <div>
-            <label htmlFor={label} className="block text-sm font-medium text-gray-400 mb-2">{label}</label>
-            <select
-                id={label}
-                value={value}
-                onChange={onChange}
-                className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-colors"
-                disabled={disabled}
-            >
-                {options.map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
+const Tooltip: React.FC<{ text: string }> = ({ text }) => (
+    <div className="group relative flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-60 p-3 bg-gray-900 text-gray-200 text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20 border border-gray-700">
+            {text}
         </div>
-    );
+    </div>
+);
+
+
+const SelectInput: React.FC<{
+    label: string;
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    options: string[];
+    disabled: boolean;
+    tooltipText?: string;
+}> = ({ label, value, onChange, options, disabled, tooltipText }) => (
+    <div>
+        <div className="flex items-center gap-1.5 mb-2">
+            <label htmlFor={label} className="block text-sm font-medium text-gray-400">{label}</label>
+            {tooltipText && <Tooltip text={tooltipText} />}
+        </div>
+        <select
+            id={label}
+            value={value}
+            onChange={onChange}
+            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-colors"
+            disabled={disabled}
+        >
+            {options.map((item) => <option key={item} value={item}>{item}</option>)}
+        </select>
+    </div>
+);
 
 
 export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLoading, onOpenMelodyStudio }) => {
@@ -259,9 +280,12 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
                         </select>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div title={styleFieldDescriptions.genre}><SelectInput label="Genre" value={genre} onChange={(e) => { setGenre(e.target.value); setSelectedProfile('custom'); }} options={genres} disabled={isLoading} /></div>
-                        <div title={styleFieldDescriptions.singerGender}>
-                            <label htmlFor="singer-gender" className="block text-sm font-medium text-gray-400 mb-2">Singer</label>
+                        <SelectInput label="Genre" value={genre} onChange={(e) => { setGenre(e.target.value); setSelectedProfile('custom'); }} options={genres} disabled={isLoading} tooltipText={styleFieldDescriptions.genre} />
+                        <div>
+                            <div className="flex items-center gap-1.5 mb-2">
+                                <label htmlFor="singer-gender" className="block text-sm font-medium text-gray-400">Singer</label>
+                                <Tooltip text={styleFieldDescriptions.singerGender} />
+                            </div>
                             <select
                                 id="singer-gender"
                                 value={singerGender}
@@ -272,8 +296,11 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
                                 {singerGenders.map((sg) => <option key={sg.value} value={sg.value}>{sg.label}</option>)}
                             </select>
                         </div>
-                         <div title={styleFieldDescriptions.artistType}>
-                            <label htmlFor="artist-type" className="block text-sm font-medium text-gray-400 mb-2">Artist Type</label>
+                         <div>
+                            <div className="flex items-center gap-1.5 mb-2">
+                                <label htmlFor="artist-type" className="block text-sm font-medium text-gray-400">Artist Type</label>
+                                <Tooltip text={styleFieldDescriptions.artistType} />
+                            </div>
                             <select
                                 id="artist-type"
                                 value={artistType}
@@ -284,14 +311,14 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
                                 {artistTypes.map((at) => <option key={at.value} value={at.value}>{at.label}</option>)}
                             </select>
                         </div>
-                        <div title={styleFieldDescriptions.mood}><SelectInput label="Mood" value={mood} onChange={(e) => { setMood(e.target.value); setSelectedProfile('custom'); }} options={moods} disabled={isLoading} /></div>
-                        <div title={styleFieldDescriptions.tempo}><SelectInput label="Tempo" value={tempo} onChange={(e) => { setTempo(e.target.value); setSelectedProfile('custom'); }} options={tempos} disabled={isLoading} /></div>
-                        <div title={styleFieldDescriptions.vocalStyle}><SelectInput label="Vocal Style" value={vocalStyle} onChange={(e) => { setVocalStyle(e.target.value); setSelectedProfile('custom'); }} options={vocalStyles} disabled={isLoading} /></div>
-                        <div title={styleFieldDescriptions.melody}><SelectInput label="Melody" value={melody} onChange={(e) => { setMelody(e.target.value); setSelectedProfile('custom'); }} options={melodies} disabled={isLoading} /></div>
-                        <div title={styleFieldDescriptions.harmony}><SelectInput label="Harmony" value={harmony} onChange={(e) => { setHarmony(e.target.value); setSelectedProfile('custom'); }} options={harmonies} disabled={isLoading} /></div>
-                        <div title={styleFieldDescriptions.rhythm}><SelectInput label="Rhythm" value={rhythm} onChange={(e) => { setRhythm(e.target.value); setSelectedProfile('custom'); }} options={rhythms} disabled={isLoading} /></div>
-                        <div title={styleFieldDescriptions.instrumentation}><SelectInput label="Instrumentation" value={instrumentation} onChange={(e) => { setInstrumentation(e.target.value); setSelectedProfile('custom'); }} options={instrumentations} disabled={isLoading} /></div>
-                        <div title={styleFieldDescriptions.atmosphere}><SelectInput label="Atmosphere/FX" value={atmosphere} onChange={(e) => { setAtmosphere(e.target.value); setSelectedProfile('custom'); }} options={atmospheres} disabled={isLoading} /></div>
+                        <SelectInput label="Mood" value={mood} onChange={(e) => { setMood(e.target.value); setSelectedProfile('custom'); }} options={moods} disabled={isLoading} tooltipText={styleFieldDescriptions.mood} />
+                        <SelectInput label="Tempo" value={tempo} onChange={(e) => { setTempo(e.target.value); setSelectedProfile('custom'); }} options={tempos} disabled={isLoading} tooltipText={styleFieldDescriptions.tempo} />
+                        <SelectInput label="Vocal Style" value={vocalStyle} onChange={(e) => { setVocalStyle(e.target.value); setSelectedProfile('custom'); }} options={vocalStyles} disabled={isLoading} tooltipText={styleFieldDescriptions.vocalStyle} />
+                        <SelectInput label="Melody" value={melody} onChange={(e) => { setMelody(e.target.value); setSelectedProfile('custom'); }} options={melodies} disabled={isLoading} tooltipText={styleFieldDescriptions.melody} />
+                        <SelectInput label="Harmony" value={harmony} onChange={(e) => { setHarmony(e.target.value); setSelectedProfile('custom'); }} options={harmonies} disabled={isLoading} tooltipText={styleFieldDescriptions.harmony} />
+                        <SelectInput label="Rhythm" value={rhythm} onChange={(e) => { setRhythm(e.target.value); setSelectedProfile('custom'); }} options={rhythms} disabled={isLoading} tooltipText={styleFieldDescriptions.rhythm} />
+                        <SelectInput label="Instrumentation" value={instrumentation} onChange={(e) => { setInstrumentation(e.target.value); setSelectedProfile('custom'); }} options={instrumentations} disabled={isLoading} tooltipText={styleFieldDescriptions.instrumentation} />
+                        <SelectInput label="Atmosphere/FX" value={atmosphere} onChange={(e) => { setAtmosphere(e.target.value); setSelectedProfile('custom'); }} options={atmospheres} disabled={isLoading} tooltipText={styleFieldDescriptions.atmosphere} />
                     </div>
                 </div>
                 

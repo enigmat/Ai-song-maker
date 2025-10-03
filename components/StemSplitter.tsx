@@ -118,33 +118,41 @@ export const StemSplitter: React.FC<StemSplitterProps> = ({ onInstrumentalSelect
             const len = originalBuffer.length;
             const sampleRate = originalBuffer.sampleRate;
             
-            // Create buffer for instrumental (side channel: L-R)
-            const instrumentalBuffer = audioContext.createBuffer(1, len, sampleRate);
-            const instrumentalData = instrumentalBuffer.getChannelData(0);
-            for (let i = 0; i < len; i++) {
-                instrumentalData[i] = (left[i] - right[i]) / 2;
-            }
-
-            // Create buffer for vocals (center channel: L+R)
+            // --- VOCAL TRACK (CENTER CHANNEL) ---
+            // Vocals are typically in the center, so we get them by averaging L and R.
             const vocalBuffer = audioContext.createBuffer(1, len, sampleRate);
             const vocalData = vocalBuffer.getChannelData(0);
             for (let i = 0; i < len; i++) {
                 vocalData[i] = (left[i] + right[i]) / 2;
             }
+
+            // --- INSTRUMENTAL TRACK (STEREO WITH CENTER REMOVED) ---
+            // To get a stereo instrumental, we remove the center channel from the original stereo signal.
+            const instrumentalBuffer = audioContext.createBuffer(2, len, sampleRate);
+            const instrumentalL = instrumentalBuffer.getChannelData(0);
+            const instrumentalR = instrumentalBuffer.getChannelData(1);
+
+            for (let i = 0; i < len; i++) {
+                // The center signal is the same as our vocal data.
+                const centerSignal = vocalData[i]; 
+                // Subtract the center signal from each channel to remove vocals.
+                instrumentalL[i] = left[i] - centerSignal;
+                instrumentalR[i] = right[i] - centerSignal;
+            }
             
-            const instrumentalMp3Blob = audioBufferToMp3(instrumentalBuffer, (p) => {
+            const vocalMp3Blob = audioBufferToMp3(vocalBuffer, (p) => {
                 // This step is from 25% to 60%
                 setProgress(25 + (p * 0.35));
             });
-            const vocalMp3Blob = audioBufferToMp3(vocalBuffer, (p) => {
+            const instrumentalMp3Blob = audioBufferToMp3(instrumentalBuffer, (p) => {
                 // This step is from 60% to 95%
                 setProgress(60 + (p * 0.35));
             });
             
-            setInstrumentalBlob(instrumentalMp3Blob);
-            setInstrumentalUrl(URL.createObjectURL(instrumentalMp3Blob));
             setVocalBlob(vocalMp3Blob);
             setVocalUrl(URL.createObjectURL(vocalMp3Blob));
+            setInstrumentalBlob(instrumentalMp3Blob);
+            setInstrumentalUrl(URL.createObjectURL(instrumentalMp3Blob));
             
             setProgress(100);
             setStatus('success');
