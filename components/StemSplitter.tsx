@@ -107,46 +107,63 @@ export const StemSplitter: React.FC<StemSplitterProps> = ({ onInstrumentalSelect
             const arrayBuffer = await file.arrayBuffer();
             setProgress(10);
             const originalBuffer = await audioContext.decodeAudioData(arrayBuffer);
-            setProgress(25);
-
+            
             if (originalBuffer.numberOfChannels < 2) {
                 throw new Error('The audio file must be stereo to perform stem separation.');
             }
 
-            const left = originalBuffer.getChannelData(0);
-            const right = originalBuffer.getChannelData(1);
-            const len = originalBuffer.length;
-            const sampleRate = originalBuffer.sampleRate;
-            
-            // --- VOCAL TRACK (CENTER CHANNEL) ---
-            // Vocals are typically in the center, so we get them by averaging L and R.
-            const vocalBuffer = audioContext.createBuffer(1, len, sampleRate);
-            const vocalData = vocalBuffer.getChannelData(0);
-            for (let i = 0; i < len; i++) {
-                vocalData[i] = (left[i] + right[i]) / 2;
-            }
+            // --- ADVANCED ALGORITHM ---
+            // 1. Create offline context for processing
+            const offlineCtx = new OfflineAudioContext(1, originalBuffer.length, originalBuffer.sampleRate);
 
-            // --- INSTRUMENTAL TRACK (STEREO WITH CENTER REMOVED) ---
-            // To get a stereo instrumental, we remove the center channel from the original stereo signal.
-            const instrumentalBuffer = audioContext.createBuffer(2, len, sampleRate);
+            // 2. Create the mono "center" channel buffer
+            const centerBuffer = offlineCtx.createBuffer(1, originalBuffer.length, originalBuffer.sampleRate);
+            const centerData = centerBuffer.getChannelData(0);
+            const leftData = originalBuffer.getChannelData(0);
+            const rightData = originalBuffer.getChannelData(1);
+            for (let i = 0; i < originalBuffer.length; i++) {
+                centerData[i] = (leftData[i] + rightData[i]) / 2;
+            }
+            
+            // 3. Create a filter chain to isolate vocal frequencies
+            const centerSource = offlineCtx.createBufferSource();
+            centerSource.buffer = centerBuffer;
+            
+            const highpass = offlineCtx.createBiquadFilter();
+            highpass.type = 'highpass';
+            highpass.frequency.value = 100; // Remove bass below 100Hz
+
+            const lowpass = offlineCtx.createBiquadFilter();
+            lowpass.type = 'lowpass';
+            lowpass.frequency.value = 12000; // Remove highs above 12kHz
+
+            centerSource.connect(highpass);
+            highpass.connect(lowpass);
+            lowpass.connect(offlineCtx.destination);
+            centerSource.start();
+            setProgress(25);
+
+            // 4. Render the filtered center channel to get our vocal track
+            const vocalBuffer = await offlineCtx.startRendering();
+            const filteredCenterData = vocalBuffer.getChannelData(0);
+            setProgress(50);
+            
+            // 5. Create the stereo instrumental track by subtracting the filtered center from the original
+            const instrumentalBuffer = audioContext.createBuffer(2, originalBuffer.length, originalBuffer.sampleRate);
             const instrumentalL = instrumentalBuffer.getChannelData(0);
             const instrumentalR = instrumentalBuffer.getChannelData(1);
 
-            for (let i = 0; i < len; i++) {
-                // The center signal is the same as our vocal data.
-                const centerSignal = vocalData[i]; 
-                // Subtract the center signal from each channel to remove vocals.
-                instrumentalL[i] = left[i] - centerSignal;
-                instrumentalR[i] = right[i] - centerSignal;
+            for (let i = 0; i < originalBuffer.length; i++) {
+                instrumentalL[i] = leftData[i] - filteredCenterData[i];
+                instrumentalR[i] = rightData[i] - filteredCenterData[i];
             }
             
+            // 6. Convert both buffers to MP3
             const vocalMp3Blob = audioBufferToMp3(vocalBuffer, (p) => {
-                // This step is from 25% to 60%
-                setProgress(25 + (p * 0.35));
+                setProgress(50 + (p * 0.25));
             });
             const instrumentalMp3Blob = audioBufferToMp3(instrumentalBuffer, (p) => {
-                // This step is from 60% to 95%
-                setProgress(60 + (p * 0.35));
+                setProgress(75 + (p * 0.25));
             });
             
             setVocalBlob(vocalMp3Blob);
@@ -154,7 +171,6 @@ export const StemSplitter: React.FC<StemSplitterProps> = ({ onInstrumentalSelect
             setInstrumentalBlob(instrumentalMp3Blob);
             setInstrumentalUrl(URL.createObjectURL(instrumentalMp3Blob));
             
-            setProgress(100);
             setStatus('success');
 
         } catch (err: any) {
@@ -292,7 +308,7 @@ export const StemSplitter: React.FC<StemSplitterProps> = ({ onInstrumentalSelect
                         </div>
                     </div>
                      <div className="p-3 bg-yellow-900/30 text-yellow-300/80 border border-yellow-500/30 rounded-lg text-sm text-center">
-                        <strong>Note:</strong> This tool uses phase cancellation, a classic technique for vocal removal. Quality depends on the original stereo mix. It works best when lead vocals are panned to the center of the track.
+                        <strong>Note:</strong> This tool uses an advanced filtering algorithm for vocal removal. Quality depends on the original mix. It works best when lead vocals are panned to the center of the track.
                     </div>
                     <button
                         onClick={handleSplit}
