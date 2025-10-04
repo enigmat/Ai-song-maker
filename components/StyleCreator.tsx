@@ -63,7 +63,7 @@ export const StyleCreator: React.FC = () => {
     const handleProfileDataChange = (e: ChangeEvent<HTMLSelectElement>) => {
         if (!profileData) return;
         const { name, value } = e.target;
-        setProfileData({ ...profileData, [name]: value });
+        setProfileData({ ...profileData, [name]: value as any });
     };
 
     const handleSave = () => {

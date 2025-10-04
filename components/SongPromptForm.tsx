@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { SongStorylineGenerator } from './SongStorylineGenerator';
-import type { SingerGender, ArtistType, ArtistStyleProfile } from '../services/geminiService';
+import type { SingerGender, ArtistType, ArtistStyleProfile, StoredArtistProfile } from '../services/geminiService';
 import {
     genres, singerGenders, artistTypes, moods, tempos,
     melodies, harmonies, rhythms, instrumentations, atmospheres, vocalStyles,
@@ -109,15 +109,12 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
         try {
             const storedProfilesRaw = localStorage.getItem('mustbmusic_artist_profiles');
             if (storedProfilesRaw) {
-                const storedProfiles = JSON.parse(storedProfilesRaw);
+                const storedProfiles: Record<string, StoredArtistProfile> = JSON.parse(storedProfilesRaw);
                 // We only need the style from the new profile structure
                 const styleProfiles: Record<string, ArtistStyleProfile> = {};
                 for (const name in storedProfiles) {
                     if (storedProfiles[name].style) {
                         styleProfiles[name] = storedProfiles[name].style;
-                    } else {
-                         // Handle potential old format for backward compatibility
-                         styleProfiles[name] = storedProfiles[name];
                     }
                 }
                 setSavedProfiles(styleProfiles);
