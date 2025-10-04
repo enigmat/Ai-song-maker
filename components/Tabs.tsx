@@ -1,8 +1,8 @@
 import React from 'react';
 
 interface TabsProps {
-  activeTool: 'generator' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter' | 'profiles';
-  onSelectTool: (tool: 'generator' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter' | 'profiles') => void;
+  activeTool: 'generator' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter' | 'profiles' | 'mastering' | 'dashboard';
+  onSelectTool: (tool: 'generator' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter' | 'profiles' | 'mastering' | 'dashboard') => void;
 }
 
 const GeneratorIcon = () => (
@@ -60,9 +60,22 @@ const SplitterIcon = () => (
     </svg>
 );
 
+const MasteringIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h1a1 1 0 011 1v1.5a1.5 1.5 0 010 3V12a1 1 0 00-1 1v1a1 1 0 01-1 1h-1.5a1.5 1.5 0 01-3 0H8a1 1 0 00-1-1v-1a1 1 0 01-1-1v-1.5a1.5 1.5 0 010-3V6a1 1 0 001-1h1a1 1 0 011-1v-.5z" />
+    </svg>
+);
+
+const DashboardIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
+        <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
+    </svg>
+);
+
 
 export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
-  const getButtonClasses = (tool: 'generator' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter' | 'profiles') => {
+  const getButtonClasses = (tool: 'generator' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'remixer' | 'splitter' | 'profiles' | 'mastering' | 'dashboard') => {
     const isActive = activeTool === tool;
     return `w-full flex items-center justify-center px-4 py-3 font-semibold text-sm sm:text-base rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
       isActive
@@ -72,7 +85,7 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
   };
 
   return (
-    <div className="mt-8 p-1.5 bg-gray-900/50 rounded-xl border border-gray-700 grid grid-cols-3 items-center gap-2">
+    <div className="mt-8 p-1.5 bg-gray-900/50 rounded-xl border border-gray-700 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-6 items-center gap-2">
       <button onClick={() => onSelectTool('generator')} className={getButtonClasses('generator')}>
         <GeneratorIcon />
         Song Generator
@@ -93,9 +106,13 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
         <ProfileIcon />
         Artist Profiles
       </button>
-      <button onClick={() => onSelectTool('converter')} className={getButtonClasses('converter')}>
-        <ConverterIcon />
-        Audio Converter
+      <button onClick={() => onSelectTool('splitter')} className={getButtonClasses('splitter')}>
+        <SplitterIcon />
+        Stem Splitter
+      </button>
+       <button onClick={() => onSelectTool('mastering')} className={getButtonClasses('mastering')}>
+        <MasteringIcon />
+        AI Mastering
       </button>
       <button onClick={() => onSelectTool('analyzer')} className={getButtonClasses('analyzer')}>
         <AnalyzerIcon />
@@ -105,9 +122,13 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
         <ComparatorIcon />
         Song Comparator
       </button>
-      <button onClick={() => onSelectTool('splitter')} className={getButtonClasses('splitter')}>
-        <SplitterIcon />
-        Stem Splitter
+       <button onClick={() => onSelectTool('converter')} className={getButtonClasses('converter')}>
+        <ConverterIcon />
+        Audio Converter
+      </button>
+      <button onClick={() => onSelectTool('dashboard')} className={getButtonClasses('dashboard')}>
+        <DashboardIcon />
+        Usage Dashboard
       </button>
     </div>
   );

@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type, Modality, LiveServerMessage, Blob } from "@google/genai";
+import { trackUsage } from './usageService';
 
 const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
 
@@ -132,7 +133,17 @@ export const generateSongFromPrompt = async (
     });
 
     const jsonText = response.text.trim();
-    return JSON.parse(jsonText) as SongData;
+    const songData = JSON.parse(jsonText) as SongData;
+
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: fullPrompt.length,
+        outputChars: jsonText.length,
+        description: `Generate Song: ${songData.title}`
+    });
+
+    return songData;
 };
 
 export const generateRemixedSong = async (
@@ -166,7 +177,17 @@ export const generateRemixedSong = async (
     });
 
     const jsonText = response.text.trim();
-    return JSON.parse(jsonText) as SongData;
+    const songData = JSON.parse(jsonText) as SongData;
+
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: fullPrompt.length,
+        outputChars: jsonText.length,
+        description: `Remix Song: ${originalTitle}`
+    });
+    
+    return songData;
 };
 
 export const generateRemixedSongFromLyrics = async (
@@ -203,7 +224,17 @@ export const generateRemixedSongFromLyrics = async (
     });
 
     const jsonText = response.text.trim();
-    return JSON.parse(jsonText) as SongData;
+    const songData = JSON.parse(jsonText) as SongData;
+
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: fullPrompt.length,
+        outputChars: jsonText.length,
+        description: `Remix from lyrics: ${originalFileName}`
+    });
+    
+    return songData;
 };
 
 const melodyNoteSchema = {
@@ -273,32 +304,61 @@ export const generateMelodyFromHum = async (audioBlob: Blob): Promise<MelodyAnal
     });
 
     const jsonText = response.text.trim();
+    
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'multimodal',
+        inputChars: textPart.text.length,
+        outputChars: jsonText.length,
+        description: 'Hum-to-Melody Transcription'
+    });
+    
     return JSON.parse(jsonText) as MelodyAnalysis;
 };
 
 
 export const generateNewBeatPattern = async (styleGuide: string, genre: string): Promise<string> => {
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: `Based on the following music style guide for a "${genre}" song, generate ONLY a JSON string for a new 16-step drum pattern.
+    const prompt = `Based on the following music style guide for a "${genre}" song, generate ONLY a JSON string for a new 16-step drum pattern.
         Style Guide: "${styleGuide}"
         The JSON should only contain keys for 'kick', 'snare', 'hihat', and 'clap', with values being arrays of integers from 0 to 15.
         Example format: '{"kick": [0, 8], "snare": [4, 12], "hihat": [0,2,4,6,8,10,12,14]}'
-        Do not include any other text, explanations, or markdown formatting.`,
+        Do not include any other text, explanations, or markdown formatting.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
         config: {
             // No schema needed, as we're expecting a raw string that is JSON.
         },
     });
-    // Clean up potential markdown formatting from the response
+
     const cleanedText = response.text.replace(/```json\n?|\n?```/g, '').trim();
+    
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: cleanedText.length,
+        description: 'Generate Beat Pattern'
+    });
+
     return cleanedText;
 };
 
 
 export const generateStorylines = async (topic: string): Promise<string[]> => {
+    const prompt = `Generate 5 creative, one-sentence song storylines based on the topic: "${topic}".`;
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: `Generate 5 creative, one-sentence song storylines based on the topic: "${topic}".`,
+        contents: prompt,
+    });
+    
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: response.text.length,
+        description: 'Generate Storylines'
     });
     // Split by newlines and filter out any empty lines or list markers.
     return response.text.split('\n').map(line => line.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
@@ -313,6 +373,13 @@ export const generateImage = async (prompt: string): Promise<string> => {
           outputMimeType: 'image/jpeg',
           aspectRatio: '1:1',
         },
+    });
+
+    trackUsage({
+        model: 'imagen-4.0-generate-001',
+        type: 'image',
+        count: 1,
+        description: `Image: ${prompt.substring(0, 50)}...`
     });
 
     const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
@@ -346,6 +413,13 @@ export const editImage = async (base64ImageData: string, mimeType: string, promp
             responseModalities: [Modality.IMAGE, Modality.TEXT],
         },
     });
+    
+    trackUsage({
+        model: 'gemini-2.5-flash-image',
+        type: 'image',
+        count: 1,
+        description: `Edit Image: ${prompt.substring(0, 50)}...`
+    });
 
     // Find the image part in the response
     for (const part of response.candidates[0].content.parts) {
@@ -375,6 +449,14 @@ export const generateVideo = async (prompt: string): Promise<string> => {
       await new Promise(resolve => setTimeout(resolve, 10000));
       operation = await ai.operations.getVideosOperation({operation: operation});
     }
+    
+    trackUsage({
+        model: 'veo-2.0-generate-001',
+        type: 'video',
+        // Assuming a standard video length for cost estimation
+        seconds: operation.response?.generatedVideos?.[0]?.video?.duration?.seconds || 5, 
+        description: `Video: ${prompt.substring(0, 50)}...`
+    });
 
     const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
     if (!downloadLink) {
@@ -469,9 +551,7 @@ const analysisReportSchema = {
 };
 
 export const analyzeSong = async (fileName: string, genre: string, description: string): Promise<AnalysisReport> => {
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: `Act as an expert A&R scout and music critic. Based on the following information about a song, provide a detailed analysis.
+    const prompt = `Act as an expert A&R scout and music critic. Based on the following information about a song, provide a detailed analysis.
         The analysis should be hypothetical, as you cannot listen to the audio.
         File Name: "${fileName}"
         Genre: "${genre}"
@@ -483,7 +563,11 @@ export const analyzeSong = async (fileName: string, genre: string, description: 
         3. Marketability: A detailed market analysis including:
             - Target Audience: Describe the ideal listener demographic.
             - Playlist Fit: Suggest specific, popular Spotify playlist names where the song would fit. Think about both editorial and algorithmic playlists.
-            - Sync Potential: Describe opportunities for licensing in film, TV, or advertising.`,
+            - Sync Potential: Describe opportunities for licensing in film, TV, or advertising.`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
         config: {
             responseMimeType: "application/json",
             responseSchema: analysisReportSchema,
@@ -491,6 +575,15 @@ export const analyzeSong = async (fileName: string, genre: string, description: 
     });
 
     const jsonText = response.text.trim();
+    
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: jsonText.length,
+        description: `Analyze Song: ${fileName}`
+    });
+
     return JSON.parse(jsonText) as AnalysisReport;
 };
 
@@ -598,6 +691,15 @@ export const compareSongs = async (
     });
 
     const jsonText = response.text.trim();
+    
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: fullPrompt.length,
+        outputChars: jsonText.length,
+        description: `Compare: ${song1Name} vs ${song2Name}`
+    });
+    
     return JSON.parse(jsonText) as ComparisonReport;
 };
 
@@ -617,6 +719,14 @@ ${originalLyrics}
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
+    });
+    
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: response.text.length,
+        description: 'Enhance Lyrics'
     });
 
     return response.text.trim();
@@ -668,6 +778,15 @@ For each progression, provide both the chord sequence and a brief description of
     });
 
     const jsonText = response.text.trim();
+
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: jsonText.length,
+        description: 'Generate Chords'
+    });
+    
     return JSON.parse(jsonText) as ChordProgression[];
 };
 
@@ -717,6 +836,13 @@ export const transcribeAudio = async (audioFile: File): Promise<string> => {
             
             let fullTranscription = '';
             let transcriptionComplete = false;
+            
+            trackUsage({
+                model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+                type: 'audio',
+                seconds: originalBuffer.duration,
+                description: `Transcribe: ${audioFile.name}`
+            });
 
             const sessionPromise = ai.live.connect({
                 model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -808,5 +934,14 @@ export const analyzeAudioForProfile = async (audioBlob: Blob): Promise<ArtistSty
     });
 
     const jsonText = response.text.trim();
+    
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'multimodal',
+        inputChars: textPart.text.length,
+        outputChars: jsonText.length,
+        description: `Analyze Audio for Profile: ${(audioBlob as File).name}`
+    });
+
     return JSON.parse(jsonText) as ArtistStyleProfile & { artistNameSuggestion: string };
 };

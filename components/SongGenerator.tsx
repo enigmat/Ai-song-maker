@@ -55,7 +55,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentStep, setCurrentStep] = useState(-1);
     const [isAudioReady, setIsAudioReady] = useState(false);
-    const [isRemixing, setIsRemixing] = useState(false);
+    const [isRandomizingBeat, setIsRandomizingBeat] = useState(false);
 
     // Tone.js refs
     const synths = useRef<any>({});
@@ -234,23 +234,33 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
         }
     };
 
-    const handleRemix = async () => {
+    const handleRandomizeBeat = async () => {
         if (!songData.styleGuide || !songData.genre) {
-            setError("Cannot remix beat without a style guide and genre.");
+            setError("Cannot randomize beat without a style guide and genre.");
             return;
         }
-        setIsRemixing(true);
+        setIsRandomizingBeat(true);
         setError(null);
         try {
             const newBeat = await generateNewBeatPattern(songData.styleGuide, songData.genre);
             setSongData(prev => ({ ...prev, beatPattern: newBeat }));
         } catch(err) {
-            console.error("Beat remix failed:", err);
+            console.error("Beat randomization failed:", err);
             setError("Failed to generate a new beat. Please try again.");
         } finally {
-            setIsRemixing(false);
+            setIsRandomizingBeat(false);
         }
     };
+
+    const handleBeatPatternChange = useCallback((newPattern: string) => {
+        if (Tone.Transport.state === 'started') {
+            Tone.Transport.pause();
+        }
+        setSongData(prev => ({...prev, beatPattern: newPattern}));
+         if (Tone.Transport.state === 'paused') {
+            Tone.Transport.start();
+        }
+    }, []);
 
     const handleRegenerateImage = async () => {
         if (!songData.albumCoverPrompt) return;
@@ -423,9 +433,10 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
                                 beatPattern={songData.beatPattern} 
                                 isPlaying={isPlaying} 
                                 currentStep={currentStep} 
-                                onRemix={handleRemix} 
-                                isRemixing={isRemixing}
+                                onRandomize={handleRandomizeBeat} 
+                                isRandomizing={isRandomizingBeat}
                                 trackUrl={effectiveInstrumentalUrl}
+                                onBeatPatternChange={handleBeatPatternChange}
                             />
                         </div>
                         

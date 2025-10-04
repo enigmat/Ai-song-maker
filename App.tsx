@@ -10,9 +10,11 @@ import { VocalTools } from './components/VocalTools';
 import { ChordProgressionGenerator } from './components/ChordProgressionGenerator';
 import { StemSplitter } from './components/StemSplitter';
 import { ArtistProfileManager } from './components/ArtistProfileManager';
+import { AIMastering } from './components/AIMastering';
+import { UsageDashboard } from './components/UsageDashboard';
 
 const App: React.FC = () => {
-  const [activeTool, setActiveTool] = useState<'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter' | 'profiles'>('generator');
+  const [activeTool, setActiveTool] = useState<'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter' | 'profiles' | 'mastering' | 'dashboard'>('generator');
   const [instrumentalTrackUrl, setInstrumentalTrackUrl] = useState<string | null>(null);
   const [vocalTrack, setVocalTrack] = useState<Blob | null>(null);
 
@@ -59,6 +61,8 @@ const App: React.FC = () => {
           {activeTool === 'analyzer' && <Mp3Analyzer />}
           {activeTool === 'comparator' && <SongComparator />}
           {activeTool === 'splitter' && <StemSplitter onInstrumentalSelect={handleInstrumentalSelect} onVocalSelect={handleVocalSelect} />}
+          {activeTool === 'mastering' && <AIMastering />}
+          {activeTool === 'dashboard' && <UsageDashboard />}
         </main>
       </div>
     </div>
