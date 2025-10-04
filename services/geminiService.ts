@@ -82,7 +82,7 @@ const songDataSchema = {
         artistType: { type: Type.STRING, description: "The type of artist ('solo', 'band', 'duo', or 'any')." },
         vocalMelody: { type: Type.NULL, description: "This should always be null for now." },
         bpm: { type: Type.INTEGER, description: "The tempo of the song in beats per minute (BPM), typically between 60 and 180." },
-        videoPrompt: { type: Type.STRING, description: "A concise, evocative prompt for generating a music video. Focus on visual themes, colors, and actions. For example: 'A lone astronaut drifting through a vibrant, psychedelic nebula, slow-motion shots of cosmic dust, lens flare.'" },
+        videoPrompt: { type: Type.STRING, description: "A concise, preliminary prompt for a music video based on the initial idea. Focus on visual themes. Example: 'A lone astronaut drifting through a vibrant nebula.'" },
         genre: { type: Type.STRING, description: "The musical genre of the song (e.g., 'Synthwave', 'Indie Rock', 'Lo-fi Hip Hop')." },
     },
     required: ["title", "artistName", "artistBio", "albumCoverPrompt", "lyrics", "styleGuide", "beatPattern", "singerGender", "artistType", "vocalMelody", "bpm", "videoPrompt", "genre"]
@@ -469,6 +469,41 @@ export const generateVideo = async (prompt: string): Promise<string> => {
     return URL.createObjectURL(videoBlob);
 };
 
+export const refineVideoPrompt = async (songData: SongData): Promise<string> => {
+    const fullPrompt = `You are an expert music video director. You are given the complete data for a song and your task is to refine the existing music video prompt to better match the song's final details.
+
+    **Song Details:**
+    - Title: "${songData.title}"
+    - Artist: "${songData.artistName}"
+    - Genre: ${songData.genre}
+    - BPM: ${songData.bpm}
+    - Lyrics:
+    ---
+    ${songData.lyrics}
+    ---
+    - Production Style Guide: ${songData.styleGuide}
+
+    **Existing Video Prompt:** "${songData.videoPrompt}"
+
+    **Your Task:**
+    Generate a new, improved video prompt. The new prompt should be more detailed and evocative, directly inspired by the lyrics, style guide, and tempo (BPM). It must be a single, concise paragraph, suitable for an AI video generator. Return ONLY the new prompt text, without any introductory phrases or markdown.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: fullPrompt,
+    });
+
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: fullPrompt.length,
+        outputChars: response.text.length,
+        description: `Refine Video Prompt: ${songData.title}`
+    });
+
+    return response.text.trim();
+};
+
 // New types and schema for MP3 analysis
 export interface Ratings {
     commercialPotential: { score: number; justification: string };
@@ -736,6 +771,7 @@ ${originalLyrics}
 export interface ChordProgression {
     progression: string;
     description: string;
+    theoryExplanation: string;
 }
 
 const chordProgressionSchema = {
@@ -750,9 +786,13 @@ const chordProgressionSchema = {
             description: {
                 type: Type.STRING,
                 description: "A brief, one-sentence description of the progression's feel or common use case."
+            },
+            theoryExplanation: {
+                type: Type.STRING,
+                description: "A brief, 1-2 sentence explanation of the music theory behind why this progression works for the given mood and genre, mentioning concepts like tension, resolution, or common cadences."
             }
         },
-        required: ["progression", "description"]
+        required: ["progression", "description", "theoryExplanation"]
     }
 };
 
@@ -766,7 +806,10 @@ export const generateChordProgressions = async (
 - Genre: ${genre}
 - Mood: ${mood}
 
-For each progression, provide both the chord sequence and a brief description of its character. Ensure the chords are appropriate for the specified key.`;
+For each progression, provide:
+1. The chord sequence.
+2. A brief description of its character.
+3. A simple, one or two-sentence music theory explanation of why it works for the given context (e.g., "This i-V-vi-IV progression is a pop classic, creating a feeling of hopeful melancholy by resolving strongly from the dominant G to the tonic C before moving to the relative minor Am.").`;
 
     const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",

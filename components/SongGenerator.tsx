@@ -10,7 +10,7 @@ import { StyleGuideViewer } from './StyleGuideViewer';
 import { ErrorMessage } from './ErrorMessage';
 import { LoadingSpinner } from './LoadingSpinner';
 import { MelodyStudio } from './MelodyStudio';
-import { generateSongFromPrompt, generateNewBeatPattern, generateImage, generateVideo, SongData, SingerGender, ArtistType, ArtistStyleProfile, StoredArtistProfile, ArtistSong } from '../services/geminiService';
+import { generateSongFromPrompt, generateNewBeatPattern, generateImage, generateVideo, refineVideoPrompt, SongData, SingerGender, ArtistType, ArtistStyleProfile, StoredArtistProfile, ArtistSong, MelodyAnalysis } from '../services/geminiService';
 
 declare var Tone: any; // Using Tone.js from CDN
 
@@ -45,11 +45,14 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
     const [error, setError] = useState<string | null>(null);
     const [isMelodyStudioOpen, setIsMelodyStudioOpen] = useState(false);
     const [hummedInstrumental, setHummedInstrumental] = useState<{ url: string; blob: Blob } | null>(null);
+    const [hummedMelody, setHummedMelody] = useState<MelodyAnalysis | null>(null);
 
     const [artistImageUrl, setArtistImageUrl] = useState('');
     const [videoUrl, setVideoUrl] = useState('');
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+    const [isRefiningVideoPrompt, setIsRefiningVideoPrompt] = useState(false);
+
 
     // Audio State
     const [isPlaying, setIsPlaying] = useState(false);
@@ -210,6 +213,61 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
                 data.beatPattern = '';
                 data.bpm = songData.bpm; 
             }
+
+            if (hummedMelody && hummedMelody.notes.length > 0) {
+                const pitchToMidi = (pitch: string): number => {
+                    const noteMap: { [key: string]: number } = { C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6, G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11 };
+                    const regex = /^([A-G][b#]?)([0-9])$/;
+                    const match = pitch.match(regex);
+                    if (!match) return 60; // Default to C4 if parse fails
+                    const note = match[1];
+                    const octave = parseInt(match[2], 10);
+                    return 12 * (octave + 1) + noteMap[note];
+                };
+
+                const midiToPitch = (midi: number): string => {
+                    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                    const octave = Math.floor(midi / 12) - 1;
+                    const note = notes[midi % 12];
+                    return `${note}${octave}`;
+                };
+
+                const pitches = hummedMelody.notes.map(n => pitchToMidi(n.pitch));
+                const minPitch = Math.min(...pitches);
+                const maxPitch = Math.max(...pitches);
+                const lowNote = midiToPitch(minPitch);
+                const highNote = midiToPitch(maxPitch);
+                const rangeDescription = lowNote && highNote ? `from ${lowNote} to ${highNote}` : 'a narrow range';
+
+                const averageDuration = hummedMelody.notes.reduce((sum, note) => sum + note.duration, 0) / hummedMelody.notes.length;
+                let rhythmDescription = 'varied';
+                if (averageDuration < 0.2) rhythmDescription = 'fast and staccato';
+                else if (averageDuration > 0.5) rhythmDescription = 'slow and legato';
+                
+                let ascending = 0;
+                let descending = 0;
+                for (let i = 1; i < pitches.length; i++) {
+                    if (pitches[i] > pitches[i-1]) ascending++;
+                    else if (pitches[i] < pitches[i-1]) descending++;
+                }
+
+                let contourDescription = 'varied with leaps';
+                if (ascending > descending * 1.5) contourDescription = 'mostly ascending';
+                else if (descending > ascending * 1.5) contourDescription = 'mostly descending';
+                else if (ascending > 0 && descending > 0) contourDescription = 'undulating';
+                else if (ascending > 0) contourDescription = 'ascending';
+                else if (descending > 0) contourDescription = 'descending';
+                else contourDescription = 'monotonic';
+
+                const melodyInfo = `
+Vocal Melody Guide (from hummed input):
+- Melody Range: The hummed melody spans a range ${rangeDescription}.
+- Rhythm: The melody has a ${rhythmDescription} feel based on note durations.
+- Contour: The melodic shape is ${contourDescription}.`;
+                
+                data.styleGuide = (data.styleGuide || '').trim() + `\n\n${melodyInfo.trim()}`;
+            }
+
             setSongData(data);
             setStatus('editing');
 
@@ -274,6 +332,20 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
             setError("Failed to regenerate artist image. Please try again.");
         } finally {
             setIsGeneratingImage(false);
+        }
+    };
+    
+    const handleRefineVideoPrompt = async () => {
+        setIsRefiningVideoPrompt(true);
+        setError(null);
+        try {
+            const newPrompt = await refineVideoPrompt(songData);
+            setSongData(prev => ({ ...prev, videoPrompt: newPrompt }));
+        } catch (err) {
+            console.error("Video prompt refinement failed:", err);
+            setError("Failed to refine the video prompt.");
+        } finally {
+            setIsRefiningVideoPrompt(false);
         }
     };
     
@@ -359,12 +431,13 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
         setIsPlaying(false);
         setCurrentStep(-1);
         setHummedInstrumental(null);
+        setHummedMelody(null);
         clearInstrumentalTrack();
         setGenerationParams(null);
         setOriginalPrompt('');
     }, [clearInstrumentalTrack]);
     
-    const handleHummedMelodySelect = (blob: Blob, bpm: number) => {
+    const handleHummedMelodySelect = (blob: Blob, melody: MelodyAnalysis) => {
         if (hummedInstrumental?.url) {
             URL.revokeObjectURL(hummedInstrumental.url);
         }
@@ -372,7 +445,8 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
 
         const newUrl = URL.createObjectURL(blob);
         setHummedInstrumental({ url: newUrl, blob });
-        setSongData(prev => ({...prev, bpm, beatPattern: '' })); // Use BPM from melody and clear beat
+        setSongData(prev => ({...prev, bpm: melody.bpm, beatPattern: '' })); // Use BPM from melody and clear beat
+        setHummedMelody(melody);
         setIsMelodyStudioOpen(false);
     };
 
@@ -406,6 +480,8 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ instrumentalTrackU
                         artistImageUrl={artistImageUrl}
                         isRegeneratingImage={isGeneratingImage}
                         onImageUpdate={setArtistImageUrl}
+                        onRefineVideoPrompt={handleRefineVideoPrompt}
+                        isRefiningVideoPrompt={isRefiningVideoPrompt}
                     />
                 );
             

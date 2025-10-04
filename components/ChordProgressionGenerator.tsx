@@ -185,7 +185,7 @@ export const ChordProgressionGenerator: React.FC = () => {
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
                             {progressions.map((p, index) => (
-                                <div key={index} className="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                                <div key={index} className="bg-gray-900/50 p-4 rounded-lg border border-gray-700 flex flex-col">
                                     <div className="flex items-center justify-between">
                                         <button 
                                             onClick={() => handlePlay(p.progression, index)}
@@ -201,7 +201,18 @@ export const ChordProgressionGenerator: React.FC = () => {
                                         </div>
                                         <CopyButton textToCopy={p.progression} />
                                     </div>
-                                    <p className="mt-2 text-center text-sm text-gray-400 italic">{p.description}</p>
+                                    <p className="mt-2 text-center text-sm text-gray-400 italic flex-grow">{p.description}</p>
+                                    {p.theoryExplanation && (
+                                        <details className="mt-3 text-xs group">
+                                            <summary className="cursor-pointer text-gray-500 hover:text-gray-300 list-none text-center font-semibold tracking-wide uppercase">
+                                                <span className="group-open:hidden">Show Theory</span>
+                                                <span className="hidden group-open:inline">Hide Theory</span>
+                                            </summary>
+                                            <p className="mt-2 text-gray-400 bg-gray-800/50 p-3 rounded-md border border-gray-600/50">
+                                                {p.theoryExplanation}
+                                            </p>
+                                        </details>
+                                    )}
                                 </div>
                             ))}
                         </div>

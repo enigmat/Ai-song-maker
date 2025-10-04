@@ -7,7 +7,7 @@ import type { MelodyAnalysis } from '../services/geminiService';
 
 interface MelodyStudioProps {
   onClose: () => void;
-  onMelodySelect: (blob: Blob, bpm: number) => void;
+  onMelodySelect: (blob: Blob, melody: MelodyAnalysis) => void;
 }
 
 type Status = 'idle' | 'permission' | 'recording' | 'recorded' | 'generating' | 'success' | 'error';
@@ -171,7 +171,7 @@ export const MelodyStudio: React.FC<MelodyStudioProps> = ({ onClose, onMelodySel
                          </div>
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <a href={generatedMidiUrl!} download="melody.mid" className="w-full flex items-center justify-center gap-2 font-semibold px-4 py-3 bg-teal-600 text-white rounded-lg shadow-md hover:bg-teal-500 transition-all">Download MIDI</a>
-                            <button onClick={() => onMelodySelect(generatedStemBlob!, melodyData!.bpm)} className="w-full flex items-center justify-center gap-2 font-semibold px-4 py-3 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-500 transition-all">Use as Instrumental</button>
+                            <button onClick={() => onMelodySelect(generatedStemBlob!, melodyData!)} className="w-full flex items-center justify-center gap-2 font-semibold px-4 py-3 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-500 transition-all">Use as Instrumental</button>
                          </div>
                          <button onClick={handleReset} className="mt-4 w-full px-5 py-2 text-gray-300 font-semibold rounded-lg border-2 border-gray-600 hover:bg-gray-700 transition-colors">Start Over</button>
                     </div>
