@@ -1,6 +1,6 @@
 import React from 'react';
 
-type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter' | 'profiles' | 'mastering' | 'dashboard' | 'projects' | 'style_creator';
+type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator';
 
 interface TabsProps {
   activeTool: ActiveTool;
@@ -45,6 +45,12 @@ const ProfileIcon = () => (
     </svg>
 );
 
+const AssistantIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M10 2a6 6 0 00-6 6v3.586l-1.707 1.707A1 1 0 003 15v1a1 1 0 001 1h12a1 1 0 001-1v-1a1 1 0 00-.293-.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+    </svg>
+);
+
 const StyleCreatorIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
         <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
@@ -83,12 +89,6 @@ const SplitterIcon = () => (
     </svg>
 );
 
-const MasteringIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-      <path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h1a1 1 0 011 1v1.5a1.5 1.5 0 010 3V12a1 1 0 00-1 1v1a1 1 0 01-1 1h-1.5a1.5 1.5 0 01-3 0H8a1 1 0 00-1-1v-1a1 1 0 01-1-1v-1.5a1.5 1.5 0 010-3V6a1 1 0 001-1h1a1 1 0 011-1v-.5z" />
-    </svg>
-);
-
 const DashboardIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
         <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
@@ -110,7 +110,7 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowReci
   const nonActiveClasses = 'w-full flex items-center justify-center px-4 py-3 font-semibold text-sm sm:text-base rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white';
 
   return (
-    <div className="mt-8 p-1.5 bg-gray-900/50 rounded-xl border border-gray-700 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 items-center gap-2">
+    <div className="mt-8 p-1.5 bg-gray-900/50 rounded-xl border border-gray-700 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 items-center gap-2">
       <button onClick={() => onSelectTool('projects')} className={getButtonClasses('projects')}>
         <ProjectsIcon />
         Projects
@@ -119,7 +119,11 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowReci
         <GeneratorIcon />
         Song Generator
       </button>
-       <button onClick={() => onSelectTool('style_creator')} className={getButtonClasses('style_creator')}>
+       <button onClick={() => onSelectTool('assistant')} className={getButtonClasses('assistant')}>
+        <AssistantIcon />
+        Assistant
+      </button>
+      <button onClick={() => onSelectTool('style_creator')} className={getButtonClasses('style_creator')}>
         <StyleCreatorIcon />
         Style Creator
       </button>
@@ -142,10 +146,6 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowReci
       <button onClick={() => onSelectTool('splitter')} className={getButtonClasses('splitter')}>
         <SplitterIcon />
         Stem Splitter
-      </button>
-       <button onClick={() => onSelectTool('mastering')} className={getButtonClasses('mastering')}>
-        <MasteringIcon />
-        AI Mastering
       </button>
       <button onClick={() => onSelectTool('analyzer')} className={getButtonClasses('analyzer')}>
         <AnalyzerIcon />

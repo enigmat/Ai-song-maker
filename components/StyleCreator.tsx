@@ -1,102 +1,184 @@
 import React, { useState, ChangeEvent } from 'react';
+import { generateProfileFromArtistName, ArtistStyleProfile, StoredArtistProfile, SingerGender, ArtistType } from '../services/geminiService';
+import { genres, singerGenders, artistTypes, moods, tempos, melodies, harmonies, rhythms, instrumentations, atmospheres, vocalStyles } from '../constants/music';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
-import { generateProfileFromArtistName, ArtistStyleProfile, StoredArtistProfile } from '../services/geminiService';
-import { genres, singerGenders, artistTypes, moods, tempos, melodies, harmonies, rhythms, instrumentations, atmospheres, vocalStyles, styleFieldDescriptions } from '../constants/music';
 
 const PROFILES_STORAGE_KEY = 'mustbmusic_artist_profiles';
 
-const SelectInput: React.FC<{ label: string; name: keyof ArtistStyleProfile; value: string; onChange: (e: ChangeEvent<HTMLSelectElement>) => void; options: readonly string[] | { value: string, label: string }[]; disabled: boolean; }> =
-    ({ label, name, value, onChange, options, disabled }) => (
-        <div title={styleFieldDescriptions[name as keyof typeof styleFieldDescriptions]}>
-            <label htmlFor={name} className="block text-sm font-medium text-gray-400 mb-2">{label}</label>
-            <select
-                id={name}
-                name={name}
-                value={value}
-                onChange={onChange}
-                className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-colors"
-                disabled={disabled}
-            >
-                {options.map((item) => {
-                    const optionValue = typeof item === 'string' ? item : item.value;
-                    const optionLabel = typeof item === 'string' ? item : item.label;
-                    return <option key={optionValue} value={optionValue}>{optionLabel}</option>
-                })}
-            </select>
-        </div>
-    );
+const SelectInput: React.FC<{
+    label: string;
+    name: keyof ArtistStyleProfile;
+    value: string;
+    onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
+    options: readonly string[] | { value: string, label: string }[];
+}> = ({ label, name, value, onChange, options }) => (
+    <div>
+        <label htmlFor={name} className="block text-sm font-medium text-gray-400 mb-1">{label}</label>
+        <select
+            id={name}
+            name={name}
+            value={value}
+            onChange={onChange}
+            className="w-full p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-1 focus:ring-purple-500 transition-colors text-sm"
+        >
+            {options.map((item) => {
+                const optionValue = typeof item === 'string' ? item : item.value;
+                const optionLabel = typeof item === 'string' ? item : item.label;
+                return <option key={optionValue} value={optionValue}>{optionLabel}</option>;
+            })}
+        </select>
+    </div>
+);
+
 
 export const StyleCreator: React.FC = () => {
-    const [status, setStatus] = useState<'idle' | 'analyzing' | 'success' | 'error'>('idle');
     const [artistName, setArtistName] = useState('');
+    const [status, setStatus] = useState<'idle' | 'generating' | 'success' | 'error'>('idle');
     const [profileData, setProfileData] = useState<ArtistStyleProfile | null>(null);
-    const [newProfileName, setNewProfileName] = useState('');
+    const [profileName, setProfileName] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-    const handleAnalyze = async () => {
+    const handleGenerate = async () => {
         if (!artistName.trim()) {
             setError('Please enter an artist name.');
             return;
         }
-        setStatus('analyzing');
+        setStatus('generating');
         setError(null);
-        setProfileData(null);
         setSuccessMessage(null);
         try {
             const data = await generateProfileFromArtistName(artistName);
             setProfileData(data);
-            setNewProfileName(artistName);
+            setProfileName(`${artistName} Style`);
             setStatus('success');
         } catch (err) {
-            console.error('Style analysis failed:', err);
-            setError('Failed to analyze artist. They may not be well-known enough, or the AI is busy. Please try again.');
+            console.error(err);
+            setError('Failed to generate style. The artist may be too obscure, or the API is busy. Please try again.');
             setStatus('error');
         }
     };
     
-    const handleProfileChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const handleProfileDataChange = (e: ChangeEvent<HTMLSelectElement>) => {
         if (!profileData) return;
         const { name, value } = e.target;
         setProfileData({ ...profileData, [name]: value });
     };
 
-    const handleSaveProfile = () => {
-        if (!profileData || !newProfileName.trim()) {
-            setError('Profile name cannot be empty.');
+    const handleSave = () => {
+        if (!profileName.trim()) {
+            setError('Please enter a name for your profile.');
             return;
         }
-
+        if (!profileData) {
+            setError('No profile data to save.');
+            return;
+        }
+        setError(null);
         try {
             const rawData = localStorage.getItem(PROFILES_STORAGE_KEY);
             const existingProfiles: Record<string, StoredArtistProfile> = rawData ? JSON.parse(rawData) : {};
             
-            if (existingProfiles[newProfileName.trim()]) {
-                setError('A profile with this name already exists.');
-                return;
+            if (existingProfiles[profileName.trim()]) {
+                if (!window.confirm(`A profile named "${profileName.trim()}" already exists. Do you want to overwrite it?`)) {
+                    return;
+                }
             }
-
-            const newProfile: StoredArtistProfile = {
+            
+            const newStoredProfile: StoredArtistProfile = {
                 style: profileData,
-                songs: [],
+                songs: existingProfiles[profileName.trim()]?.songs || [] // Preserve songs if overwriting
             };
 
-            const updatedProfiles = { ...existingProfiles, [newProfileName.trim()]: newProfile };
+            const updatedProfiles = { ...existingProfiles, [profileName.trim()]: newStoredProfile };
             localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(updatedProfiles));
             
-            setSuccessMessage(`Profile "${newProfileName.trim()}" saved successfully!`);
-            setStatus('idle');
-            setProfileData(null);
-            setArtistName('');
-            setNewProfileName('');
-
+            setSuccessMessage(`Profile "${profileName.trim()}" saved successfully! It's now available in the Song Generator.`);
+            setTimeout(() => {
+                handleReset();
+            }, 3000);
+            
         } catch (e) {
-            console.error('Failed to save profile:', e);
-            setError('Could not save profile to local storage.');
+            console.error("Failed to save profile:", e);
+            setError("Could not save profile to local storage.");
         }
     };
+    
+    const handleReset = () => {
+        setArtistName('');
+        setStatus('idle');
+        setProfileData(null);
+        setProfileName('');
+        setError(null);
+        setSuccessMessage(null);
+    };
+    
+    const renderContent = () => {
+        if (status === 'generating') {
+            return (
+                <div className="text-center p-10">
+                    <LoadingSpinner size="lg" />
+                    <p className="mt-4 text-gray-400 text-lg animate-pulse">Analyzing artist's style...</p>
+                </div>
+            );
+        }
 
+        if (status === 'success' && profileData) {
+            return (
+                <div className="space-y-4 animate-fade-in">
+                    <h3 className="text-xl font-semibold text-center text-teal-300">Generated Style for "{artistName}"</h3>
+                    <div className="space-y-4">
+                        <div>
+                             <label htmlFor="profile-name" className="block text-sm font-medium text-gray-400 mb-1">Save Profile As:</label>
+                             <input type="text" id="profile-name" value={profileName} onChange={(e) => setProfileName(e.target.value)} className="w-full p-2 bg-gray-900 border border-gray-600 rounded-lg focus:ring-1 focus:ring-teal-500" />
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <SelectInput label="Genre" name="genre" value={profileData.genre} onChange={handleProfileDataChange} options={genres} />
+                            <SelectInput label="Singer" name="singerGender" value={profileData.singerGender} onChange={handleProfileDataChange} options={singerGenders} />
+                            <SelectInput label="Artist Type" name="artistType" value={profileData.artistType} onChange={handleProfileDataChange} options={artistTypes} />
+                            <SelectInput label="Mood" name="mood" value={profileData.mood} onChange={handleProfileDataChange} options={moods} />
+                            <SelectInput label="Tempo" name="tempo" value={profileData.tempo} onChange={handleProfileDataChange} options={tempos} />
+                            <SelectInput label="Vocal Style" name="vocalStyle" value={profileData.vocalStyle} onChange={handleProfileDataChange} options={vocalStyles} />
+                            <SelectInput label="Melody" name="melody" value={profileData.melody} onChange={handleProfileDataChange} options={melodies} />
+                            <SelectInput label="Harmony" name="harmony" value={profileData.harmony} onChange={handleProfileDataChange} options={harmonies} />
+                            <SelectInput label="Rhythm" name="rhythm" value={profileData.rhythm} onChange={handleProfileDataChange} options={rhythms} />
+                            <SelectInput label="Instrumentation" name="instrumentation" value={profileData.instrumentation} onChange={handleProfileDataChange} options={instrumentations} />
+                            <SelectInput label="Atmosphere/FX" name="atmosphere" value={profileData.atmosphere} onChange={handleProfileDataChange} options={atmospheres} />
+                        </div>
+                    </div>
+                    <div className="flex gap-4 pt-2">
+                        <button onClick={handleReset} className="w-full flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 border-2 border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700">Start Over</button>
+                        <button onClick={handleSave} className="w-full flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg shadow-md hover:from-teal-600 hover:to-cyan-600">Save Profile</button>
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+             <div className="space-y-4">
+                <div>
+                    <label htmlFor="artist-name" className="block text-sm font-medium text-gray-400 mb-2">Artist Name</label>
+                    <input
+                        type="text"
+                        id="artist-name"
+                        value={artistName}
+                        onChange={(e) => setArtistName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+                        placeholder="e.g., Daft Punk, Taylor Swift, etc."
+                        className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-all"
+                    />
+                </div>
+                <button
+                    onClick={handleGenerate}
+                    disabled={!artistName.trim()}
+                    className="w-full flex items-center justify-center gap-3 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
+                >
+                    Generate Style
+                </button>
+            </div>
+        );
+    };
 
     return (
         <div className="p-4 sm:p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700">
@@ -104,77 +186,13 @@ export const StyleCreator: React.FC = () => {
                 AI Style Creator
             </h2>
             <p className="text-center text-gray-400 mt-2 mb-6">
-                Generate an entire artist style profile just from a famous artist's name.
+                Generate a musical style profile based on an existing artist.
             </p>
 
             {error && <ErrorMessage message={error} />}
-            {successMessage && (
-                 <div className="my-4 p-4 bg-green-900/50 border border-green-500 text-green-300 rounded-lg">
-                    {successMessage}
-                 </div>
-            )}
+            {successMessage && <div className="my-4 p-3 bg-green-900/50 border border-green-500 text-green-300 rounded-lg text-center">{successMessage}</div>}
 
-            <div className="space-y-4 max-w-xl mx-auto">
-                <div>
-                    <label htmlFor="artist-name-input" className="block text-sm font-medium text-gray-400 mb-2">
-                        Famous Artist Name
-                    </label>
-                    <div className="flex gap-2">
-                        <input
-                            id="artist-name-input"
-                            type="text"
-                            value={artistName}
-                            onChange={(e) => setArtistName(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
-                            placeholder="e.g., Daft Punk, Johnny Cash"
-                            className="flex-grow p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-colors"
-                            disabled={status === 'analyzing'}
-                        />
-                         <button
-                            onClick={handleAnalyze}
-                            disabled={status === 'analyzing' || !artistName.trim()}
-                            className="w-48 flex items-center justify-center gap-2 text-lg font-semibold px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:from-purple-700 hover:to-pink-700 transition-all duration-300 disabled:opacity-50"
-                        >
-                            {status === 'analyzing' ? <LoadingSpinner /> : 'Analyze'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {status === 'analyzing' && (
-                <div className="text-center p-10">
-                    <LoadingSpinner size="lg" />
-                    <p className="mt-4 text-gray-400 text-lg animate-pulse">Analyzing artist's style...</p>
-                </div>
-            )}
-
-            {status === 'success' && profileData && (
-                <div className="mt-8 pt-6 border-t border-gray-700 space-y-6 animate-fade-in">
-                    <h3 className="text-2xl font-bold text-center text-teal-300">Generated Style Profile</h3>
-                    <div>
-                         <label htmlFor="new-profile-name" className="block text-sm font-medium text-gray-400 mb-2">Save Profile As</label>
-                         <input type="text" id="new-profile-name" value={newProfileName} onChange={(e) => setNewProfileName(e.target.value)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-1 focus:ring-teal-500" />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <SelectInput label="Genre" name="genre" value={profileData.genre} onChange={handleProfileChange} options={genres} disabled={false} />
-                        <SelectInput label="Singer" name="singerGender" value={profileData.singerGender} onChange={handleProfileChange} options={singerGenders} disabled={false} />
-                        <SelectInput label="Artist Type" name="artistType" value={profileData.artistType} onChange={handleProfileChange} options={artistTypes} disabled={false} />
-                        <SelectInput label="Mood" name="mood" value={profileData.mood} onChange={handleProfileChange} options={moods} disabled={false} />
-                        <SelectInput label="Tempo" name="tempo" value={profileData.tempo} onChange={handleProfileChange} options={tempos} disabled={false} />
-                        <SelectInput label="Vocal Style" name="vocalStyle" value={profileData.vocalStyle} onChange={handleProfileChange} options={vocalStyles} disabled={false} />
-                        <SelectInput label="Melody" name="melody" value={profileData.melody} onChange={handleProfileChange} options={melodies} disabled={false} />
-                        <SelectInput label="Harmony" name="harmony" value={profileData.harmony} onChange={handleProfileChange} options={harmonies} disabled={false} />
-                        <SelectInput label="Rhythm" name="rhythm" value={profileData.rhythm} onChange={handleProfileChange} options={rhythms} disabled={false} />
-                        <SelectInput label="Instrumentation" name="instrumentation" value={profileData.instrumentation} onChange={handleProfileChange} options={instrumentations} disabled={false} />
-                        <SelectInput label="Atmosphere/FX" name="atmosphere" value={profileData.atmosphere} onChange={handleProfileChange} options={atmospheres} disabled={false} />
-                    </div>
-                    <div className="flex gap-4 pt-4">
-                         <button onClick={() => { setStatus('idle'); setProfileData(null); }} className="w-full flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 border-2 border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700">Cancel</button>
-                         <button onClick={handleSaveProfile} className="w-full flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg shadow-md hover:from-teal-600 hover:to-cyan-600">Save Profile</button>
-                    </div>
-                </div>
-            )}
-
+            {renderContent()}
         </div>
     );
 };

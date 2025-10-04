@@ -50,6 +50,11 @@ export interface MelodyAnalysis {
     notes: MelodyNote[];
 }
 
+export interface ChatMessage {
+  role: 'user' | 'model';
+  parts: { text: string }[];
+}
+
 const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
 
 const songDataSchema = {
@@ -72,27 +77,52 @@ const songDataSchema = {
     required: ["title", "artistName", "artistBio", "albumCoverPrompt", "lyrics", "styleGuide", "beatPattern", "singerGender", "artistType", "vocalMelody", "bpm", "videoPrompt", "genre"]
 };
 
+export const getStudioAssistantResponse = async (history: ChatMessage[], newMessage: string): Promise<string> => {
+    const contents = [...history, { role: 'user' as const, parts: [{ text: newMessage }] }];
+    
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: contents,
+        config: {
+             systemInstruction: 'You are Maestro, a helpful and friendly AI assistant for music creators. You are an expert in music theory, production, and songwriting. Provide concise, helpful, and inspiring answers. Format your answers with markdown.',
+        }
+    });
+
+    const responseText = response.text;
+    
+    const inputChars = contents.reduce((sum, msg) => sum + (msg.parts[0].text.length), 0);
+
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: inputChars,
+        outputChars: responseText.length,
+        description: `Studio Assistant Chat`
+    });
+
+    return responseText;
+};
+
 const artistStyleProfileSchema = {
     type: Type.OBJECT,
     properties: {
-        genre: { type: Type.STRING, description: "The primary musical genre of the artist." },
-        singerGender: { type: Type.STRING, description: "The typical gender of the lead singer ('male', 'female', 'non-binary', or 'any')." },
-        artistType: { type: Type.STRING, description: "The type of artist ('solo', 'band', 'duo', or 'any')." },
-        mood: { type: Type.STRING, description: "The dominant mood or emotion in the artist's music." },
-        tempo: { type: Type.STRING, description: "The typical tempo range of the artist's music (e.g., 'Slow', 'Medium', 'Fast')." },
-        melody: { type: Type.STRING, description: "A brief description of the artist's melodic style." },
-        harmony: { type: Type.STRING, description: "A brief description of the artist's harmonic style." },
-        rhythm: { type: Type.STRING, description: "A brief description of the artist's rhythmic feel." },
-        instrumentation: { type: Type.STRING, description: "The key instruments used by the artist." },
-        atmosphere: { type: Type.STRING, description: "The overall atmosphere or sonic texture created by effects." },
-        vocalStyle: { type: Type.STRING, description: "A brief description of the artist's vocal style." },
+        genre: { type: Type.STRING, description: "The primary musical genre." },
+        singerGender: { type: Type.STRING, description: "The typical gender of the lead vocalist ('male', 'female', 'non-binary', 'any')." },
+        artistType: { type: Type.STRING, description: "The type of artist ('solo', 'band', 'duo', 'any')." },
+        mood: { type: Type.STRING, description: "The dominant mood or emotion of their music." },
+        tempo: { type: Type.STRING, description: "The typical tempo range (e.g., 'Slow (60-80 BPM)')." },
+        melody: { type: Type.STRING, description: "The common melodic style (e.g., 'Simple and Catchy')." },
+        harmony: { type: Type.STRING, description: "The harmonic complexity (e.g., 'Diatonic and Simple')." },
+        rhythm: { type: Type.STRING, description: "The rhythmic feel (e.g., 'Syncopated and Funky')." },
+        instrumentation: { type: Type.STRING, description: "The key instruments used (e.g., 'Synth-heavy')." },
+        atmosphere: { type: Type.STRING, description: "The sonic atmosphere created by effects (e.g., 'Spacious and Reverb-heavy')." },
+        vocalStyle: { type: Type.STRING, description: "The typical vocal performance style (e.g., 'Clear & Melodic')." },
     },
     required: ["genre", "singerGender", "artistType", "mood", "tempo", "melody", "harmony", "rhythm", "instrumentation", "atmosphere", "vocalStyle"]
 };
 
-
 export const generateProfileFromArtistName = async (artistName: string): Promise<ArtistStyleProfile> => {
-    const prompt = `Act as an expert musicologist. Analyze the signature sound of the artist "${artistName}". Based on your analysis, generate a detailed "Artist Style Profile" that captures their musical essence. Populate all fields of the required JSON schema with the most fitting descriptions. For example, for "Daft Punk", the genre would be "Electronic", instrumentation would be "Synth-heavy", and so on. The output must be ONLY the JSON object.`;
+    const prompt = `Analyze the musical style of the artist "${artistName}". Based on your analysis, generate a detailed "Artist Style Profile". Fill out all fields of the JSON schema accurately to represent their signature sound.`;
 
     const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
@@ -104,17 +134,17 @@ export const generateProfileFromArtistName = async (artistName: string): Promise
     });
 
     const jsonText = response.text.trim();
-    const profileData = JSON.parse(jsonText) as ArtistStyleProfile;
+    const profile = JSON.parse(jsonText) as ArtistStyleProfile;
     
     trackUsage({
         model: 'gemini-2.5-flash',
         type: 'text',
         inputChars: prompt.length,
         outputChars: jsonText.length,
-        description: `Analyze Artist Style: ${artistName}`
+        description: `Generate Profile for: ${artistName}`
     });
 
-    return profileData;
+    return profile;
 };
 
 
@@ -667,12 +697,12 @@ export const transcribeAudio = async (audioFile: File): Promise<string> => {
     });
 };
 
-const artistProfileSchema = { type: Type.OBJECT, properties: { genre: { type: Type.STRING }, singerGender: { type: Type.STRING }, artistType: { type: Type.STRING }, mood: { type: Type.STRING }, tempo: { type: Type.STRING }, melody: { type: Type.STRING }, harmony: { type: Type.STRING }, rhythm: { type: Type.STRING }, instrumentation: { type: Type.STRING }, atmosphere: { type: Type.STRING }, vocalStyle: { type: Type.STRING }, artistNameSuggestion: { type: Type.STRING } }, required: ["genre", "singerGender", "artistType", "mood", "tempo", "melody", "harmony", "rhythm", "instrumentation", "atmosphere", "vocalStyle", "artistNameSuggestion"] };
+const audioAnalysisProfileSchema = { type: Type.OBJECT, properties: { genre: { type: Type.STRING }, singerGender: { type: Type.STRING }, artistType: { type: Type.STRING }, mood: { type: Type.STRING }, tempo: { type: Type.STRING }, melody: { type: Type.STRING }, harmony: { type: Type.STRING }, rhythm: { type: Type.STRING }, instrumentation: { type: Type.STRING }, atmosphere: { type: Type.STRING }, vocalStyle: { type: Type.STRING }, artistNameSuggestion: { type: Type.STRING } }, required: ["genre", "singerGender", "artistType", "mood", "tempo", "melody", "harmony", "rhythm", "instrumentation", "atmosphere", "vocalStyle", "artistNameSuggestion"] };
 export const analyzeAudioForProfile = async (audioBlob: Blob): Promise<ArtistStyleProfile & { artistNameSuggestion: string }> => {
     const base64Audio = await blobToBase64(audioBlob);
     const audioPart = { inlineData: { mimeType: audioBlob.type, data: base64Audio } };
     const textPart = { text: `You are an expert music A&R scout. Analyze the provided audio file and generate a detailed "Artist Style Profile". Suggest a creative and plausible artist name. The output must be ONLY a single JSON object.` };
-    const response = await ai.models.generateContent({ model: "gemini-2.5-flash", contents: { parts: [audioPart, textPart] }, config: { responseMimeType: "application/json", responseSchema: artistProfileSchema } });
+    const response = await ai.models.generateContent({ model: "gemini-2.5-flash", contents: { parts: [audioPart, textPart] }, config: { responseMimeType: "application/json", responseSchema: audioAnalysisProfileSchema } });
     const jsonText = response.text.trim();
     trackUsage({ model: 'gemini-2.5-flash', type: 'multimodal', inputChars: textPart.text.length, outputChars: jsonText.length, description: `Analyze Audio for Profile: ${(audioBlob as File).name}` });
     return JSON.parse(jsonText) as ArtistStyleProfile & { artistNameSuggestion: string };

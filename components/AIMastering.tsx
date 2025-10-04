@@ -14,7 +14,6 @@ const UploadIcon = () => (
 const MasteringIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
         <path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h1a1 1 0 011 1v1.5a1.5 1.5 0 010 3V12a1 1 0 00-1 1v1a1 1 0 01-1 1h-1.5a1.5 1.5 0 01-3 0H8a1 1 0 00-1-1v-1a1 1 0 01-1-1v-1.5a1.5 1.5 0 010-3V6a1 1 0 001-1h1a1 1 0 011-1v-.5z" />
-        <path d="M10 2a3 3 0 00-3 3v1.5a3 3 0 000 6V14a3 3 0 003 3h.5a3 3 0 006 0H17a3 3 0 003-3v-1.5a3 3 0 000-6V5a3 3 0 00-3-3h-.5a3 3 0 00-6 0H10z" />
     </svg>
 );
 
@@ -101,11 +100,14 @@ export const AIMastering: React.FC = () => {
             setProgress(20);
             const masteredBuffer = await Tone.Offline(async () => {
                 const source = new Tone.BufferSource(originalBuffer);
-                const limiter = new Tone.Limiter(-1).toDestination(); // Final ceiling
-                const compressor = new Tone.Compressor().connect(limiter);
-                const eq = new Tone.EQ3().connect(compressor);
-                source.connect(eq);
+                const limiter = new Tone.Limiter(-0.3);
+                const compressor = new Tone.Compressor();
+                const eq = new Tone.EQ3();
 
+                // Chain the nodes together and to the destination
+                source.chain(eq, compressor, limiter, Tone.Destination);
+
+                // Apply settings based on style
                 switch (masteringStyle) {
                     case 'warm':
                         eq.low.value = 2;
@@ -130,7 +132,7 @@ export const AIMastering: React.FC = () => {
             }, originalBuffer.duration);
             
             setProgress(60);
-            const masteredMp3Blob = audioBufferToMp3(masteredBuffer, (p) => {
+            const masteredMp3Blob = audioBufferToMp3(masteredBuffer.get(), (p) => {
                 setProgress(60 + (p * 0.4)); // Scale 0-100 progress to 60-100 range
             });
             
