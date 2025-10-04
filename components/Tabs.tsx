@@ -5,6 +5,7 @@ type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter
 interface TabsProps {
   activeTool: ActiveTool;
   onSelectTool: (tool: ActiveTool) => void;
+  onShowRecipe: () => void;
 }
 
 const GeneratorIcon = () => (
@@ -51,6 +52,11 @@ const StyleCreatorIcon = () => (
     </svg>
 );
 
+const RecipeIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+    </svg>
+);
 
 const ConverterIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -91,7 +97,7 @@ const DashboardIcon = () => (
 );
 
 
-export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
+export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowRecipe }) => {
   const getButtonClasses = (tool: ActiveTool) => {
     const isActive = activeTool === tool;
     return `w-full flex items-center justify-center px-4 py-3 font-semibold text-sm sm:text-base rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
@@ -101,8 +107,10 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
     }`;
   };
 
+  const nonActiveClasses = 'w-full flex items-center justify-center px-4 py-3 font-semibold text-sm sm:text-base rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white';
+
   return (
-    <div className="mt-8 p-1.5 bg-gray-900/50 rounded-xl border border-gray-700 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-6 items-center gap-2">
+    <div className="mt-8 p-1.5 bg-gray-900/50 rounded-xl border border-gray-700 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 items-center gap-2">
       <button onClick={() => onSelectTool('projects')} className={getButtonClasses('projects')}>
         <ProjectsIcon />
         Projects
@@ -154,6 +162,10 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
       <button onClick={() => onSelectTool('dashboard')} className={getButtonClasses('dashboard')}>
         <DashboardIcon />
         Usage Dashboard
+      </button>
+       <button onClick={onShowRecipe} className={nonActiveClasses}>
+        <RecipeIcon />
+        Recipe Mode
       </button>
     </div>
   );

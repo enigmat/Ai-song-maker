@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Tabs } from './components/Tabs';
 import { SongGenerator } from './components/SongGenerator';
@@ -20,6 +20,7 @@ import { useProjects } from './hooks/useProjects';
 import { PlaybackContext } from './contexts/PlaybackContext';
 
 type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter' | 'profiles' | 'mastering' | 'dashboard' | 'projects' | 'style_creator';
+const ONBOARDING_KEY = 'mustbmusic_onboarding_complete_v1';
 
 const App: React.FC = () => {
   const [activeTool, setActiveTool] = useState<ActiveTool>('generator');
@@ -32,6 +33,19 @@ const App: React.FC = () => {
     deleteProject,
   } = useProjects();
   
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    try {
+        const hasCompleted = localStorage.getItem(ONBOARDING_KEY);
+        if (!hasCompleted) {
+            setShowOnboarding(true);
+        }
+    } catch (e) {
+        console.error("Could not access local storage for onboarding.", e);
+    }
+  }, []);
+
   const activeProject = useMemo(() => {
     return projects.find(p => p.id === activeProjectId) || null;
   }, [projects, activeProjectId]);
@@ -77,10 +91,10 @@ const App: React.FC = () => {
   return (
     <PlaybackContext.Provider value={playbackControls}>
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white font-sans p-4 sm:p-6 md:p-8">
-        <OnboardingWizard />
+        <OnboardingWizard isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />
         <div className="max-w-4xl mx-auto">
           <Header />
-          <Tabs activeTool={activeTool} onSelectTool={setActiveTool} />
+          <Tabs activeTool={activeTool} onSelectTool={setActiveTool} onShowRecipe={() => setShowOnboarding(true)} />
           <main className="mt-8">
             {activeTool === 'generator' && activeProject && (
               <SongGenerator

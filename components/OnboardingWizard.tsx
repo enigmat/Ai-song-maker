@@ -29,20 +29,20 @@ const steps = [
     }
 ];
 
-export const OnboardingWizard: React.FC = () => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [currentStep, setCurrentStep] = useState(0);
+interface OnboardingWizardProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
 
+export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ isOpen, onClose }) => {
+    const [currentStep, setCurrentStep] = useState(0);
+    
+    // Reset to the first step whenever the wizard is opened
     useEffect(() => {
-        try {
-            const hasCompleted = localStorage.getItem(ONBOARDING_KEY);
-            if (!hasCompleted) {
-                setIsOpen(true);
-            }
-        } catch (e) {
-            console.error("Could not access local storage for onboarding.", e);
+        if (isOpen) {
+            setCurrentStep(0);
         }
-    }, []);
+    }, [isOpen]);
 
     const handleNext = () => {
         if (currentStep < steps.length - 1) {
@@ -60,11 +60,12 @@ export const OnboardingWizard: React.FC = () => {
 
     const handleClose = () => {
         try {
+            // Still mark as complete when closed, but now the parent controls visibility
             localStorage.setItem(ONBOARDING_KEY, 'true');
         } catch (e) {
             console.error("Could not save onboarding status.", e);
         }
-        setIsOpen(false);
+        onClose();
     };
 
     if (!isOpen) {
