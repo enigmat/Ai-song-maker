@@ -72,6 +72,51 @@ const songDataSchema = {
     required: ["title", "artistName", "artistBio", "albumCoverPrompt", "lyrics", "styleGuide", "beatPattern", "singerGender", "artistType", "vocalMelody", "bpm", "videoPrompt", "genre"]
 };
 
+const artistStyleProfileSchema = {
+    type: Type.OBJECT,
+    properties: {
+        genre: { type: Type.STRING, description: "The primary musical genre of the artist." },
+        singerGender: { type: Type.STRING, description: "The typical gender of the lead singer ('male', 'female', 'non-binary', or 'any')." },
+        artistType: { type: Type.STRING, description: "The type of artist ('solo', 'band', 'duo', or 'any')." },
+        mood: { type: Type.STRING, description: "The dominant mood or emotion in the artist's music." },
+        tempo: { type: Type.STRING, description: "The typical tempo range of the artist's music (e.g., 'Slow', 'Medium', 'Fast')." },
+        melody: { type: Type.STRING, description: "A brief description of the artist's melodic style." },
+        harmony: { type: Type.STRING, description: "A brief description of the artist's harmonic style." },
+        rhythm: { type: Type.STRING, description: "A brief description of the artist's rhythmic feel." },
+        instrumentation: { type: Type.STRING, description: "The key instruments used by the artist." },
+        atmosphere: { type: Type.STRING, description: "The overall atmosphere or sonic texture created by effects." },
+        vocalStyle: { type: Type.STRING, description: "A brief description of the artist's vocal style." },
+    },
+    required: ["genre", "singerGender", "artistType", "mood", "tempo", "melody", "harmony", "rhythm", "instrumentation", "atmosphere", "vocalStyle"]
+};
+
+
+export const generateProfileFromArtistName = async (artistName: string): Promise<ArtistStyleProfile> => {
+    const prompt = `Act as an expert musicologist. Analyze the signature sound of the artist "${artistName}". Based on your analysis, generate a detailed "Artist Style Profile" that captures their musical essence. Populate all fields of the required JSON schema with the most fitting descriptions. For example, for "Daft Punk", the genre would be "Electronic", instrumentation would be "Synth-heavy", and so on. The output must be ONLY the JSON object.`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: artistStyleProfileSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    const profileData = JSON.parse(jsonText) as ArtistStyleProfile;
+    
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: jsonText.length,
+        description: `Analyze Artist Style: ${artistName}`
+    });
+
+    return profileData;
+};
+
 
 export const generateSongFromPrompt = async (
     prompt: string,

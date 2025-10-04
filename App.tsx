@@ -15,10 +15,11 @@ import { UsageDashboard } from './components/UsageDashboard';
 import { ProjectManager } from './components/ProjectManager';
 import { OnboardingWizard } from './components/OnboardingWizard';
 import { AssistantController } from './components/AssistantController';
+import { StyleCreator } from './components/StyleCreator';
 import { useProjects } from './hooks/useProjects';
 import { PlaybackContext } from './contexts/PlaybackContext';
 
-type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter' | 'profiles' | 'mastering' | 'dashboard' | 'projects';
+type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter' | 'profiles' | 'mastering' | 'dashboard' | 'projects' | 'style_creator';
 
 const App: React.FC = () => {
   const [activeTool, setActiveTool] = useState<ActiveTool>('generator');
@@ -118,6 +119,7 @@ const App: React.FC = () => {
             {activeTool === 'remixer' && <SongRemixer />}
             {activeTool === 'vocaltools' && <VocalTools initialVocalTrack={vocalTrack} clearVocalTrack={clearVocalTrack} />}
             {activeTool === 'chords' && <ChordProgressionGenerator />}
+            {activeTool === 'style_creator' && <StyleCreator />}
             {activeTool === 'profiles' && <ArtistProfileManager />}
             {activeTool === 'converter' && <AifConverter />}
             {activeTool === 'analyzer' && <Mp3Analyzer />}
