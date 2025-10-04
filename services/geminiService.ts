@@ -1,7 +1,6 @@
 import { GoogleGenAI, Type, Modality, LiveServerMessage, Blob } from "@google/genai";
 import { trackUsage } from './usageService';
-
-const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+import type { SongData } from '../types';
 
 // Type definitions, matching the expected structure from the AI.
 export type SingerGender = 'male' | 'female' | 'non-binary' | 'any';
@@ -39,23 +38,6 @@ export interface StoredArtistProfile {
     songs: ArtistSong[];
 }
 
-
-export interface SongData {
-    title: string;
-    artistName: string;
-    artistBio: string;
-    albumCoverPrompt: string;
-    lyrics: string;
-    styleGuide: string;
-    beatPattern: string;
-    singerGender: SingerGender;
-    artistType: ArtistType;
-    vocalMelody: VocalMelody | null;
-    bpm: number;
-    videoPrompt: string;
-    genre: string;
-}
-
 // New type for hummed melody notes
 export interface MelodyNote {
     pitch: string; // e.g., "C4"
@@ -67,6 +49,8 @@ export interface MelodyAnalysis {
     bpm: number;
     notes: MelodyNote[];
 }
+
+const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
 
 const songDataSchema = {
     type: Type.OBJECT,
@@ -327,9 +311,6 @@ export const generateNewBeatPattern = async (styleGuide: string, genre: string):
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
-        config: {
-            // No schema needed, as we're expecting a raw string that is JSON.
-        },
     });
 
     const cleanedText = response.text.replace(/```json\n?|\n?```/g, '').trim();
@@ -386,13 +367,6 @@ export const generateImage = async (prompt: string): Promise<string> => {
     return `data:image/jpeg;base64,${base64ImageBytes}`;
 };
 
-/**
- * Edits an image based on a text prompt using the gemini-2.5-flash-image model.
- * @param base64ImageData The base64-encoded string of the original image.
- * @param mimeType The MIME type of the original image (e.g., 'image/jpeg').
- * @param prompt The text prompt describing the desired edit.
- * @returns A new data URL (e.g., 'data:image/png;base64,...') for the edited image.
- */
 export const editImage = async (base64ImageData: string, mimeType: string, prompt: string): Promise<string> => {
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
@@ -421,7 +395,6 @@ export const editImage = async (base64ImageData: string, mimeType: string, promp
         description: `Edit Image: ${prompt.substring(0, 50)}...`
     });
 
-    // Find the image part in the response
     for (const part of response.candidates[0].content.parts) {
         if (part.inlineData) {
             const newBase64 = part.inlineData.data;
@@ -429,8 +402,6 @@ export const editImage = async (base64ImageData: string, mimeType: string, promp
             return `data:${newMimeType};base64,${newBase64}`;
         }
     }
-
-    // If no image is returned, throw an error. The model might just respond with text.
     throw new Error("The AI did not return an edited image. It may have responded: " + response.text);
 };
 
@@ -439,13 +410,10 @@ export const generateVideo = async (prompt: string): Promise<string> => {
     let operation = await ai.models.generateVideos({
       model: 'veo-2.0-generate-001',
       prompt: prompt,
-      config: {
-        numberOfVideos: 1
-      }
+      config: { numberOfVideos: 1 }
     });
 
     while (!operation.done) {
-      // Poll every 10 seconds
       await new Promise(resolve => setTimeout(resolve, 10000));
       operation = await ai.operations.getVideosOperation({operation: operation});
     }
@@ -453,17 +421,13 @@ export const generateVideo = async (prompt: string): Promise<string> => {
     trackUsage({
         model: 'veo-2.0-generate-001',
         type: 'video',
-        // Assuming a standard video length for cost estimation
         seconds: operation.response?.generatedVideos?.[0]?.video?.duration?.seconds || 5, 
         description: `Video: ${prompt.substring(0, 50)}...`
     });
 
     const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-    if (!downloadLink) {
-        throw new Error("Video generation completed but no download link was found.");
-    }
+    if (!downloadLink) throw new Error("Video generation completed but no download link was found.");
     
-    // The response.body contains the MP4 bytes. You must append an API key when fetching from the download link.
     const videoResponse = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
     const videoBlob = await videoResponse.blob();
     return URL.createObjectURL(videoBlob);
@@ -504,7 +468,6 @@ export const refineVideoPrompt = async (songData: SongData): Promise<string> => 
     return response.text.trim();
 };
 
-// New types and schema for MP3 analysis
 export interface Ratings {
     commercialPotential: { score: number; justification: string };
     originality: { score: number; justification: string };
@@ -516,7 +479,6 @@ export interface Marketability {
     playlistFit: string[];
     syncPotential: string;
 }
-
 export interface AnalysisReport {
     ratings: Ratings;
     pros: string[];
@@ -524,105 +486,26 @@ export interface AnalysisReport {
     summary: string;
     marketability: Marketability;
 }
-
-const ratingProperty = {
-    type: Type.OBJECT,
-    properties: {
-        score: { type: Type.INTEGER, description: "A rating score from 1 to 100." },
-        justification: { type: Type.STRING, description: "A brief, one-sentence justification for the score." }
-    },
-    required: ["score", "justification"]
-};
-
-
+const ratingProperty = { type: Type.OBJECT, properties: { score: { type: Type.INTEGER }, justification: { type: Type.STRING } }, required: ["score", "justification"] };
 const analysisReportSchema = {
     type: Type.OBJECT,
     properties: {
-        ratings: {
-            type: Type.OBJECT,
-            properties: {
-                commercialPotential: { ...ratingProperty, description: "The song's potential for commercial success." },
-                originality: { ...ratingProperty, description: "How unique and creative the song is." },
-                composition: { ...ratingProperty, description: "The quality of the song's structure, melody, and harmony." },
-                productionQuality: { ...ratingProperty, description: "A hypothetical assessment of the mix, mastering, and overall sound quality." }
-            },
-            required: ["commercialPotential", "originality", "composition", "productionQuality"]
-        },
-        pros: { 
-            type: Type.ARRAY, 
-            items: { type: Type.STRING }, 
-            description: "A list of 3-5 potential positive aspects or strengths of the song, written as complete sentences." 
-        },
-        cons: { 
-            type: Type.ARRAY, 
-            items: { type: Type.STRING }, 
-            description: "A list of 3-5 potential negative aspects or areas for improvement for the song, written as complete sentences." 
-        },
-        summary: { 
-            type: Type.STRING, 
-            description: "A concluding summary of the analysis, 2-3 sentences long." 
-        },
-        marketability: {
-            type: Type.OBJECT,
-            properties: {
-                targetAudience: {
-                    type: Type.STRING,
-                    description: "A description of the likely target audience for this song (e.g., age, interests)."
-                },
-                playlistFit: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING },
-                    description: "A list of 3-5 specific Spotify playlist names or categories (e.g., 'Spotify's Lo-fi Beats', 'Chill Hits', 'Today's Top Hits') where this song would be a good fit. Be specific with playlist names."
-                },
-                syncPotential: {
-                    type: Type.STRING,
-                    description: "A brief analysis of the song's potential for sync licensing in media like films, TV shows, or advertisements."
-                }
-            },
-            required: ["targetAudience", "playlistFit", "syncPotential"]
-        }
+        ratings: { type: Type.OBJECT, properties: { commercialPotential: { ...ratingProperty }, originality: { ...ratingProperty }, composition: { ...ratingProperty }, productionQuality: { ...ratingProperty } }, required: ["commercialPotential", "originality", "composition", "productionQuality"] },
+        pros: { type: Type.ARRAY, items: { type: Type.STRING } },
+        cons: { type: Type.ARRAY, items: { type: Type.STRING } },
+        summary: { type: Type.STRING },
+        marketability: { type: Type.OBJECT, properties: { targetAudience: { type: Type.STRING }, playlistFit: { type: Type.ARRAY, items: { type: Type.STRING } }, syncPotential: { type: Type.STRING } }, required: ["targetAudience", "playlistFit", "syncPotential"] }
     },
     required: ["ratings", "pros", "cons", "summary", "marketability"]
 };
-
 export const analyzeSong = async (fileName: string, genre: string, description: string): Promise<AnalysisReport> => {
-    const prompt = `Act as an expert A&R scout and music critic. Based on the following information about a song, provide a detailed analysis.
-        The analysis should be hypothetical, as you cannot listen to the audio.
-        File Name: "${fileName}"
-        Genre: "${genre}"
-        Description: "${description}"
-
-        Your analysis must include:
-        1. Overall Scorecard: Provide ratings from 1-100 for Commercial Potential, Originality, Composition, and hypothetical Production Quality. Each rating needs a brief justification.
-        2. Pros & Cons: A balanced critique. The pros should highlight potential strengths (composition, arrangement, emotional impact). The cons should point out potential weaknesses or areas for improvement. Be constructive.
-        3. Marketability: A detailed market analysis including:
-            - Target Audience: Describe the ideal listener demographic.
-            - Playlist Fit: Suggest specific, popular Spotify playlist names where the song would fit. Think about both editorial and algorithmic playlists.
-            - Sync Potential: Describe opportunities for licensing in film, TV, or advertising.`;
-
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: analysisReportSchema,
-        },
-    });
-
+    const prompt = `Act as an expert A&R scout and music critic. Based on the following information about a song, provide a detailed analysis. The analysis should be hypothetical. File Name: "${fileName}", Genre: "${genre}", Description: "${description}". Your analysis must include: Overall Scorecard, Pros & Cons, and Marketability.`;
+    const response = await ai.models.generateContent({ model: "gemini-2.5-flash", contents: prompt, config: { responseMimeType: "application/json", responseSchema: analysisReportSchema } });
     const jsonText = response.text.trim();
-    
-    trackUsage({
-        model: 'gemini-2.5-flash',
-        type: 'text',
-        inputChars: prompt.length,
-        outputChars: jsonText.length,
-        description: `Analyze Song: ${fileName}`
-    });
-
+    trackUsage({ model: 'gemini-2.5-flash', type: 'text', inputChars: prompt.length, outputChars: jsonText.length, description: `Analyze Song: ${fileName}` });
     return JSON.parse(jsonText) as AnalysisReport;
 };
 
-// Types and schema for song comparison
 export interface SongComparisonMetrics {
     commercialPotential: { score: number; justification: string };
     originality: { score: number; justification: string };
@@ -630,7 +513,6 @@ export interface SongComparisonMetrics {
     productionQuality: { score: number; justification: string };
     summary: string;
 }
-
 export interface ComparisonReport {
     overallWinner: { song: 'song1' | 'song2' | 'tie'; justification: string };
     marketabilityWinner: { song: 'song1' | 'song2' | 'tie'; justification: string };
@@ -640,196 +522,35 @@ export interface ComparisonReport {
     recommendationsForSong1: string[];
     recommendationsForSong2: string[];
 }
-
-const songComparisonMetricsProperty = {
-    type: Type.OBJECT,
-    properties: {
-        commercialPotential: { ...ratingProperty, description: "The song's potential for commercial success." },
-        originality: { ...ratingProperty, description: "How unique and creative the song is." },
-        composition: { ...ratingProperty, description: "The quality of the song's structure, melody, and harmony." },
-        productionQuality: { ...ratingProperty, description: "A hypothetical assessment of the mix, mastering, and overall sound quality." },
-        summary: { type: Type.STRING, description: "A brief 2-3 sentence summary of the song's strengths and weaknesses." }
-    },
-    required: ["commercialPotential", "originality", "composition", "productionQuality", "summary"]
-};
-
-const winnerProperty = {
-    type: Type.OBJECT,
-    properties: {
-        song: { type: Type.STRING, description: "The winning song, either 'song1', 'song2', or 'tie'." },
-        justification: { type: Type.STRING, description: "A detailed justification for why this song was chosen as the winner." }
-    },
-    required: ["song", "justification"]
-};
-
-const comparisonReportSchema = {
-    type: Type.OBJECT,
-    properties: {
-        overallWinner: { ...winnerProperty, description: "The song that is better overall in terms of artistic and technical merit." },
-        marketabilityWinner: { ...winnerProperty, description: "The song with higher commercial potential and broader appeal." },
-        spotifyWinner: { ...winnerProperty, description: "The song better suited for popular Spotify playlists and streaming success." },
-        song1Analysis: songComparisonMetricsProperty,
-        song2Analysis: songComparisonMetricsProperty,
-        recommendationsForSong1: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING },
-            description: "A list of 2-3 actionable recommendations for improving Song 1."
-        },
-        recommendationsForSong2: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING },
-            description: "A list of 2-3 actionable recommendations for improving Song 2."
-        }
-    },
-    required: ["overallWinner", "marketabilityWinner", "spotifyWinner", "song1Analysis", "song2Analysis", "recommendationsForSong1", "recommendationsForSong2"]
-};
-
-export const compareSongs = async (
-    song1Name: string,
-    song1Genre: string,
-    song1Vibe: string,
-    song2Name: string,
-    song2Genre: string,
-    song2Vibe: string
-): Promise<ComparisonReport> => {
-    const fullPrompt = `Act as an expert A&R scout and music critic. You are given metadata for two songs. Your task is to provide a detailed, hypothetical comparison based on this information, as you cannot listen to the audio.
-
-    **Song 1:**
-    - File Name: "${song1Name}"
-    - Genre: "${song1Genre}"
-    - Description/Vibe: "${song1Vibe}"
-
-    **Song 2:**
-    - File Name: "${song2Name}"
-    - Genre: "${song2Genre}"
-    - Description/Vibe: "${song2Vibe}"
-
-    **Your Task:**
-    1.  **Declare Winners:** For each of the following categories, declare a clear winner ('song1', 'song2', or 'tie') and provide a strong justification.
-        -   **Overall Winner:** The song with superior artistic and technical merit.
-        -   **Marketability Winner:** The song with broader commercial appeal.
-        -   **Spotify Winner:** The song better suited for popular streaming playlists.
-    2.  **Detailed Analysis:** For each song, provide a detailed analysis including:
-        -   Ratings from 1-100 for Commercial Potential, Originality, Composition, and hypothetical Production Quality, each with a brief justification.
-        -   A concise summary of the song's strengths and weaknesses.
-    3.  **Actionable Recommendations:** Provide 2-3 specific, constructive recommendations for improving each song.
-
-    Your response must be strictly in the specified JSON format.`;
-    
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: fullPrompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: comparisonReportSchema,
-        },
-    });
-
+const songComparisonMetricsProperty = { type: Type.OBJECT, properties: { commercialPotential: { ...ratingProperty }, originality: { ...ratingProperty }, composition: { ...ratingProperty }, productionQuality: { ...ratingProperty }, summary: { type: Type.STRING } }, required: ["commercialPotential", "originality", "composition", "productionQuality", "summary"] };
+const winnerProperty = { type: Type.OBJECT, properties: { song: { type: Type.STRING }, justification: { type: Type.STRING } }, required: ["song", "justification"] };
+const comparisonReportSchema = { type: Type.OBJECT, properties: { overallWinner: { ...winnerProperty }, marketabilityWinner: { ...winnerProperty }, spotifyWinner: { ...winnerProperty }, song1Analysis: songComparisonMetricsProperty, song2Analysis: songComparisonMetricsProperty, recommendationsForSong1: { type: Type.ARRAY, items: { type: Type.STRING } }, recommendationsForSong2: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["overallWinner", "marketabilityWinner", "spotifyWinner", "song1Analysis", "song2Analysis", "recommendationsForSong1", "recommendationsForSong2"] };
+export const compareSongs = async (song1Name: string, song1Genre: string, song1Vibe: string, song2Name: string, song2Genre: string, song2Vibe: string): Promise<ComparisonReport> => {
+    const fullPrompt = `Act as an expert A&R scout. Provide a detailed, hypothetical comparison of two songs. Song 1: "${song1Name}" (Genre: ${song1Genre}, Vibe: ${song1Vibe}). Song 2: "${song2Name}" (Genre: ${song2Genre}, Vibe: ${song2Vibe}). Your task: Declare winners for Overall, Marketability, and Spotify Potential. Provide detailed analysis and recommendations for each song.`;
+    const response = await ai.models.generateContent({ model: "gemini-2.5-flash", contents: fullPrompt, config: { responseMimeType: "application/json", responseSchema: comparisonReportSchema } });
     const jsonText = response.text.trim();
-    
-    trackUsage({
-        model: 'gemini-2.5-flash',
-        type: 'text',
-        inputChars: fullPrompt.length,
-        outputChars: jsonText.length,
-        description: `Compare: ${song1Name} vs ${song2Name}`
-    });
-    
+    trackUsage({ model: 'gemini-2.5-flash', type: 'text', inputChars: fullPrompt.length, outputChars: jsonText.length, description: `Compare: ${song1Name} vs ${song2Name}` });
     return JSON.parse(jsonText) as ComparisonReport;
 };
 
 export const enhanceLyrics = async (originalLyrics: string): Promise<string> => {
-    const prompt = `Act as an expert songwriter and lyricist. Your task is to enhance the following lyrics.
-Focus on improving imagery, storytelling, rhythm, and emotional impact.
-Maintain the original core theme and meaning, but elevate the language and structure.
-Return ONLY the enhanced lyrics, formatted with sections like [Verse 1], [Chorus], etc.
-Do not include any additional commentary, introductory phrases like "Here are the enhanced lyrics:", or markdown formatting.
-
-Original Lyrics:
----
-${originalLyrics}
----
-`;
-
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-    });
-    
-    trackUsage({
-        model: 'gemini-2.5-flash',
-        type: 'text',
-        inputChars: prompt.length,
-        outputChars: response.text.length,
-        description: 'Enhance Lyrics'
-    });
-
+    const prompt = `Act as an expert lyricist. Enhance the following lyrics, focusing on improving imagery, storytelling, and emotional impact, while maintaining the core theme. Return ONLY the enhanced lyrics. Original Lyrics:\n---\n${originalLyrics}\n---`;
+    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+    trackUsage({ model: 'gemini-2.5-flash', type: 'text', inputChars: prompt.length, outputChars: response.text.length, description: 'Enhance Lyrics' });
     return response.text.trim();
 };
 
-// Types and schema for chord progressions
 export interface ChordProgression {
     progression: string;
     description: string;
     theoryExplanation: string;
 }
-
-const chordProgressionSchema = {
-    type: Type.ARRAY,
-    items: {
-        type: Type.OBJECT,
-        properties: {
-            progression: {
-                type: Type.STRING,
-                description: "A chord progression written as a series of chord names separated by dashes, like 'C-G-Am-F' or 'i-V-VI-IV'."
-            },
-            description: {
-                type: Type.STRING,
-                description: "A brief, one-sentence description of the progression's feel or common use case."
-            },
-            theoryExplanation: {
-                type: Type.STRING,
-                description: "A brief, 1-2 sentence explanation of the music theory behind why this progression works for the given mood and genre, mentioning concepts like tension, resolution, or common cadences."
-            }
-        },
-        required: ["progression", "description", "theoryExplanation"]
-    }
-};
-
-export const generateChordProgressions = async (
-    key: string,
-    genre: string,
-    mood: string
-): Promise<ChordProgression[]> => {
-    const prompt = `Act as an expert music theorist and songwriter. Generate 5 unique and creative chord progressions based on the following parameters:
-- Key: ${key}
-- Genre: ${genre}
-- Mood: ${mood}
-
-For each progression, provide:
-1. The chord sequence.
-2. A brief description of its character.
-3. A simple, one or two-sentence music theory explanation of why it works for the given context (e.g., "This i-V-vi-IV progression is a pop classic, creating a feeling of hopeful melancholy by resolving strongly from the dominant G to the tonic C before moving to the relative minor Am.").`;
-
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: chordProgressionSchema,
-        },
-    });
-
+const chordProgressionSchema = { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { progression: { type: Type.STRING }, description: { type: Type.STRING }, theoryExplanation: { type: Type.STRING } }, required: ["progression", "description", "theoryExplanation"] } };
+export const generateChordProgressions = async (key: string, genre: string, mood: string): Promise<ChordProgression[]> => {
+    const prompt = `Act as an expert music theorist. Generate 5 unique chord progressions for Key: ${key}, Genre: ${genre}, Mood: ${mood}. For each, provide the chord sequence, a brief description, and a 1-2 sentence music theory explanation.`;
+    const response = await ai.models.generateContent({ model: "gemini-2.5-flash", contents: prompt, config: { responseMimeType: "application/json", responseSchema: chordProgressionSchema } });
     const jsonText = response.text.trim();
-
-    trackUsage({
-        model: 'gemini-2.5-flash',
-        type: 'text',
-        inputChars: prompt.length,
-        outputChars: jsonText.length,
-        description: 'Generate Chords'
-    });
-    
+    trackUsage({ model: 'gemini-2.5-flash', type: 'text', inputChars: prompt.length, outputChars: jsonText.length, description: 'Generate Chords' });
     return JSON.parse(jsonText) as ChordProgression[];
 };
 
@@ -842,11 +563,10 @@ function encode(bytes: Uint8Array) {
   return btoa(binary);
 }
 
-function createPcmBlob(data: Float32Array): Blob {
+export function createPcmBlob(data: Float32Array): Blob {
   const l = data.length;
   const int16 = new Int16Array(l);
   for (let i = 0; i < l; i++) {
-    // Clamp the values to the -1.0 to 1.0 range before converting
     const s = Math.max(-1, Math.min(1, data[i]));
     int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
   }
@@ -864,127 +584,50 @@ export const transcribeAudio = async (audioFile: File): Promise<string> => {
             const originalBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
             const targetSampleRate = 16000;
-            const offlineContext = new OfflineAudioContext(
-                originalBuffer.numberOfChannels,
-                originalBuffer.duration * targetSampleRate,
-                targetSampleRate
-            );
+            const offlineContext = new OfflineAudioContext( originalBuffer.numberOfChannels, originalBuffer.duration * targetSampleRate, targetSampleRate );
             const source = offlineContext.createBufferSource();
             source.buffer = originalBuffer;
             source.connect(offlineContext.destination);
             source.start();
-
             const resampledBuffer = await offlineContext.startRendering();
-            const pcmData = resampledBuffer.getChannelData(0); // Use mono
+            const pcmData = resampledBuffer.getChannelData(0);
             
             let fullTranscription = '';
             let transcriptionComplete = false;
             
-            trackUsage({
-                model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-                type: 'audio',
-                seconds: originalBuffer.duration,
-                description: `Transcribe: ${audioFile.name}`
-            });
-
+            trackUsage({ model: 'gemini-2.5-flash-native-audio-preview-09-2025', type: 'audio', seconds: originalBuffer.duration, description: `Transcribe: ${audioFile.name}` });
             const sessionPromise = ai.live.connect({
                 model: 'gemini-2.5-flash-native-audio-preview-09-2025',
                 callbacks: {
                     onopen: () => {
                         const pcmBlob = createPcmBlob(pcmData);
-                        sessionPromise.then((session) => {
-                            session.sendRealtimeInput({ media: pcmBlob });
-                        });
+                        sessionPromise.then((session) => { session.sendRealtimeInput({ media: pcmBlob }); });
                     },
                     onmessage: (message: LiveServerMessage) => {
-                        if (message.serverContent?.inputTranscription) {
-                            fullTranscription += message.serverContent.inputTranscription.text;
-                        }
-                        if (message.serverContent?.turnComplete) {
-                            transcriptionComplete = true;
-                            sessionPromise.then(session => session.close());
-                        }
+                        if (message.serverContent?.inputTranscription) fullTranscription += message.serverContent.inputTranscription.text;
+                        if (message.serverContent?.turnComplete) { transcriptionComplete = true; sessionPromise.then(session => session.close()); }
                     },
-                    onerror: (e: ErrorEvent) => {
-                        console.error('Live API Error:', e);
-                        reject(new Error('Transcription failed due to a connection error.'));
-                    },
+                    onerror: (e: ErrorEvent) => { reject(new Error('Transcription failed due to a connection error.')); },
                     onclose: (e: CloseEvent) => {
-                        if (transcriptionComplete) {
-                           resolve(fullTranscription.trim());
-                        } else {
-                           reject(new Error('Connection closed before transcription was complete.'));
-                        }
+                        if (transcriptionComplete) resolve(fullTranscription.trim());
+                        else reject(new Error('Connection closed before transcription was complete.'));
                     },
                 },
-                config: {
-                    responseModalities: [Modality.AUDIO], // Per API requirements
-                    inputAudioTranscription: {},
-                },
+                config: { responseModalities: [Modality.AUDIO], inputAudioTranscription: {} },
             });
-            
         } catch (err) {
-            console.error("Audio processing for transcription failed:", err);
-            reject(new Error("Failed to process the audio file. It might be corrupted or in an unsupported format."));
+            reject(new Error("Failed to process the audio file."));
         }
     });
 };
 
-const artistProfileSchema = {
-    type: Type.OBJECT,
-    properties: {
-        genre: { type: Type.STRING, description: "The primary musical genre of the track." },
-        singerGender: { type: Type.STRING, description: "The perceived gender of the singer ('male', 'female', 'non-binary', or 'any' if unclear)." },
-        artistType: { type: Type.STRING, description: "The type of artist ('solo', 'band', 'duo', or 'any')." },
-        mood: { type: Type.STRING, description: "The dominant mood or emotion of the song." },
-        tempo: { type: Type.STRING, description: "The tempo described as 'Very Slow', 'Slow', 'Medium', 'Fast', or 'Very Fast'." },
-        melody: { type: Type.STRING, description: "The style of the main melody (e.g., 'Simple and Catchy', 'Complex and Technical')." },
-        harmony: { type: Type.STRING, description: "The harmonic style (e.g., 'Diatonic and Simple', 'Chromatic and Complex')." },
-        rhythm: { type: Type.STRING, description: "The rhythmic feel (e.g., 'Steady and Driving', 'Syncopated and Funky')." },
-        instrumentation: { type: Type.STRING, description: "The key instrumentation used (e.g., 'Acoustic', 'Electronic', 'Rock Band')." },
-        atmosphere: { type: Type.STRING, description: "The overall atmosphere or production effects (e.g., 'Spacious and Reverb-heavy', 'Dry and Intimate')." },
-        vocalStyle: { type: Type.STRING, description: "The style of the vocals (e.g., 'Clear & Melodic', 'Rhythmic & Spoken')." },
-        artistNameSuggestion: { type: Type.STRING, description: "A creative and plausible artist name that fits the generated musical profile." }
-    },
-    required: ["genre", "singerGender", "artistType", "mood", "tempo", "melody", "harmony", "rhythm", "instrumentation", "atmosphere", "vocalStyle", "artistNameSuggestion"]
-};
-
+const artistProfileSchema = { type: Type.OBJECT, properties: { genre: { type: Type.STRING }, singerGender: { type: Type.STRING }, artistType: { type: Type.STRING }, mood: { type: Type.STRING }, tempo: { type: Type.STRING }, melody: { type: Type.STRING }, harmony: { type: Type.STRING }, rhythm: { type: Type.STRING }, instrumentation: { type: Type.STRING }, atmosphere: { type: Type.STRING }, vocalStyle: { type: Type.STRING }, artistNameSuggestion: { type: Type.STRING } }, required: ["genre", "singerGender", "artistType", "mood", "tempo", "melody", "harmony", "rhythm", "instrumentation", "atmosphere", "vocalStyle", "artistNameSuggestion"] };
 export const analyzeAudioForProfile = async (audioBlob: Blob): Promise<ArtistStyleProfile & { artistNameSuggestion: string }> => {
     const base64Audio = await blobToBase64(audioBlob);
-
-    const audioPart = {
-        inlineData: {
-            mimeType: audioBlob.type,
-            data: base64Audio,
-        },
-    };
-
-    const textPart = {
-        text: `You are an expert music A&R scout with a deep understanding of music theory and genres. Analyze the provided audio file and generate a detailed "Artist Style Profile" based on its characteristics. 
-        Your analysis must be comprehensive, covering all the required fields. For fields like tempo, melody, harmony, etc., choose the most fitting description from the common music terminology.
-        Finally, suggest a creative and plausible artist name that would fit this style of music.
-        The output must be ONLY a single JSON object that strictly adheres to the provided schema, without any markdown formatting or explanatory text.
-`
-    };
-
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: { parts: [audioPart, textPart] },
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: artistProfileSchema,
-        },
-    });
-
+    const audioPart = { inlineData: { mimeType: audioBlob.type, data: base64Audio } };
+    const textPart = { text: `You are an expert music A&R scout. Analyze the provided audio file and generate a detailed "Artist Style Profile". Suggest a creative and plausible artist name. The output must be ONLY a single JSON object.` };
+    const response = await ai.models.generateContent({ model: "gemini-2.5-flash", contents: { parts: [audioPart, textPart] }, config: { responseMimeType: "application/json", responseSchema: artistProfileSchema } });
     const jsonText = response.text.trim();
-    
-    trackUsage({
-        model: 'gemini-2.5-flash',
-        type: 'multimodal',
-        inputChars: textPart.text.length,
-        outputChars: jsonText.length,
-        description: `Analyze Audio for Profile: ${(audioBlob as File).name}`
-    });
-
+    trackUsage({ model: 'gemini-2.5-flash', type: 'multimodal', inputChars: textPart.text.length, outputChars: jsonText.length, description: `Analyze Audio for Profile: ${(audioBlob as File).name}` });
     return JSON.parse(jsonText) as ArtistStyleProfile & { artistNameSuggestion: string };
 };

@@ -1,25 +1,8 @@
 import React, { useState } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { InteractiveImageEditor } from './InteractiveImageEditor';
-// Fix: Module '"../App"' has no exported member 'SingerGender' or 'ArtistType'. They are exported from geminiService.
-import type { SingerGender, ArtistType } from '../services/geminiService';
-import type { VocalMelody } from '../services/geminiService';
-
-interface SongData {
-    title: string;
-    artistName: string;
-    artistBio: string;
-    albumCoverPrompt: string;
-    lyrics: string;
-    styleGuide: string;
-    beatPattern: string;
-    singerGender: SingerGender;
-    artistType: ArtistType;
-    vocalMelody: VocalMelody | null;
-    bpm: number;
-    videoPrompt: string;
-    genre: string;
-}
+import type { SingerGender, ArtistType, VocalMelody } from '../services/geminiService';
+import type { SongData } from '../types';
 
 interface SongEditorProps {
     songData: SongData;

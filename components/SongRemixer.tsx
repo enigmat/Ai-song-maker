@@ -9,7 +9,8 @@ import { MusicVideoPlayer } from './MusicVideoPlayer';
 import { StyleGuideViewer } from './StyleGuideViewer';
 import { ErrorMessage } from './ErrorMessage';
 import { LoadingSpinner } from './LoadingSpinner';
-import { generateRemixedSong, generateRemixedSongFromLyrics, generateNewBeatPattern, generateImage, generateVideo, transcribeAudio, SongData, SingerGender, ArtistType } from '../services/geminiService';
+import { generateRemixedSong, generateRemixedSongFromLyrics, generateNewBeatPattern, generateImage, generateVideo, transcribeAudio, SingerGender, ArtistType } from '../services/geminiService';
+import type { SongData } from '../types';
 
 declare var Tone: any; // Using Tone.js from CDN
 
@@ -310,6 +311,8 @@ export const SongRemixer: React.FC = () => {
                         artistImageUrl={artistImageUrl}
                         isRegeneratingImage={isGeneratingImage}
                         onImageUpdate={setArtistImageUrl}
+                        onRefineVideoPrompt={() => {}}
+                        isRefiningVideoPrompt={false}
                     />
                 );
             

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { SongData } from '../services/geminiService';
+import type { SongData } from '../types';
 
 interface DownloadMenuProps {
     songData: SongData;

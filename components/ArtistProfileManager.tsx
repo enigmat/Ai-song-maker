@@ -340,7 +340,6 @@ export const ArtistProfileManager: React.FC = () => {
                     {Object.keys(profiles).length === 0 ? (
                         <p className="text-center text-gray-500">You have no saved profiles yet. Create one above!</p>
                     ) : (
-                        // FIX: Refactored to use Object.keys to avoid type inference issues with Object.entries.
                         Object.keys(profiles).map((name) => {
                             const profile = profiles[name];
                             return (

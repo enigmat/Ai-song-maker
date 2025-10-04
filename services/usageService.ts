@@ -14,7 +14,7 @@ const PRICING = {
         perSecond: 100.00 / PER_MILLION,
     },
     'gemini-2.5-flash-image': {
-        perImage: 0.70 / PER_MILLION, // Assuming similar to multimodal input
+        perImage: 0.70 / PER_MILLION,
     },
     'gemini-2.5-flash-native-audio-preview-09-2025': {
         perSecond: 0.28 / PER_MILLION,
@@ -90,7 +90,6 @@ export const trackUsage = (params: TrackUsageParams): void => {
     if (params.type === 'text' || params.type === 'multimodal') {
         const inputChars = params.inputChars || 0;
         const outputChars = params.outputChars || 0;
-        // FIX: Use 'in' operator to safely access properties on the union type.
         if ('inputChar' in modelPricing && 'outputChar' in modelPricing) {
             cost += (inputChars * modelPricing.inputChar) + (outputChars * modelPricing.outputChar);
         }
@@ -98,9 +97,8 @@ export const trackUsage = (params: TrackUsageParams): void => {
         usage.totalOutputChars += outputChars;
     }
     
-    if (params.type === 'image') {
+    if (params.type === 'image' || params.type === 'multimodal') { // multimodal can include images
         const count = params.count || 0;
-        // FIX: Use 'in' operator to safely access properties on the union type.
         if ('perImage' in modelPricing) {
             cost += count * modelPricing.perImage;
         }
@@ -109,7 +107,6 @@ export const trackUsage = (params: TrackUsageParams): void => {
     
     if (params.type === 'video') {
         const seconds = params.seconds || 0;
-        // FIX: Use 'in' operator to safely access properties on the union type.
         if ('perSecond' in modelPricing) {
             cost += seconds * modelPricing.perSecond;
         }
@@ -118,7 +115,6 @@ export const trackUsage = (params: TrackUsageParams): void => {
 
     if (params.type === 'audio') {
         const seconds = params.seconds || 0;
-        // FIX: Use 'in' operator to safely access properties on the union type.
         if ('perSecond' in modelPricing) {
             cost += seconds * modelPricing.perSecond;
         }
