@@ -140,6 +140,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
                     if (parsedBeat.hihat?.includes(step)) synths.current.hihat.triggerAttackRelease("16n", time, 0.6);
                     if (parsedBeat.clap?.includes(step)) synths.current.clap.triggerAttackRelease("16n", time);
                 }, steps, "16n").start(0);
+                sequence.current.loop = true;
                 Tone.Transport.bpm.value = songData.bpm;
                 setIsAudioReady(true);
             } catch (e) {

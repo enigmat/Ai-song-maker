@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { generateChordProgressions, ChordProgression } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
@@ -81,6 +81,25 @@ export const ChordProgressionGenerator: React.FC = () => {
     const [playingIndex, setPlayingIndex] = useState<number | null>(null);
     const synth = useRef<any>(null);
     const part = useRef<any>(null);
+
+    useEffect(() => {
+        // Cleanup on unmount to prevent audio state from leaking to other components
+        return () => {
+            if (part.current) {
+                part.current.dispose();
+                part.current = null;
+            }
+            if (synth.current) {
+                synth.current.dispose();
+                synth.current = null;
+            }
+            if (Tone.Transport.state === 'started') {
+                Tone.Transport.stop();
+            }
+            // Always cancel any leftover events to avoid conflicts
+            Tone.Transport.cancel();
+        };
+    }, []);
 
     const handleGenerate = async () => {
         setStatus('generating');
