@@ -1,6 +1,6 @@
 import React from 'react';
 
-type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator';
+type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering';
 
 interface TabsProps {
   activeTool: ActiveTool;
@@ -89,6 +89,12 @@ const SplitterIcon = () => (
     </svg>
 );
 
+const MasteringIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h1a1 1 0 011 1v1.5a1.5 1.5 0 010 3V12a1 1 0 00-1 1v1a1 1 0 01-1 1h-1.5a1.5 1.5 0 01-3 0H8a1 1 0 00-1-1v-1a1 1 0 01-1-1v-1.5a1.5 1.5 0 010-3V6a1 1 0 001-1h1a1 1 0 011-1v-.5z" />
+    </svg>
+);
+
 const DashboardIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
         <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
@@ -146,6 +152,10 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowReci
       <button onClick={() => onSelectTool('splitter')} className={getButtonClasses('splitter')}>
         <SplitterIcon />
         Stem Splitter
+      </button>
+      <button onClick={() => onSelectTool('mastering')} className={getButtonClasses('mastering')}>
+        <MasteringIcon />
+        AI Mastering
       </button>
       <button onClick={() => onSelectTool('analyzer')} className={getButtonClasses('analyzer')}>
         <AnalyzerIcon />

@@ -16,10 +16,11 @@ import { OnboardingWizard } from './components/OnboardingWizard';
 import { AssistantController } from './components/AssistantController';
 import { StudioAssistant } from './components/StudioAssistant';
 import { StyleCreator } from './components/StyleCreator';
+import { AIMastering } from './components/AIMastering';
 import { useProjects } from './hooks/useProjects';
 import { PlaybackContext } from './contexts/PlaybackContext';
 
-type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator';
+type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering';
 const ONBOARDING_KEY = 'mustbmusic_onboarding_complete_v1';
 
 const App: React.FC = () => {
@@ -140,6 +141,7 @@ const App: React.FC = () => {
             {activeTool === 'analyzer' && <Mp3Analyzer />}
             {activeTool === 'comparator' && <SongComparator />}
             {activeTool === 'splitter' && <StemSplitter onInstrumentalSelect={handleInstrumentalSelect} onVocalSelect={handleVocalSelect} />}
+            {activeTool === 'mastering' && <AIMastering />}
             {activeTool === 'dashboard' && <UsageDashboard />}
           </main>
         </div>
