@@ -3,14 +3,14 @@ import { SongPromptForm } from './SongPromptForm';
 import { SongEditor } from './SongEditor';
 import { ArtistProfile } from './ArtistProfile';
 import { LyricsViewer } from './LyricsViewer';
-import { BeatPlayer } from './BeatPlayer';
 import { MasterPlayButton } from './MasterPlayButton';
 import { MusicVideoPlayer } from './MusicVideoPlayer';
 import { StyleGuideViewer } from './StyleGuideViewer';
 import { ErrorMessage } from './ErrorMessage';
 import { LoadingSpinner } from './LoadingSpinner';
 import { MelodyStudio } from './MelodyStudio';
-import { generateSongFromPrompt, generateNewBeatPattern, generateImage, generateVideo, refineVideoPrompt, MelodyAnalysis } from '../services/geminiService';
+import { generateSongFromPrompt, generateImage, generateVideo, refineVideoPrompt, MelodyAnalysis } from '../services/geminiService';
+import { audioBufferToMp3 } from '../services/audioService';
 import { Project, SongData } from '../types';
 import type { SingerGender, ArtistType, ArtistStyleProfile } from '../services/geminiService';
 import { PlaybackContextType } from '../contexts/PlaybackContext';
@@ -55,11 +55,11 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
     const [isRefiningVideoPrompt, setIsRefiningVideoPrompt] = useState(false);
+    const [isRenderingMp3, setIsRenderingMp3] = useState(false);
+    const [mp3Url, setMp3Url] = useState<string | null>(null);
 
     const [isPlaying, setIsPlaying] = useState(false);
-    const [currentStep, setCurrentStep] = useState(-1);
     const [isAudioReady, setIsAudioReady] = useState(false);
-    const [isRandomizingBeat, setIsRandomizingBeat] = useState(false);
 
     const synths = useRef<any>({});
     const sequence = useRef<any>(null);
@@ -86,7 +86,6 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
             } else {
                 Tone.Transport.stop();
                 setIsPlaying(false);
-                setCurrentStep(-1);
             }
         };
 
@@ -140,7 +139,6 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
                     if (parsedBeat.snare?.includes(step)) synths.current.snare.triggerAttackRelease("16n", time);
                     if (parsedBeat.hihat?.includes(step)) synths.current.hihat.triggerAttackRelease("16n", time, 0.6);
                     if (parsedBeat.clap?.includes(step)) synths.current.clap.triggerAttackRelease("16n", time);
-                    Tone.Draw.schedule(() => setCurrentStep(step), time);
                 }, steps, "16n").start(0);
                 Tone.Transport.bpm.value = songData.bpm;
                 setIsAudioReady(true);
@@ -155,15 +153,16 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
              if (sequence.current) sequence.current.dispose();
              if (player.current) player.current.dispose();
              Object.values(synths.current).forEach((synth: any) => synth.dispose());
-             setCurrentStep(-1); setIsPlaying(false);
+             setIsPlaying(false);
         };
     }, [songData, status, effectiveInstrumentalUrl]);
     
     useEffect(() => {
       return () => {
         if (hummedInstrumental?.url) URL.revokeObjectURL(hummedInstrumental.url);
+        if (mp3Url) URL.revokeObjectURL(mp3Url);
       };
-    }, [hummedInstrumental]);
+    }, [hummedInstrumental, mp3Url]);
 
 
     const handleGenerate = async ( prompt: string, ...styleArgs: any[]) => {
@@ -203,22 +202,6 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
         }
     };
 
-    const handleRandomizeBeat = async () => {
-        setIsRandomizingBeat(true); setError(null);
-        try {
-            const newBeat = await generateNewBeatPattern(songData.styleGuide, songData.genre);
-            handleDataChange({ beatPattern: newBeat });
-        } catch(err) {
-            setError("Failed to generate a new beat.");
-        } finally { setIsRandomizingBeat(false); }
-    };
-
-    const handleBeatPatternChange = useCallback((newPattern: string) => {
-        if (Tone.Transport.state === 'started') Tone.Transport.pause();
-        handleDataChange({ beatPattern: newPattern });
-        if (Tone.Transport.state === 'paused') Tone.Transport.start();
-    }, [songData, project]);
-
     const handleRegenerateImage = async () => {
         setIsGeneratingImage(true); setError(null);
         try {
@@ -255,7 +238,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
     const handleTogglePlay = async () => {
         if (!isAudioReady) return;
         if (Tone.context.state !== 'running') await Tone.start();
-        if (isPlaying) { Tone.Transport.stop(); setIsPlaying(false); setCurrentStep(-1); } 
+        if (isPlaying) { Tone.Transport.stop(); setIsPlaying(false); } 
         else { Tone.Transport.start(); setIsPlaying(true); }
     };
     
@@ -267,6 +250,53 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
         handleDataChange({ bpm: melody.bpm, beatPattern: '' });
         setHummedMelody(melody);
         setIsMelodyStudioOpen(false);
+    };
+
+    const handleGenerateMp3 = async () => {
+        if (mp3Url) {
+            URL.revokeObjectURL(mp3Url);
+            setMp3Url(null);
+        }
+        setIsRenderingMp3(true);
+        setError(null);
+    
+        try {
+            let mp3Blob: Blob;
+            if (effectiveInstrumentalUrl) {
+                const buffer = await new Tone.Buffer(effectiveInstrumentalUrl).load();
+                mp3Blob = audioBufferToMp3(buffer.get());
+            } else {
+                const bpm = songData.bpm;
+                // Render 16 measures. 1 measure = 4 beats. Duration = 16 * 4 * (60/bpm)
+                const duration = 16 * 4 * (60 / bpm);
+    
+                const buffer = await Tone.Offline(async () => {
+                    Tone.Transport.bpm.value = bpm;
+                    const synths = {
+                        kick: new Tone.MembraneSynth().toDestination(),
+                        snare: new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0 } }).toDestination(),
+                        hihat: new Tone.MetalSynth({ frequency: 200, envelope: { attack: 0.001, decay: 0.1, release: 0.01 }, harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5 }).toDestination(),
+                        clap: new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.001, decay: 0.15, sustain: 0, release: 0.2 } }).toDestination(),
+                    };
+                    const parsedBeat = JSON.parse(songData.beatPattern);
+                    const steps = Array.from({ length: 16 }, (_, i) => i);
+                    const seq = new Tone.Sequence((time, step) => {
+                        if (parsedBeat.kick?.includes(step)) synths.kick.triggerAttackRelease("C1", "8n", time);
+                        if (parsedBeat.snare?.includes(step)) synths.snare.triggerAttackRelease("16n", time);
+                        if (parsedBeat.hihat?.includes(step)) synths.hihat.triggerAttackRelease("16n", time, 0.6);
+                        if (parsedBeat.clap?.includes(step)) synths.clap.triggerAttackRelease("16n", time);
+                    }, steps, "16n").start(0);
+                    seq.loop = 15; // Loop 15 times for 16 total measures
+                }, duration);
+                mp3Blob = audioBufferToMp3(buffer);
+            }
+            setMp3Url(URL.createObjectURL(mp3Blob));
+        } catch (err) {
+            console.error("MP3 rendering failed:", err);
+            setError("Failed to render the MP3 file.");
+        } finally {
+            setIsRenderingMp3(false);
+        }
     };
 
     const renderContent = () => {
@@ -284,10 +314,38 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
                     <div className="space-y-8">
                         <ArtistProfile {...songData} artistImageUrl={artistImageUrl} videoUrl={videoUrl} />
                         <div className="text-center"><MasterPlayButton isPlaying={isPlaying} onToggle={handleTogglePlay} isReady={isAudioReady} /></div>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <LyricsViewer lyrics={songData.lyrics} />
-                            <BeatPlayer beatPattern={songData.beatPattern} isPlaying={isPlaying} currentStep={currentStep} onRandomize={handleRandomizeBeat} isRandomizing={isRandomizingBeat} trackUrl={effectiveInstrumentalUrl} onBeatPatternChange={handleBeatPatternChange} />
+                        
+                        <div className="mt-8">
+                            <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700 p-6">
+                                <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4 bg-gradient-to-r from-teal-400 via-cyan-500 to-sky-500 text-transparent bg-clip-text">
+                                    Export Audio
+                                </h2>
+                                {isRenderingMp3 ? (
+                                    <div className="text-center text-gray-400 p-4">
+                                        <LoadingSpinner size="lg" />
+                                        <p className="mt-4 animate-pulse">Rendering MP3, this may take a moment...</p>
+                                    </div>
+                                ) : mp3Url ? (
+                                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                                        <a href={mp3Url} download={`${songData.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp3`} className="w-full sm:w-auto flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg shadow-md hover:from-teal-600 hover:to-cyan-600 transition-all transform hover:scale-105">
+                                            Download MP3
+                                        </a>
+                                        <button onClick={handleGenerateMp3} className="w-full sm:w-auto flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 border-2 border-gray-600 text-gray-300 rounded-lg shadow-md hover:bg-gray-700 hover:text-white transition-all">
+                                            Render Again
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="text-center">
+                                        <p className="text-gray-400 mb-4">Generate a high-quality MP3 file of your final song.</p>
+                                        <button onClick={handleGenerateMp3} className="inline-flex items-center justify-center gap-3 text-lg font-semibold px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105">
+                                            Render MP3
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
+
+                        <LyricsViewer lyrics={songData.lyrics} />
                         <MusicVideoPlayer videoUrl={videoUrl} isGenerating={isGeneratingVideo} />
                         <StyleGuideViewer styleGuide={songData.styleGuide} isLoading={false} />
                         <div className="text-center pt-4">
