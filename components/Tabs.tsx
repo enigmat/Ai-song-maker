@@ -102,7 +102,6 @@ const DashboardIcon = () => (
     </svg>
 );
 
-
 export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowRecipe }) => {
   const getButtonClasses = (tool: ActiveTool) => {
     const isActive = activeTool === tool;
@@ -171,7 +170,7 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowReci
       </button>
       <button onClick={() => onSelectTool('dashboard')} className={getButtonClasses('dashboard')}>
         <DashboardIcon />
-        Usage Dashboard
+        Dashboard
       </button>
        <button onClick={onShowRecipe} className={nonActiveClasses}>
         <RecipeIcon />

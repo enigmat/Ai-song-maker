@@ -65,6 +65,7 @@ export const SongRemixer: React.FC = () => {
         // Cleanup previous Tone instances
         if (sequence.current) sequence.current.dispose();
         Object.values(synths.current).forEach((synth: any) => synth.dispose());
+        synths.current = {};
 
         try {
             const parsedBeat = JSON.parse(songData.beatPattern);
@@ -116,14 +117,22 @@ export const SongRemixer: React.FC = () => {
 
         // Cleanup on component unmount or when songData changes again
         return () => {
-             if (Tone.Transport.state === 'started') {
+             if (Tone.Transport.state !== 'stopped') {
                 Tone.Transport.stop();
                 Tone.Transport.cancel();
-             }
-             if (sequence.current) sequence.current.dispose();
-             Object.values(synths.current).forEach((synth: any) => synth.dispose());
-             setCurrentStep(-1);
-             setIsPlaying(false);
+            }
+            if (sequence.current) {
+                sequence.current.dispose();
+                sequence.current = null;
+            }
+            Object.values(synths.current).forEach((synth: any) => {
+                if (synth && typeof synth.dispose === 'function') {
+                    synth.dispose();
+                }
+            });
+            synths.current = {};
+            setCurrentStep(-1);
+            setIsPlaying(false);
         };
     }, [songData, status]);
 
@@ -272,13 +281,7 @@ export const SongRemixer: React.FC = () => {
     }, []);
 
     const handleBeatPatternChange = useCallback((newPattern: string) => {
-        if (Tone.Transport.state === 'started') {
-            Tone.Transport.pause();
-        }
         setSongData(prev => ({...prev, beatPattern: newPattern}));
-         if (Tone.Transport.state === 'paused') {
-            Tone.Transport.start();
-        }
     }, []);
 
     const renderContent = () => {

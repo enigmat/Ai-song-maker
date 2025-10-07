@@ -110,10 +110,12 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
             setIsAudioReady(false);
             return;
         }
-
+        
+        // Initial cleanup before setting up new audio
         if (sequence.current) sequence.current.dispose();
         if (player.current) player.current.dispose();
         Object.values(synths.current).forEach((synth: any) => synth.dispose());
+        synths.current = {};
         setIsAudioReady(false);
         
         if (effectiveInstrumentalUrl) {
@@ -149,12 +151,27 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
                 setIsAudioReady(false);
             }
         }
+        
         return () => {
-             if (Tone.Transport.state === 'started') { Tone.Transport.stop(); Tone.Transport.cancel(); }
-             if (sequence.current) sequence.current.dispose();
-             if (player.current) player.current.dispose();
-             Object.values(synths.current).forEach((synth: any) => synth.dispose());
-             setIsPlaying(false);
+            if (Tone.Transport.state !== 'stopped') {
+                Tone.Transport.stop();
+                Tone.Transport.cancel();
+            }
+            if (sequence.current) {
+                sequence.current.dispose();
+                sequence.current = null;
+            }
+            if (player.current) {
+                player.current.dispose();
+                player.current = null;
+            }
+            Object.values(synths.current).forEach((synth: any) => {
+                if (synth && typeof synth.dispose === 'function') {
+                    synth.dispose();
+                }
+            });
+            synths.current = {};
+            setIsPlaying(false);
         };
     }, [songData, status, effectiveInstrumentalUrl]);
     
@@ -289,7 +306,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
                     }, steps, "16n").start(0);
                     seq.loop = 15; // Loop 15 times for 16 total measures
                 }, duration);
-                mp3Blob = audioBufferToMp3(buffer);
+                mp3Blob = audioBufferToMp3(buffer.get());
             }
             setMp3Url(URL.createObjectURL(mp3Blob));
         } catch (err) {

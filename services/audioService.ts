@@ -128,5 +128,5 @@ export const melodyToMp3 = async (melody: MelodyNote[], instrument: string, bpm:
         Tone.Transport.bpm.value = bpm;
     }, totalDuration);
 
-    return audioBufferToMp3(buffer);
+    return audioBufferToMp3(buffer.get());
 };

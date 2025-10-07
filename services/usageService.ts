@@ -1,3 +1,5 @@
+import { spendCredits } from './creditService';
+
 // --- PRICING (as of late 2024, for estimation purposes) ---
 // Prices are per 1 million characters/images/seconds. We divide by 1,000,000 to get the per-unit price.
 const PER_MILLION = 1_000_000;
@@ -141,6 +143,7 @@ export const trackUsage = (params: TrackUsageParams): void => {
     
     try {
         localStorage.setItem(USAGE_STORAGE_KEY, JSON.stringify(usage));
+        spendCredits(cost);
     } catch (e) {
         console.error("Failed to save usage data to localStorage", e);
     }
