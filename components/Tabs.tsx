@@ -1,6 +1,6 @@
 import React from 'react';
 
-type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering';
+type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'analyzer' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering';
 
 interface TabsProps {
   activeTool: ActiveTool;
@@ -36,6 +36,12 @@ const VocalToolsIcon = () => (
 const ChordsIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
       <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3V7.82l8-1.6v5.894A4.369 4.369 0 0015 12c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3V4a1 1 0 00-1-1z" />
+    </svg>
+);
+
+const JamSessionIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M14.735 2.222a.75.75 0 01.03.03l4.95 4.95a.75.75 0 01-.976 1.134l-1.35-1.157a6.26 6.26 0 00-8.381 8.381l1.157 1.35a.75.75 0 01-1.134.976l-4.95-4.95a.75.75 0 010-1.06l7.65-7.65a.75.75 0 011.03-.027zM11.69 7.72a3.25 3.25 0 10-4.6 4.6 3.25 3.25 0 004.6-4.6z" clipRule="evenodd" />
     </svg>
 );
 
@@ -128,6 +134,10 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowReci
       <button onClick={() => onSelectTool('remixer')} className={getButtonClasses('remixer')}>
         <RemixerIcon />
         Song Remixer
+      </button>
+      <button onClick={() => onSelectTool('jamsession')} className={getButtonClasses('jamsession')}>
+        <JamSessionIcon />
+        Jam Session
       </button>
       <button onClick={() => onSelectTool('vocaltools')} className={getButtonClasses('vocaltools')}>
         <VocalToolsIcon />

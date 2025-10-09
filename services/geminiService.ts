@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type, Modality, LiveServerMessage, Blob } from "@google/genai";
 import { trackUsage } from './usageService';
-import type { SongData } from '../types';
+import type { SongData, SongStructureAnalysis } from '../types';
 
 // Type definitions, matching the expected structure from the AI.
 export type SingerGender = 'male' | 'female' | 'non-binary' | 'any';
@@ -565,7 +565,67 @@ export const generateChordProgressions = async (key: string, genre: string, mood
     return JSON.parse(jsonText) as ChordProgression[];
 };
 
-function encode(bytes: Uint8Array) {
+const songStructureSchema = {
+    type: Type.OBJECT,
+    properties: {
+        overallFeedback: {
+            type: Type.STRING,
+            description: "Provide 2-3 sentences of high-level feedback on the song's structure, flow, and potential. Mention its strengths and areas for improvement."
+        },
+        sections: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    type: {
+                        type: Type.STRING,
+                        description: "The identified type of the song section (e.g., 'Verse 1', 'Chorus', 'Bridge', 'Outro')."
+                    },
+                    lyrics: {
+                        type: Type.STRING,
+                        description: "The exact lyrics of this section, preserving original line breaks."
+                    },
+                    suggestion: {
+                        type: Type.STRING,
+                        description: "A specific, actionable suggestion to improve this section's impact, clarity, or structure. If no suggestion is needed, this can be omitted."
+                    }
+                },
+                required: ["type", "lyrics"]
+            }
+        }
+    },
+    required: ["overallFeedback", "sections"]
+};
+
+
+export const analyzeSongStructure = async (lyrics: string): Promise<SongStructureAnalysis> => {
+    const prompt = `Act as an expert songwriter and music producer. Analyze the structure of the following song lyrics. Your task is to:
+1.  Identify and label each distinct section (e.g., Verse 1, Chorus, Pre-Chorus, Bridge, Outro).
+2.  Provide overall feedback on the song's structure and flow.
+3.  For each section, offer a concise, actionable suggestion for improvement if applicable (e.g., "Consider adding a rhyming couplet here for stronger impact," or "This could be a great place for a pre-chorus to build anticipation."). If a section is strong, no suggestion is needed.
+Return the analysis in the specified JSON format.
+
+Lyrics to analyze:
+---
+${lyrics}
+---`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: songStructureSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    trackUsage({ model: 'gemini-2.5-flash', type: 'text', inputChars: prompt.length, outputChars: jsonText.length, description: 'Analyze Song Structure' });
+    return JSON.parse(jsonText) as SongStructureAnalysis;
+};
+
+
+export function encode(bytes: Uint8Array) {
   let binary = '';
   const len = bytes.byteLength;
   for (let i = 0; i < len; i++) {
@@ -573,6 +633,36 @@ function encode(bytes: Uint8Array) {
   }
   return btoa(binary);
 }
+
+export function decode(base64: string) {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+export async function decodeAudioData(
+  data: Uint8Array,
+  ctx: AudioContext,
+  sampleRate: number,
+  numChannels: number,
+): Promise<AudioBuffer> {
+  const dataInt16 = new Int16Array(data.buffer);
+  const frameCount = dataInt16.length / numChannels;
+  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
+  for (let channel = 0; channel < numChannels; channel++) {
+    const channelData = buffer.getChannelData(channel);
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    }
+  }
+  return buffer;
+}
+
 
 export function createPcmBlob(data: Float32Array): Blob {
   const l = data.length;

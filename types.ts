@@ -26,3 +26,14 @@ export interface Project {
   generationParams: ArtistStyleProfile | null;
   originalPrompt: string | null;
 }
+
+export interface SongSection {
+  type: string; // 'Verse 1', 'Chorus', etc.
+  lyrics: string;
+  suggestion?: string;
+}
+
+export interface SongStructureAnalysis {
+  overallFeedback: string;
+  sections: SongSection[];
+}

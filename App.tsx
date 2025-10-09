@@ -8,6 +8,7 @@ import { Mp3Analyzer } from './components/Mp3Analyzer';
 import { SongComparator } from './components/SongComparator';
 import { VocalTools } from './components/VocalTools';
 import { ChordProgressionGenerator } from './components/ChordProgressionGenerator';
+import { JamSession } from './components/JamSession';
 import { ArtistProfileManager } from './components/ArtistProfileManager';
 import { UsageDashboard } from './components/UsageDashboard';
 import { ProjectManager } from './components/ProjectManager';
@@ -19,7 +20,7 @@ import { AIMastering } from './components/AIMastering';
 import { useProjects } from './hooks/useProjects';
 import { PlaybackContext } from './contexts/PlaybackContext';
 
-type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering';
+type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'analyzer' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering';
 const ONBOARDING_KEY = 'mustbmusic_onboarding_complete_v1';
 
 const App: React.FC = () => {
@@ -101,6 +102,7 @@ const App: React.FC = () => {
             {activeTool === 'remixer' && <SongRemixer />}
             {activeTool === 'vocaltools' && <VocalTools />}
             {activeTool === 'chords' && <ChordProgressionGenerator />}
+            {activeTool === 'jamsession' && <JamSession />}
             {activeTool === 'assistant' && <StudioAssistant />}
             {activeTool === 'style_creator' && <StyleCreator />}
             {activeTool === 'profiles' && <ArtistProfileManager />}

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { InteractiveImageEditor } from './InteractiveImageEditor';
+import { analyzeSongStructure } from '../services/geminiService';
+import { SongStructureViewer } from './SongStructureViewer';
 import type { SingerGender, ArtistType, VocalMelody } from '../services/geminiService';
-import type { SongData } from '../types';
+import type { SongData, SongStructureAnalysis } from '../types';
 
 interface SongEditorProps {
     songData: SongData;
@@ -51,8 +53,11 @@ const CopyButton = ({ textToCopy, positionClasses }: { textToCopy: string; posit
 
 
 export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, onFinalize, onCancel, isLoading, onRegenerateImage, artistImageUrl, isRegeneratingImage, onImageUpdate }) => {
-    const [lyricsViewMode, setLyricsViewMode] = useState<'edit' | 'structured'>('edit');
+    const [lyricsViewMode, setLyricsViewMode] = useState<'edit' | 'structured' | 'analysis'>('edit');
     const [showImageEditor, setShowImageEditor] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analysisResult, setAnalysisResult] = useState<SongStructureAnalysis | null>(null);
+    const [analysisError, setAnalysisError] = useState<string | null>(null);
     
     const handleChange = (field: keyof SongData, value: string | number) => {
         setSongData({ ...songData, [field]: value });
@@ -62,7 +67,43 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
         onImageUpdate(newImageUrl);
     };
 
+    const handleAnalyze = async () => {
+        setLyricsViewMode('analysis');
+        if (!songData.lyrics) {
+            setAnalysisError("There are no lyrics to analyze.");
+            return;
+        }
+        setIsAnalyzing(true);
+        setAnalysisError(null);
+        setAnalysisResult(null);
+        try {
+            const result = await analyzeSongStructure(songData.lyrics);
+            setAnalysisResult(result);
+        } catch (error) {
+            console.error("Failed to analyze song structure:", error);
+            setAnalysisError("Could not analyze the song structure. Please try again.");
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+
     const renderLyricsView = () => {
+        if (lyricsViewMode === 'analysis') {
+            return (
+                <div className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg min-h-[384px] max-h-[500px] overflow-y-auto">
+                    {isAnalyzing && (
+                        <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                            <LoadingSpinner />
+                            <p className="mt-4 animate-pulse">Analyzing structure...</p>
+                        </div>
+                    )}
+                    {analysisError && <p className="text-red-400 text-center">{analysisError}</p>}
+                    {analysisResult && <SongStructureViewer analysis={analysisResult} />}
+                </div>
+            );
+        }
+
         if (lyricsViewMode === 'structured') {
             return (
                 <div className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg font-serif min-h-[384px] max-h-[500px] overflow-y-auto prose prose-invert prose-p:my-1">
@@ -262,20 +303,9 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                     <div className="flex justify-between items-center mb-2">
                         <label htmlFor="lyrics" className="block text-lg font-medium text-gray-300">Lyrics</label>
                         <div className="flex items-center gap-1 rounded-lg bg-gray-900 p-1 border border-gray-700">
-                            <button 
-                                onClick={() => setLyricsViewMode('edit')}
-                                aria-pressed={lyricsViewMode === 'edit'}
-                                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${lyricsViewMode === 'edit' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
-                            >
-                                Edit
-                            </button>
-                            <button 
-                                onClick={() => setLyricsViewMode('structured')}
-                                aria-pressed={lyricsViewMode === 'structured'}
-                                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${lyricsViewMode === 'structured' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
-                            >
-                                View
-                            </button>
+                            <button onClick={() => setLyricsViewMode('edit')} aria-pressed={lyricsViewMode === 'edit'} className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${lyricsViewMode === 'edit' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Edit</button>
+                            <button onClick={() => setLyricsViewMode('structured')} aria-pressed={lyricsViewMode === 'structured'} className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${lyricsViewMode === 'structured' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>View</button>
+                            <button onClick={handleAnalyze} aria-pressed={lyricsViewMode === 'analysis'} className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${lyricsViewMode === 'analysis' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Analyze</button>
                         </div>
                     </div>
                     {renderLyricsView()}
