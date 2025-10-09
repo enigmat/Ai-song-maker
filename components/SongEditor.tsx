@@ -14,8 +14,6 @@ interface SongEditorProps {
     artistImageUrl: string;
     isRegeneratingImage: boolean;
     onImageUpdate: (newImageUrl: string) => void;
-    onRefineVideoPrompt: () => void;
-    isRefiningVideoPrompt: boolean;
 }
 
 const CopyButton = ({ textToCopy, positionClasses }: { textToCopy: string; positionClasses: string }) => {
@@ -52,7 +50,7 @@ const CopyButton = ({ textToCopy, positionClasses }: { textToCopy: string; posit
 };
 
 
-export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, onFinalize, onCancel, isLoading, onRegenerateImage, artistImageUrl, isRegeneratingImage, onImageUpdate, onRefineVideoPrompt, isRefiningVideoPrompt }) => {
+export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, onFinalize, onCancel, isLoading, onRegenerateImage, artistImageUrl, isRegeneratingImage, onImageUpdate }) => {
     const [lyricsViewMode, setLyricsViewMode] = useState<'edit' | 'structured'>('edit');
     const [showImageEditor, setShowImageEditor] = useState(false);
     
@@ -226,34 +224,6 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                         )}
                     </div>
                 </div>
-
-                <div>
-                    <div className="flex justify-between items-center mb-2">
-                        <label htmlFor="videoPrompt" className="block text-lg font-medium text-gray-300">
-                            Music Video Prompt
-                            <span className="text-sm text-gray-400 ml-2">(Describes the music video visuals)</span>
-                        </label>
-                        <button
-                            type="button"
-                            onClick={onRefineVideoPrompt}
-                            disabled={isRefiningVideoPrompt}
-                            className="flex items-center gap-2 text-sm font-semibold px-4 py-2 bg-teal-600 rounded-md shadow-md hover:bg-teal-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-wait"
-                            >
-                            {isRefiningVideoPrompt ? <LoadingSpinner size="sm" /> : '🧠'}
-                            Refine with AI
-                        </button>
-                    </div>
-                    <div className="relative">
-                        <textarea
-                            id="videoPrompt"
-                            rows={4}
-                            value={songData.videoPrompt}
-                            onChange={(e) => handleChange('videoPrompt', e.target.value)}
-                            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all resize-y font-mono text-sm pr-12"
-                        />
-                        <CopyButton textToCopy={songData.videoPrompt} positionClasses="top-3 right-3" />
-                    </div>
-                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -322,6 +292,21 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                             className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y pr-12"
                         />
                         <CopyButton textToCopy={songData.styleGuide} positionClasses="top-3 right-3" />
+                    </div>
+                </div>
+
+                <div>
+                    <label htmlFor="storyboard" className="block text-lg font-medium text-gray-300 mb-2">Cinematic Storyboard</label>
+                    <div className="relative">
+                        <textarea
+                            id="storyboard"
+                            rows={10}
+                            value={songData.storyboard}
+                            onChange={(e) => handleChange('storyboard', e.target.value)}
+                            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y font-mono text-sm pr-12"
+                            placeholder="A cinematic script based on the lyrics..."
+                        />
+                        <CopyButton textToCopy={songData.storyboard} positionClasses="top-3 right-3" />
                     </div>
                 </div>
 

@@ -8,7 +8,6 @@ import { Mp3Analyzer } from './components/Mp3Analyzer';
 import { SongComparator } from './components/SongComparator';
 import { VocalTools } from './components/VocalTools';
 import { ChordProgressionGenerator } from './components/ChordProgressionGenerator';
-import { StemSplitter } from './components/StemSplitter';
 import { ArtistProfileManager } from './components/ArtistProfileManager';
 import { UsageDashboard } from './components/UsageDashboard';
 import { ProjectManager } from './components/ProjectManager';
@@ -20,7 +19,7 @@ import { AIMastering } from './components/AIMastering';
 import { useProjects } from './hooks/useProjects';
 import { PlaybackContext } from './contexts/PlaybackContext';
 
-type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering';
+type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering';
 const ONBOARDING_KEY = 'mustbmusic_onboarding_complete_v1';
 
 const App: React.FC = () => {
@@ -50,9 +49,6 @@ const App: React.FC = () => {
   const activeProject = useMemo(() => {
     return projects.find(p => p.id === activeProjectId) || null;
   }, [projects, activeProjectId]);
-
-  const [instrumentalTrackUrl, setInstrumentalTrackUrl] = useState<string | null>(null);
-  const [vocalTrack, setVocalTrack] = useState<Blob | null>(null);
   
   // State for PlaybackContext
   const [playbackControls, setPlaybackControls] = useState({
@@ -61,33 +57,6 @@ const App: React.FC = () => {
     setBpm: (bpm: number) => {},
     isPlaying: false,
   });
-
-  const handleInstrumentalSelect = (blob: Blob) => {
-    if (instrumentalTrackUrl) {
-      URL.revokeObjectURL(instrumentalTrackUrl);
-    }
-    const newUrl = URL.createObjectURL(blob);
-    setInstrumentalTrackUrl(newUrl);
-    setVocalTrack(null);
-    setActiveTool('generator');
-  };
-
-  const handleVocalSelect = (blob: Blob) => {
-    setVocalTrack(blob);
-    clearInstrumentalTrack();
-    setActiveTool('vocaltools');
-  };
-
-  const clearVocalTrack = () => {
-    setVocalTrack(null);
-  };
-
-  const clearInstrumentalTrack = () => {
-    if (instrumentalTrackUrl) {
-      URL.revokeObjectURL(instrumentalTrackUrl);
-    }
-    setInstrumentalTrackUrl(null);
-  };
 
   return (
     <PlaybackContext.Provider value={playbackControls}>
@@ -102,8 +71,6 @@ const App: React.FC = () => {
                 key={activeProject.id} // Re-mount component when project changes
                 project={activeProject}
                 onUpdateProject={updateProject}
-                instrumentalTrackUrl={instrumentalTrackUrl}
-                clearInstrumentalTrack={clearInstrumentalTrack}
                 setPlaybackControls={setPlaybackControls}
               />
             )}
@@ -132,7 +99,7 @@ const App: React.FC = () => {
               />
             )}
             {activeTool === 'remixer' && <SongRemixer />}
-            {activeTool === 'vocaltools' && <VocalTools initialVocalTrack={vocalTrack} clearVocalTrack={clearVocalTrack} />}
+            {activeTool === 'vocaltools' && <VocalTools />}
             {activeTool === 'chords' && <ChordProgressionGenerator />}
             {activeTool === 'assistant' && <StudioAssistant />}
             {activeTool === 'style_creator' && <StyleCreator />}
@@ -140,7 +107,6 @@ const App: React.FC = () => {
             {activeTool === 'converter' && <AifConverter />}
             {activeTool === 'analyzer' && <Mp3Analyzer />}
             {activeTool === 'comparator' && <SongComparator />}
-            {activeTool === 'splitter' && <StemSplitter onInstrumentalSelect={handleInstrumentalSelect} onVocalSelect={handleVocalSelect} />}
             {activeTool === 'mastering' && <AIMastering />}
             {activeTool === 'dashboard' && <UsageDashboard />}
           </main>

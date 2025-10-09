@@ -15,7 +15,6 @@ export const useProjects = () => {
             updatedAt: new Date().toISOString(),
             songData: null,
             artistImageUrl: null,
-            videoUrl: null,
             generationParams: null,
             originalPrompt: null,
         };

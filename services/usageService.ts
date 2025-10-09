@@ -12,9 +12,6 @@ const PRICING = {
     'imagen-4.0-generate-001': {
         perImage: 8.00 / PER_MILLION,
     },
-    'veo-2.0-generate-001': {
-        perSecond: 100.00 / PER_MILLION,
-    },
     'gemini-2.5-flash-image': {
         perImage: 0.70 / PER_MILLION,
     },
@@ -29,7 +26,7 @@ const MAX_LOG_ENTRIES = 100;
 export interface ApiCallLog {
     timestamp: number;
     model: string;
-    type: 'text' | 'image' | 'video' | 'audio' | 'multimodal';
+    type: 'text' | 'image' | 'audio' | 'multimodal';
     cost: number;
     description: string;
 }
@@ -39,14 +36,13 @@ export interface UsageData {
     totalInputChars: number;
     totalOutputChars: number;
     totalImages: number;
-    totalVideoSeconds: number;
     totalAudioSeconds: number;
     apiCalls: ApiCallLog[];
 }
 
 interface TrackUsageParams {
     model: keyof typeof PRICING;
-    type: 'text' | 'image' | 'video' | 'audio' | 'multimodal';
+    type: 'text' | 'image' | 'audio' | 'multimodal';
     inputChars?: number;
     outputChars?: number;
     count?: number; // For images
@@ -69,7 +65,6 @@ export const getUsage = (): UsageData => {
         totalInputChars: 0,
         totalOutputChars: 0,
         totalImages: 0,
-        totalVideoSeconds: 0,
         totalAudioSeconds: 0,
         apiCalls: [],
     };
@@ -107,14 +102,6 @@ export const trackUsage = (params: TrackUsageParams): void => {
         usage.totalImages += count;
     }
     
-    if (params.type === 'video') {
-        const seconds = params.seconds || 0;
-        if ('perSecond' in modelPricing) {
-            cost += seconds * modelPricing.perSecond;
-        }
-        usage.totalVideoSeconds += seconds;
-    }
-
     if (params.type === 'audio') {
         const seconds = params.seconds || 0;
         if ('perSecond' in modelPricing) {

@@ -49,13 +49,10 @@ const CopyButton: React.FC<{ textToCopy: string }> = ({ textToCopy }) => {
     );
 };
 
-interface VocalToolsProps {
-    initialVocalTrack: Blob | null;
-    clearVocalTrack: () => void;
-}
+interface VocalToolsProps {}
 
-export const VocalTools: React.FC<VocalToolsProps> = ({ initialVocalTrack, clearVocalTrack }) => {
-    const [mode, setMode] = useState<'paste' | 'transcribe'>(initialVocalTrack ? 'transcribe' : 'paste');
+export const VocalTools: React.FC<VocalToolsProps> = () => {
+    const [mode, setMode] = useState<'paste' | 'transcribe'>('paste');
     const [file, setFile] = useState<File | null>(null);
     const [isDragging, setIsDragging] = useState(false);
 
@@ -67,16 +64,6 @@ export const VocalTools: React.FC<VocalToolsProps> = ({ initialVocalTrack, clear
     const [processingTask, setProcessingTask] = useState<'transcribing' | 'enhancing' | null>(null);
     const [lastAction, setLastAction] = useState<'transcribe' | 'enhance' | null>(null);
     const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (initialVocalTrack) {
-            setMode('transcribe');
-            const vocalFile = new File([initialVocalTrack], "vocals.mp3", { type: initialVocalTrack.type });
-            setFile(vocalFile);
-            handleReset();
-            clearVocalTrack();
-        }
-    }, [initialVocalTrack, clearVocalTrack]);
 
     useEffect(() => {
         if (status === 'success' && processingTask === 'enhancing' && enhancedLyrics) {

@@ -18,16 +18,15 @@ interface ArtistProfileProps {
   beatPattern: string;
   vocalMelody: VocalMelody | null;
   bpm: number;
-  videoPrompt: string;
-  videoUrl: string;
   genre: string;
+  storyboard: string;
 }
 
 export const ArtistProfile: React.FC<ArtistProfileProps> = (props) => { 
   const { 
     title, artistName, artistBio, artistImageUrl, lyrics, styleGuide, 
     albumCoverPrompt, singerGender, artistType, beatPattern, vocalMelody,
-    bpm, videoPrompt, videoUrl, genre
+    bpm, genre, storyboard
   } = props;
   
   if (!artistName) {
@@ -36,7 +35,7 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = (props) => {
 
   const songDataForDownload: SongData = {
     title, artistName, artistBio, albumCoverPrompt, lyrics, styleGuide, 
-    beatPattern, singerGender, artistType, vocalMelody, bpm, videoPrompt, genre,
+    beatPattern, singerGender, artistType, vocalMelody, bpm, genre, storyboard
   };
 
 
@@ -79,12 +78,11 @@ export const ArtistProfile: React.FC<ArtistProfileProps> = (props) => {
                 beatPattern={beatPattern}
                 vocalMelody={vocalMelody}
                 bpm={bpm}
-                videoPrompt={videoPrompt}
+                storyboard={storyboard}
              />
              <DownloadMenu
                 songData={songDataForDownload}
                 artistImageUrl={artistImageUrl}
-                videoUrl={videoUrl}
              />
           </div>
           <p className="mt-4 text-gray-400 text-sm sm:text-base leading-relaxed">

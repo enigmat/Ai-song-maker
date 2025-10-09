@@ -12,8 +12,8 @@ export interface SongData {
     artistType: ArtistType;
     vocalMelody: VocalMelody | null;
     bpm: number;
-    videoPrompt: string;
     genre: string;
+    storyboard: string;
 }
 
 export interface Project {
@@ -23,7 +23,6 @@ export interface Project {
   updatedAt: string;
   songData: SongData | null;
   artistImageUrl: string | null;
-  videoUrl: string | null;
   generationParams: ArtistStyleProfile | null;
   originalPrompt: string | null;
 }

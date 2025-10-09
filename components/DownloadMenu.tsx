@@ -4,7 +4,6 @@ import type { SongData } from '../types';
 interface DownloadMenuProps {
     songData: SongData;
     artistImageUrl: string;
-    videoUrl: string;
 }
 
 const DownloadIcon = () => (
@@ -14,12 +13,12 @@ const DownloadIcon = () => (
 );
 
 
-export const DownloadMenu: React.FC<DownloadMenuProps> = ({ songData, artistImageUrl, videoUrl }) => {
+export const DownloadMenu: React.FC<DownloadMenuProps> = ({ songData, artistImageUrl }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [blobUrls, setBlobUrls] = useState<{ [key: string]: string }>({});
     const menuRef = useRef<HTMLDivElement>(null);
 
-    const { title, artistName, lyrics, styleGuide } = songData;
+    const { title, artistName, lyrics, styleGuide, storyboard } = songData;
     const sanitizedArtistName = artistName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     const sanitizedTitle = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     const baseFileName = `${sanitizedArtistName}_${sanitizedTitle}`;
@@ -41,12 +40,14 @@ export const DownloadMenu: React.FC<DownloadMenuProps> = ({ songData, artistImag
         if (isOpen) {
             const lyricsBlob = new Blob([lyrics], { type: 'text/plain;charset=utf-8' });
             const styleGuideBlob = new Blob([styleGuide], { type: 'text/plain;charset=utf-8' });
-            const jsonDataToSave = { ...songData, artistImageUrl, videoUrl };
+            const storyboardBlob = new Blob([storyboard], { type: 'text/plain;charset=utf-8' });
+            const jsonDataToSave = { ...songData, artistImageUrl };
             const jsonBlob = new Blob([JSON.stringify(jsonDataToSave, null, 2)], { type: 'application/json' });
 
             const urls = {
                 lyrics: URL.createObjectURL(lyricsBlob),
                 styleGuide: URL.createObjectURL(styleGuideBlob),
+                storyboard: URL.createObjectURL(storyboardBlob),
                 jsonData: URL.createObjectURL(jsonBlob),
             };
             setBlobUrls(urls);
@@ -60,7 +61,7 @@ export const DownloadMenu: React.FC<DownloadMenuProps> = ({ songData, artistImag
         return () => {
             Object.values(blobUrls).forEach(URL.revokeObjectURL);
         };
-    }, [isOpen, lyrics, styleGuide, songData, artistImageUrl, videoUrl]);
+    }, [isOpen, lyrics, styleGuide, storyboard, songData, artistImageUrl]);
 
     const downloadOptions = [
         {
@@ -68,6 +69,12 @@ export const DownloadMenu: React.FC<DownloadMenuProps> = ({ songData, artistImag
             href: blobUrls.lyrics,
             fileName: `${baseFileName}_lyrics.txt`,
             available: !!lyrics
+        },
+        {
+            label: 'Storyboard (.txt)',
+            href: blobUrls.storyboard,
+            fileName: `${baseFileName}_storyboard.txt`,
+            available: !!storyboard
         },
         {
             label: 'Style Guide (.txt)',
@@ -86,12 +93,6 @@ export const DownloadMenu: React.FC<DownloadMenuProps> = ({ songData, artistImag
             href: artistImageUrl,
             fileName: `${baseFileName}_image.jpeg`,
             available: !!artistImageUrl
-        },
-        {
-            label: 'Music Video (.mp4)',
-            href: videoUrl,
-            fileName: `${baseFileName}_video.mp4`,
-            available: !!videoUrl
         },
     ];
 

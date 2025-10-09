@@ -1,6 +1,6 @@
 import React from 'react';
 
-type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'splitter' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering';
+type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'converter' | 'analyzer' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering';
 
 interface TabsProps {
   activeTool: ActiveTool;
@@ -82,13 +82,6 @@ const ComparatorIcon = () => (
     </svg>
 );
 
-const SplitterIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M17.293 3.293a1 1 0 011.414 1.414l-13 13A1 1 0 014 18H3a1 1 0 01-1-1v-1a1 1 0 01.293-.707l13-13zM10 4a1 1 0 10-2 0v1.586l-1.293-1.293a1 1 0 00-1.414 1.414L6.586 7 5.293 8.293a1 1 0 001.414 1.414L8 8.414v1.586a1 1 0 102 0v-1.586l1.293 1.293a1 1 0 001.414-1.414L11.414 7l1.293-1.293a1 1 0 00-1.414-1.414L10 5.586V4z" />
-        <path d="M16 4a2 2 0 11-4 0 2 2 0 014 0zM6 14a2 2 0 11-4 0 2 2 0 014 0z" />
-    </svg>
-);
-
 const MasteringIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
         <path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h1a1 1 0 011 1v1.5a1.5 1.5 0 010 3V12a1 1 0 00-1 1v1a1 1 0 01-1 1h-1.5a1.5 1.5 0 01-3 0H8a1 1 0 00-1-1v-1a1 1 0 01-1-1v-1.5a1.5 1.5 0 010-3V6a1 1 0 001-1h1a1 1 0 011-1v-.5z" />
@@ -147,10 +140,6 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowReci
       <button onClick={() => onSelectTool('profiles')} className={getButtonClasses('profiles')}>
         <ProfileIcon />
         Artist Profiles
-      </button>
-      <button onClick={() => onSelectTool('splitter')} className={getButtonClasses('splitter')}>
-        <SplitterIcon />
-        Stem Splitter
       </button>
       <button onClick={() => onSelectTool('mastering')} className={getButtonClasses('mastering')}>
         <MasteringIcon />

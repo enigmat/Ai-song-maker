@@ -16,7 +16,7 @@ interface ShareButtonProps {
   beatPattern: string;
   vocalMelody: VocalMelody | null;
   bpm: number;
-  videoPrompt: string;
+  storyboard: string;
 }
 
 const ShareIcon = () => (
@@ -34,7 +34,7 @@ const CheckIcon = () => (
 
 export const ShareButton: React.FC<ShareButtonProps> = ({ 
     title, artistName, artistBio, artistImageUrl, lyrics, styleGuide, 
-    albumCoverPrompt, singerGender, artistType, beatPattern, vocalMelody, bpm, videoPrompt
+    albumCoverPrompt, singerGender, artistType, beatPattern, vocalMelody, bpm, storyboard
 }) => {
     const [isCopied, setIsCopied] = useState(false);
 
@@ -52,7 +52,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
             beatPattern,
             vocalMelody,
             bpm,
-            videoPrompt,
+            storyboard,
         };
 
         const serializedData = JSON.stringify(songData);

@@ -5,12 +5,12 @@ import { ArtistProfile } from './ArtistProfile';
 import { LyricsViewer } from './LyricsViewer';
 import { BeatPlayer } from './BeatPlayer';
 import { MasterPlayButton } from './MasterPlayButton';
-import { MusicVideoPlayer } from './MusicVideoPlayer';
 import { StyleGuideViewer } from './StyleGuideViewer';
 import { ErrorMessage } from './ErrorMessage';
 import { LoadingSpinner } from './LoadingSpinner';
-import { generateRemixedSong, generateRemixedSongFromLyrics, generateNewBeatPattern, generateImage, generateVideo, transcribeAudio, SingerGender, ArtistType } from '../services/geminiService';
+import { generateRemixedSong, generateRemixedSongFromLyrics, generateNewBeatPattern, generateImage, transcribeAudio, SingerGender, ArtistType } from '../services/geminiService';
 import type { SongData } from '../types';
+import { StoryboardViewer } from './StoryboardViewer';
 
 declare var Tone: any; // Using Tone.js from CDN
 
@@ -28,8 +28,8 @@ const defaultSongData: SongData = {
     artistType: 'any',
     vocalMelody: null,
     bpm: 120,
-    videoPrompt: '',
     genre: '',
+    storyboard: '',
 };
 
 export const SongRemixer: React.FC = () => {
@@ -38,9 +38,7 @@ export const SongRemixer: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     const [artistImageUrl, setArtistImageUrl] = useState('');
-    const [videoUrl, setVideoUrl] = useState('');
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-    const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
     const [generationStatusText, setGenerationStatusText] = useState('Remixing your song...');
 
     // Audio State
@@ -235,20 +233,7 @@ export const SongRemixer: React.FC = () => {
     };
     
     const handleFinalize = async () => {
-        setStatus('finalizing');
-        setIsGeneratingVideo(true);
-        setError(null);
         setStatus('display');
-        
-        try {
-            const generatedVideoUrl = await generateVideo(songData.videoPrompt);
-            setVideoUrl(generatedVideoUrl);
-        } catch(err) {
-            console.error("Video generation failed:", err);
-            setError("Failed to generate music video.");
-        } finally {
-            setIsGeneratingVideo(false);
-        }
     };
     
     const handleTogglePlay = async () => {
@@ -274,7 +259,6 @@ export const SongRemixer: React.FC = () => {
         setStatus('prompt');
         setSongData(defaultSongData);
         setArtistImageUrl('');
-        setVideoUrl('');
         setError(null);
         setIsPlaying(false);
         setCurrentStep(-1);
@@ -314,8 +298,6 @@ export const SongRemixer: React.FC = () => {
                         artistImageUrl={artistImageUrl}
                         isRegeneratingImage={isGeneratingImage}
                         onImageUpdate={setArtistImageUrl}
-                        onRefineVideoPrompt={() => {}}
-                        isRefiningVideoPrompt={false}
                     />
                 );
             
@@ -326,7 +308,6 @@ export const SongRemixer: React.FC = () => {
                         <ArtistProfile
                             {...songData}
                             artistImageUrl={artistImageUrl}
-                            videoUrl={videoUrl}
                         />
 
                         <div className="text-center">
@@ -350,8 +331,7 @@ export const SongRemixer: React.FC = () => {
                             />
                         </div>
                         
-                        <MusicVideoPlayer videoUrl={videoUrl} isGenerating={isGeneratingVideo} />
-
+                        <StoryboardViewer storyboard={songData.storyboard} />
                         <StyleGuideViewer styleGuide={songData.styleGuide} isLoading={false} />
 
                         <div className="text-center pt-4">

@@ -26,7 +26,6 @@ export interface ArtistStyleProfile {
 export interface ArtistSong {
     title: string;
     songPrompt: string;
-    videoPrompt: string;
     lyrics: string;
     albumCoverPrompt: string;
     createdAt: string; // ISO Date string
@@ -71,10 +70,10 @@ const songDataSchema = {
         artistType: { type: Type.STRING, description: "The type of artist ('solo', 'band', 'duo', or 'any')." },
         vocalMelody: { type: Type.NULL, description: "This should always be null for now." },
         bpm: { type: Type.INTEGER, description: "The tempo of the song in beats per minute (BPM), typically between 60 and 180." },
-        videoPrompt: { type: Type.STRING, description: "A concise, preliminary prompt for a music video based on the initial idea. Focus on visual themes. Example: 'A lone astronaut drifting through a vibrant nebula.'" },
         genre: { type: Type.STRING, description: "The musical genre of the song (e.g., 'Synthwave', 'Indie Rock', 'Lo-fi Hip Hop')." },
+        storyboard: { type: Type.STRING, description: "A cinematic storyboard script with scene descriptions, camera shots (e.g., WIDE SHOT, CLOSE UP), and actions based on the generated lyrics. Each scene should correspond to a section of the lyrics ([Verse 1], [Chorus], etc.). Format it like a screenplay." },
     },
-    required: ["title", "artistName", "artistBio", "albumCoverPrompt", "lyrics", "styleGuide", "beatPattern", "singerGender", "artistType", "vocalMelody", "bpm", "videoPrompt", "genre"]
+    required: ["title", "artistName", "artistBio", "albumCoverPrompt", "lyrics", "styleGuide", "beatPattern", "singerGender", "artistType", "vocalMelody", "bpm", "genre", "storyboard"]
 };
 
 export const getStudioAssistantResponse = async (history: ChatMessage[], newMessage: string): Promise<string> => {
@@ -478,69 +477,6 @@ export const editImage = async (base64ImageData: string, mimeType: string, promp
         }
     }
     throw new Error("The AI did not return an edited image. It may have responded: " + response.text);
-};
-
-
-export const generateVideo = async (prompt: string): Promise<string> => {
-    let operation = await ai.models.generateVideos({
-      model: 'veo-2.0-generate-001',
-      prompt: prompt,
-      config: { numberOfVideos: 1 }
-    });
-
-    while (!operation.done) {
-      await new Promise(resolve => setTimeout(resolve, 10000));
-      operation = await ai.operations.getVideosOperation({operation: operation});
-    }
-    
-    trackUsage({
-        model: 'veo-2.0-generate-001',
-        type: 'video',
-        seconds: operation.response?.generatedVideos?.[0]?.video?.duration?.seconds || 5, 
-        description: `Video: ${prompt.substring(0, 50)}...`
-    });
-
-    const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-    if (!downloadLink) throw new Error("Video generation completed but no download link was found.");
-    
-    const videoResponse = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
-    const videoBlob = await videoResponse.blob();
-    return URL.createObjectURL(videoBlob);
-};
-
-export const refineVideoPrompt = async (songData: SongData): Promise<string> => {
-    const fullPrompt = `You are an expert music video director. You are given the complete data for a song and your task is to refine the existing music video prompt to better match the song's final details.
-
-    **Song Details:**
-    - Title: "${songData.title}"
-    - Artist: "${songData.artistName}"
-    - Genre: ${songData.genre}
-    - BPM: ${songData.bpm}
-    - Lyrics:
-    ---
-    ${songData.lyrics}
-    ---
-    - Production Style Guide: ${songData.styleGuide}
-
-    **Existing Video Prompt:** "${songData.videoPrompt}"
-
-    **Your Task:**
-    Generate a new, improved video prompt. The new prompt should be more detailed and evocative, directly inspired by the lyrics, style guide, and tempo (BPM). It must be a single, concise paragraph, suitable for an AI video generator. Return ONLY the new prompt text, without any introductory phrases or markdown.`;
-
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: fullPrompt,
-    });
-
-    trackUsage({
-        model: 'gemini-2.5-flash',
-        type: 'text',
-        inputChars: fullPrompt.length,
-        outputChars: response.text.length,
-        description: `Refine Video Prompt: ${songData.title}`
-    });
-
-    return response.text.trim();
 };
 
 export interface Ratings {

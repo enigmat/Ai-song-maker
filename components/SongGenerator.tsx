@@ -4,16 +4,16 @@ import { SongEditor } from './SongEditor';
 import { ArtistProfile } from './ArtistProfile';
 import { LyricsViewer } from './LyricsViewer';
 import { MasterPlayButton } from './MasterPlayButton';
-import { MusicVideoPlayer } from './MusicVideoPlayer';
 import { StyleGuideViewer } from './StyleGuideViewer';
 import { ErrorMessage } from './ErrorMessage';
 import { LoadingSpinner } from './LoadingSpinner';
 import { MelodyStudio } from './MelodyStudio';
-import { generateSongFromPrompt, generateImage, generateVideo, refineVideoPrompt, MelodyAnalysis } from '../services/geminiService';
+import { generateSongFromPrompt, generateImage, MelodyAnalysis } from '../services/geminiService';
 import { audioBufferToMp3 } from '../services/audioService';
 import { Project, SongData } from '../types';
 import type { SingerGender, ArtistType, ArtistStyleProfile } from '../services/geminiService';
 import { PlaybackContextType } from '../contexts/PlaybackContext';
+import { StoryboardViewer } from './StoryboardViewer';
 
 
 declare var Tone: any; // Using Tone.js from CDN
@@ -23,21 +23,19 @@ type AppStatus = 'prompt' | 'generating' | 'editing' | 'finalizing' | 'display' 
 interface SongGeneratorProps {
     project: Project;
     onUpdateProject: (project: Project) => void;
-    instrumentalTrackUrl: string | null;
-    clearInstrumentalTrack: () => void;
     setPlaybackControls: (controls: PlaybackContextType) => void;
 }
 
 const defaultSongData: SongData = {
     title: '', artistName: '', artistBio: '', albumCoverPrompt: '', lyrics: '',
     styleGuide: '', beatPattern: '', singerGender: 'any', artistType: 'any',
-    vocalMelody: null, bpm: 120, videoPrompt: '', genre: '',
+    vocalMelody: null, bpm: 120, genre: '', storyboard: '',
 };
 
-export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateProject, instrumentalTrackUrl, clearInstrumentalTrack, setPlaybackControls }) => {
+export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateProject, setPlaybackControls }) => {
     const getInitialStatus = (): AppStatus => {
         if (!project.songData) return 'prompt';
-        if (project.videoUrl) return 'display';
+        if (project.artistImageUrl) return 'display';
         if (project.songData.lyrics) return 'editing';
         return 'prompt';
     };
@@ -45,7 +43,6 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
     const [status, setStatus] = useState<AppStatus>(getInitialStatus());
     const [songData, setSongData] = useState<SongData>(project.songData || defaultSongData);
     const [artistImageUrl, setArtistImageUrl] = useState(project.artistImageUrl || '');
-    const [videoUrl, setVideoUrl] = useState(project.videoUrl || '');
     
     const [error, setError] = useState<string | null>(null);
     const [isMelodyStudioOpen, setIsMelodyStudioOpen] = useState(false);
@@ -53,8 +50,6 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
     const [hummedMelody, setHummedMelody] = useState<MelodyAnalysis | null>(null);
 
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-    const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
-    const [isRefiningVideoPrompt, setIsRefiningVideoPrompt] = useState(false);
     const [isRenderingMp3, setIsRenderingMp3] = useState(false);
     const [mp3Url, setMp3Url] = useState<string | null>(null);
 
@@ -65,7 +60,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
     const sequence = useRef<any>(null);
     const player = useRef<any>(null);
 
-    const effectiveInstrumentalUrl = hummedInstrumental?.url || instrumentalTrackUrl;
+    const effectiveInstrumentalUrl = hummedInstrumental?.url || null;
 
     const handleDataChange = (updatedData: Partial<SongData>) => {
         const newData = { ...songData, ...updatedData };
@@ -231,26 +226,9 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
         } finally { setIsGeneratingImage(false); }
     };
     
-    const handleRefineVideoPrompt = async () => {
-        setIsRefiningVideoPrompt(true); setError(null);
-        try {
-            const newPrompt = await refineVideoPrompt(songData);
-            handleDataChange({ videoPrompt: newPrompt });
-        } catch (err) {
-            setError("Failed to refine the video prompt.");
-        } finally { setIsRefiningVideoPrompt(false); }
-    };
-    
     const handleFinalize = async () => {
-        setStatus('finalizing'); setIsGeneratingVideo(true); setError(null);
         setStatus('display');
-        try {
-            const generatedVideoUrl = await generateVideo(songData.videoPrompt);
-            setVideoUrl(generatedVideoUrl);
-            onUpdateProject({ ...project, videoUrl: generatedVideoUrl, songData });
-        } catch(err) {
-            setError("Failed to generate music video.");
-        } finally { setIsGeneratingVideo(false); }
+        onUpdateProject({ ...project, songData });
     };
     
     const handleTogglePlay = async () => {
@@ -262,7 +240,6 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
     
     const handleHummedMelodySelect = (blob: Blob, melody: MelodyAnalysis) => {
         if (hummedInstrumental?.url) URL.revokeObjectURL(hummedInstrumental.url);
-        clearInstrumentalTrack();
         const newUrl = URL.createObjectURL(blob);
         setHummedInstrumental({ url: newUrl, blob });
         handleDataChange({ bpm: melody.bpm, beatPattern: '' });
@@ -325,12 +302,12 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
             case 'generating':
                 return <div className="text-center p-10 bg-gray-800/50 rounded-xl"><LoadingSpinner size="lg" /><p className="mt-4 text-gray-400 text-lg animate-pulse">Generating song...</p></div>;
             case 'editing':
-                return <SongEditor songData={songData} setSongData={handleDataChange} onFinalize={handleFinalize} onCancel={() => setStatus('prompt')} isLoading={status === 'finalizing'} onRegenerateImage={handleRegenerateImage} artistImageUrl={artistImageUrl} isRegeneratingImage={isGeneratingImage} onImageUpdate={(url) => { setArtistImageUrl(url); onUpdateProject({ ...project, artistImageUrl: url, songData }); }} onRefineVideoPrompt={handleRefineVideoPrompt} isRefiningVideoPrompt={isRefiningVideoPrompt} />;
+                return <SongEditor songData={songData} setSongData={handleDataChange} onFinalize={handleFinalize} onCancel={() => setStatus('prompt')} isLoading={status === 'finalizing'} onRegenerateImage={handleRegenerateImage} artistImageUrl={artistImageUrl} isRegeneratingImage={isGeneratingImage} onImageUpdate={(url) => { setArtistImageUrl(url); onUpdateProject({ ...project, artistImageUrl: url, songData }); }} />;
             case 'finalizing':
             case 'display':
                  return (
                     <div className="space-y-8">
-                        <ArtistProfile {...songData} artistImageUrl={artistImageUrl} videoUrl={videoUrl} />
+                        <ArtistProfile {...songData} artistImageUrl={artistImageUrl} />
                         <div className="text-center"><MasterPlayButton isPlaying={isPlaying} onToggle={handleTogglePlay} isReady={isAudioReady} /></div>
                         
                         <div className="mt-8">
@@ -364,7 +341,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
                         </div>
 
                         <LyricsViewer lyrics={songData.lyrics} />
-                        <MusicVideoPlayer videoUrl={videoUrl} isGenerating={isGeneratingVideo} />
+                        <StoryboardViewer storyboard={songData.storyboard} />
                         <StyleGuideViewer styleGuide={songData.styleGuide} isLoading={false} />
                         <div className="text-center pt-4">
                              <button onClick={() => setStatus('editing')} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 border-2 border-purple-500 text-purple-400 rounded-lg shadow-md hover:bg-purple-500 hover:text-white transition-all duration-300">

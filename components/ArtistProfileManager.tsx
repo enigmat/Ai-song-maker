@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, ChangeEvent } from 'react';
-import { analyzeAudioForProfile, generateVideo, ArtistStyleProfile, StoredArtistProfile, ArtistSong } from '../services/geminiService';
+import { analyzeAudioForProfile, ArtistStyleProfile, StoredArtistProfile, ArtistSong } from '../services/geminiService';
 import { genres, singerGenders, artistTypes, moods, tempos, melodies, harmonies, rhythms, instrumentations, atmospheres, vocalStyles, styleFieldDescriptions } from '../constants/music';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
@@ -32,28 +32,6 @@ const SelectInput: React.FC<{ label: string; name: keyof ArtistStyleProfile; val
         </div>
     );
 
-const VideoGenerationModal: React.FC<{
-    state: { isOpen: boolean; url: string; isLoading: boolean; error: string | null; title: string };
-    onClose: () => void;
-}> = ({ state, onClose }) => {
-    if (!state.isOpen) return null;
-    return (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 animate-fade-in-fast">
-            <div className="bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
-                <header className="p-4 border-b border-gray-700 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-gray-200">Video for "{state.title}"</h2>
-                    <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-700"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-                </header>
-                <div className="p-4 flex-grow flex items-center justify-center">
-                    {state.isLoading && <div className="text-center"><LoadingSpinner size="lg" /><p className="mt-4 text-gray-400">Generating video... This can take a few minutes.</p></div>}
-                    {state.error && <ErrorMessage message={state.error} />}
-                    {state.url && <video src={state.url} controls className="w-full h-auto max-h-full" />}
-                </div>
-            </div>
-        </div>
-    );
-};
-
 export const ArtistProfileManager: React.FC = () => {
     const [profiles, setProfiles] = useState<Record<string, StoredArtistProfile>>({});
     const [initialProfiles, setInitialProfiles] = useState<Record<string, StoredArtistProfile>>({});
@@ -68,7 +46,6 @@ export const ArtistProfileManager: React.FC = () => {
     const [newProfileName, setNewProfileName] = useState('');
     
     const [error, setError] = useState<string | null>(null);
-    const [videoModalState, setVideoModalState] = useState({ isOpen: false, url: '', isLoading: false, error: null as string | null, title: '' });
 
 
     useEffect(() => {
@@ -226,18 +203,6 @@ export const ArtistProfileManager: React.FC = () => {
         setDirtyProfiles(new Set());
     };
 
-    const handleGenerateVideo = async (song: ArtistSong) => {
-        setVideoModalState({ isOpen: true, isLoading: true, url: '', error: null, title: song.title });
-        try {
-            const videoUrl = await generateVideo(song.videoPrompt);
-            setVideoModalState(prev => ({ ...prev, isLoading: false, url: videoUrl }));
-        } catch (err) {
-            console.error("Video generation failed:", err);
-            setVideoModalState(prev => ({ ...prev, isLoading: false, error: 'Failed to generate video. Please try again.' }));
-        }
-    };
-
-
     const handleDrag = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); }, []);
     const handleDragIn = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (e.dataTransfer.items?.length > 0) setIsDragging(true); }, []);
     const handleDragOut = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }, []);
@@ -274,7 +239,6 @@ export const ArtistProfileManager: React.FC = () => {
 
     return (
         <div className="space-y-8">
-            <VideoGenerationModal state={videoModalState} onClose={() => setVideoModalState({ isOpen: false, url: '', isLoading: false, error: null, title: '' })} />
             {/* Create Profile Section */}
             <div className="p-4 sm:p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700">
                 <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-transparent bg-clip-text">
@@ -373,7 +337,6 @@ export const ArtistProfileManager: React.FC = () => {
                                                                 <p className="text-xs text-gray-500">Created: {new Date(song.createdAt).toLocaleDateString()}</p>
                                                             </div>
                                                             <div className="flex items-center gap-2">
-                                                                <button onClick={() => handleGenerateVideo(song)} className="px-3 py-1 text-xs font-semibold bg-teal-600 hover:bg-teal-500 rounded-full" title="Generate Video">Generate Video</button>
                                                                 <button onClick={() => handleDeleteSong(name, i)} className="text-gray-500 hover:text-red-500 p-1" title="Delete Song"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg></button>
                                                             </div>
                                                         </div>
@@ -382,7 +345,6 @@ export const ArtistProfileManager: React.FC = () => {
                                                             <div className="mt-2 p-2 bg-gray-900/70 rounded-md space-y-2 font-mono text-gray-500">
                                                                 <p><strong className="text-gray-400">Song Idea:</strong> {song.songPrompt}</p>
                                                                 <p><strong className="text-gray-400">Album Cover:</strong> {song.albumCoverPrompt}</p>
-                                                                <p><strong className="text-gray-400">Video:</strong> {song.videoPrompt}</p>
                                                             </div>
                                                         </details>
                                                     </div>
