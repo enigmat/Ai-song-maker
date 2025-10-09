@@ -146,6 +146,55 @@ export const generateProfileFromArtistName = async (artistName: string): Promise
     return profile;
 };
 
+export const remixArtistStyleProfile = async (
+    originalProfile: ArtistStyleProfile,
+    targetGenre: string,
+    remixPrompt: string
+): Promise<ArtistStyleProfile> => {
+    const remixInstruction = remixPrompt
+        ? `\n**Remix Prompt / Creative Direction:** "${remixPrompt}"\nThis prompt should heavily influence the mood, atmosphere, and instrumentation of the remixed style.`
+        : '';
+
+    const prompt = `Act as an expert musicologist and producer. You are given an existing "Artist Style Profile" and a target genre. Your task is to reimagine the artist's style within the new genre, creating a new, coherent style profile.
+    ${remixInstruction}
+
+    **Original Artist Style Profile:**
+    \`\`\`json
+    ${JSON.stringify(originalProfile, null, 2)}
+    \`\`\`
+
+    **Target Genre:** ${targetGenre}
+
+    **Instructions:**
+    1.  Analyze the core characteristics of the original profile (mood, vocal style, melody, etc.).
+    2.  Adapt each characteristic to fit authentically within the conventions of the **Target Genre**. For example, a 'Rock' rhythm might become a 'Synthwave' rhythm.
+    3.  If a Remix Prompt is provided, ensure its creative direction is clearly reflected in the final profile.
+    4.  The 'genre' field in the output JSON must be exactly "${targetGenre}".
+    5.  Generate a new, complete "Artist Style Profile" in the provided JSON schema. Ensure all fields are filled out. The output must be ONLY the JSON object, without any markdown or explanatory text.`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: artistStyleProfileSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    const profile = JSON.parse(jsonText) as ArtistStyleProfile;
+    
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: jsonText.length,
+        description: `Remix Style Profile to ${targetGenre}`
+    });
+
+    return profile;
+};
+
 
 export const generateSongFromPrompt = async (
     prompt: string,
