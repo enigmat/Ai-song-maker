@@ -140,7 +140,8 @@ export const SongRemixer: React.FC = () => {
         targetGenre: string,
         singerGender: SingerGender,
         artistType: ArtistType,
-        mood: string
+        mood: string,
+        remixPrompt: string,
     ) => {
         setStatus('generating');
         setError(null);
@@ -161,7 +162,8 @@ export const SongRemixer: React.FC = () => {
                     targetGenre,
                     singerGender,
                     artistType,
-                    mood
+                    mood,
+                    remixPrompt,
                 );
             } else {
                 setGenerationStatusText('Remixing from title...');
@@ -171,7 +173,8 @@ export const SongRemixer: React.FC = () => {
                     targetGenre,
                     singerGender,
                     artistType,
-                    mood
+                    mood,
+                    remixPrompt,
                 );
             }
 
@@ -346,6 +349,8 @@ export const SongRemixer: React.FC = () => {
 
                     </div>
                  );
+             default:
+                return <RemixPromptForm onGenerate={handleGenerate} isLoading={false} />;
         }
     }
 

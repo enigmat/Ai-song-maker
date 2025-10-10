@@ -10,6 +10,7 @@ interface RemixPromptFormProps {
         singerGender: SingerGender,
         artistType: ArtistType,
         mood: string,
+        remixPrompt: string,
     ) => void;
     isLoading: boolean;
 }
@@ -57,6 +58,7 @@ export const RemixPromptForm: React.FC<RemixPromptFormProps> = ({ onGenerate, is
     const [singerGender, setSingerGender] = useState<SingerGender>('any');
     const [artistType, setArtistType] = useState<ArtistType>('any');
     const [mood, setMood] = useState(moods[0]);
+    const [remixPrompt, setRemixPrompt] = useState('');
     
     const handleFileSelect = useCallback((file: File | null) => {
         if (file) {
@@ -91,10 +93,10 @@ export const RemixPromptForm: React.FC<RemixPromptFormProps> = ({ onGenerate, is
         e.preventDefault();
         const details = { originalTitle, originalArtist, audioFile };
         if (audioFile) {
-            onGenerate(details, targetGenre, singerGender, artistType, mood);
+            onGenerate(details, targetGenre, singerGender, artistType, mood, remixPrompt);
         } else {
             if (!originalTitle.trim() || !originalArtist.trim()) return;
-            onGenerate(details, targetGenre, singerGender, artistType, mood);
+            onGenerate(details, targetGenre, singerGender, artistType, mood, remixPrompt);
         }
     };
 
@@ -183,6 +185,18 @@ export const RemixPromptForm: React.FC<RemixPromptFormProps> = ({ onGenerate, is
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                      <SelectInput label="Target Genre" value={targetGenre} onChange={(e) => setTargetGenre(e.target.value)} options={genres} disabled={isLoading} />
                      <SelectInput label="Mood" value={mood} onChange={(e) => setMood(e.target.value)} options={moods} disabled={isLoading} />
+                     <div className="md:col-span-2">
+                        <label htmlFor="remix-prompt" className="block text-sm font-medium text-gray-400 mb-2">Creative Direction (Optional)</label>
+                        <textarea
+                            id="remix-prompt"
+                            rows={3}
+                            value={remixPrompt}
+                            onChange={(e) => setRemixPrompt(e.target.value)}
+                            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y"
+                            placeholder="e.g., 'give it a cyberpunk theme' or 'set the story in a haunted forest'"
+                            disabled={isLoading}
+                        />
+                    </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

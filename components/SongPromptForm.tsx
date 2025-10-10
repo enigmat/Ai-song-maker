@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { SongStorylineGenerator } from './SongStorylineGenerator';
 import type { SingerGender, ArtistType, ArtistStyleProfile, StoredArtistProfile } from '../services/geminiService';
+import { generateRandomSongPrompt } from '../services/geminiService';
 import {
     genres, singerGenders, artistTypes, moods, tempos,
     melodies, harmonies, rhythms, instrumentations, atmospheres, vocalStyles,
@@ -36,6 +37,12 @@ const GeneratorIcon = () => (
 const MicIcon = ({ isListening }: { isListening: boolean }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 transition-colors ${isListening ? 'text-red-500 animate-pulse' : 'text-gray-400 group-hover:text-white'}`} viewBox="0 0 20 20" fill="currentColor">
         <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-1a6 6 0 11-12 0H3a7.001 7.001 0 006 6.93V17H7a1 1 0 100 2h6a1 1 0 100-2h-2v-2.07z" clipRule="evenodd" />
+    </svg>
+);
+
+const InspireIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M10 2a1 1 0 011 1v1.333a1 1 0 01-2 0V3a1 1 0 011-1zm4.707 3.293a1 1 0 010 1.414l-1.06 1.06a1 1 0 01-1.414-1.414l1.06-1.06a1 1 0 011.414 0zM3.293 6.707a1 1 0 011.414 0l1.06 1.06a1 1 0 01-1.414 1.414l-1.06-1.06a1 1 0 010-1.414zM10 16a1 1 0 01-1-1v-1.333a1 1 0 112 0V15a1 1 0 01-1 1zm-6.707-3.293a1 1 0 010-1.414l1.06-1.06a1 1 0 111.414 1.414l-1.06 1.06a1 1 0 01-1.414 0zM16.707 11.293a1 1 0 011.414 0l1.06 1.06a1 1 0 01-1.414 1.414l-1.06-1.06a1 1 0 010-1.414zM4 10a1 1 0 01-1-1H1.667a1 1 0 110-2H3a1 1 0 011 1zm14 0a1 1 0 01-1-1h-1.333a1 1 0 110-2H17a1 1 0 011 1zM10 6a4 4 0 100 8 4 4 0 000-8z" />
     </svg>
 );
 
@@ -103,6 +110,9 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
     // Artist Profile state
     const [savedProfiles, setSavedProfiles] = useState<Record<string, ArtistStyleProfile>>({});
     const [selectedProfile, setSelectedProfile] = useState<string>('custom');
+    
+    // Inspire Me state
+    const [isInspiring, setIsInspiring] = useState(false);
 
     // Load profiles from local storage on mount
     useEffect(() => {
@@ -195,6 +205,19 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
         setPrompt(storyline);
         setShowStorylineGenerator(false);
     };
+    
+    const handleInspireMe = async () => {
+        setIsInspiring(true);
+        try {
+            const newPrompt = await generateRandomSongPrompt();
+            setPrompt(newPrompt);
+        } catch (error) {
+            console.error("Failed to get an inspiring prompt:", error);
+            // A user-facing error could be added via a shared state/context
+        } finally {
+            setIsInspiring(false);
+        }
+    };
 
     return (
         <div className="p-4 sm:p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700">
@@ -217,6 +240,16 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
                                 className="flex items-center gap-2 text-sm font-semibold px-3 py-1 bg-gray-700 text-gray-200 rounded-full shadow-md hover:bg-purple-600 hover:text-white transition-all duration-300 disabled:opacity-50"
                             >
                                 🎤 Hum Melody
+                            </button>
+                             <button
+                                type="button"
+                                onClick={handleInspireMe}
+                                disabled={isLoading || isInspiring}
+                                className="flex items-center gap-2 text-sm font-semibold px-3 py-1 bg-gray-700 text-gray-200 rounded-full shadow-md hover:bg-purple-600 hover:text-white transition-all duration-300 disabled:opacity-50"
+                                title="Get a random song idea"
+                            >
+                                {isInspiring ? <LoadingSpinner size="sm" /> : <InspireIcon />}
+                                Inspire Me
                             </button>
                             <button
                                 type="button"

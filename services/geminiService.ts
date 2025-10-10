@@ -146,43 +146,56 @@ export const generateProfileFromArtistName = async (artistName: string): Promise
     return profile;
 };
 
+export interface RemixResult {
+    profile: ArtistStyleProfile;
+    newCreativePrompt: string;
+}
+
+const remixResultSchema = {
+    type: Type.OBJECT,
+    properties: {
+        newCreativePrompt: {
+            type: Type.STRING,
+            description: "A new, creative, one-sentence song prompt that creatively combines the user's Primary Creative Direction with the Target Genre."
+        },
+        profile: artistStyleProfileSchema,
+    },
+    required: ["newCreativePrompt", "profile"]
+};
+
+
 export const remixArtistStyleProfile = async (
     originalProfile: ArtistStyleProfile,
     targetGenre: string,
     remixPrompt: string
-): Promise<ArtistStyleProfile> => {
-    const remixInstruction = remixPrompt
-        ? `\n**Remix Prompt / Creative Direction:** "${remixPrompt}"\nThis prompt should heavily influence the mood, atmosphere, and instrumentation of the remixed style.`
-        : '';
+): Promise<RemixResult> => {
 
-    const prompt = `Act as an expert musicologist and producer. You are given an existing "Artist Style Profile" and a target genre. Your task is to reimagine the artist's style within the new genre, creating a new, coherent style profile.
-    ${remixInstruction}
+    const prompt = `Act as an expert musicologist and producer. Your task is to first generate a NEW, creative one-sentence song prompt that creatively combines the user's **Primary Creative Direction** with the **Target Genre**. Then, based on that NEW prompt, generate a full Artist Style Profile.
 
-    **Original Artist Style Profile:**
+    **Primary Creative Direction:** "${remixPrompt || 'No specific prompt provided.'}"
+    **Original Artist Style Profile (Secondary Inspiration):**
     \`\`\`json
     ${JSON.stringify(originalProfile, null, 2)}
     \`\`\`
-
     **Target Genre:** ${targetGenre}
 
     **Instructions:**
-    1.  Analyze the core characteristics of the original profile (mood, vocal style, melody, etc.).
-    2.  Adapt each characteristic to fit authentically within the conventions of the **Target Genre**. For example, a 'Rock' rhythm might become a 'Synthwave' rhythm.
-    3.  If a Remix Prompt is provided, ensure its creative direction is clearly reflected in the final profile.
-    4.  The 'genre' field in the output JSON must be exactly "${targetGenre}".
-    5.  Generate a new, complete "Artist Style Profile" in the provided JSON schema. Ensure all fields are filled out. The output must be ONLY the JSON object, without any markdown or explanatory text.`;
+    1.  First, create a \`newCreativePrompt\`. This should be a fresh, inspiring, one-sentence idea blending the user's prompt (if provided) and the target genre. It should be a complete thought.
+    2.  Using that \`newCreativePrompt\` as the main inspiration, generate a complete Artist Style Profile under the \`profile\` key.
+    3.  The \`genre\` field inside the final \`profile\` must be exactly "${targetGenre}".
+    4.  The final output must be a single JSON object matching the provided schema, containing both the \`newCreativePrompt\` and the full \`profile\`.`;
 
     const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: prompt,
         config: {
             responseMimeType: "application/json",
-            responseSchema: artistStyleProfileSchema,
+            responseSchema: remixResultSchema,
         },
     });
 
     const jsonText = response.text.trim();
-    const profile = JSON.parse(jsonText) as ArtistStyleProfile;
+    const result = JSON.parse(jsonText) as RemixResult;
     
     trackUsage({
         model: 'gemini-2.5-flash',
@@ -192,7 +205,7 @@ export const remixArtistStyleProfile = async (
         description: `Remix Style Profile to ${targetGenre}`
     });
 
-    return profile;
+    return result;
 };
 
 
@@ -260,8 +273,11 @@ export const generateRemixedSong = async (
     singerGender: SingerGender,
     artistType: ArtistType,
     mood: string,
+    remixPrompt: string,
 ): Promise<SongData> => {
     
+    const remixInstruction = remixPrompt ? `\n**Creative Direction:** "${remixPrompt}"\nThis should heavily influence the new lyrics, instrumentation, and overall vibe.` : '';
+
     const fullPrompt = `Act as an expert music producer and songwriter specializing in recreating songs for different eras. Your task is to reimagine a song based on the provided inspiration and parameters. The new song should capture the core theme and emotional essence of the original but be completely new in its composition, lyrics, and production style, fitting perfectly into the target genre. Do not copy lyrics or melodies from the original.
 
     **Inspiration Song:** "${originalTitle}" by ${originalArtist}
@@ -271,6 +287,7 @@ export const generateRemixedSong = async (
     - **Singer:** ${singerGender}
     - **Artist Type:** ${artistType}
     - **Mood:** ${mood}
+    ${remixInstruction}
 
     Generate a complete song package based on this, creating a new, plausible artist that would fit this remixed style. The genre you return in the final JSON output must be the same as the target genre provided above.`;
 
@@ -304,8 +321,11 @@ export const generateRemixedSongFromLyrics = async (
     singerGender: SingerGender,
     artistType: ArtistType,
     mood: string,
+    remixPrompt: string,
 ): Promise<SongData> => {
     
+    const remixInstruction = remixPrompt ? `\n**Creative Direction:** "${remixPrompt}"\nThis should heavily influence the new lyrics, instrumentation, and overall vibe.` : '';
+
     const fullPrompt = `Act as an expert music producer and songwriter specializing in recreating songs for different eras. Your task is to reimagine a song based on the provided lyrics and parameters. The new song should capture the core theme and emotional essence of the original lyrics but be completely new in its composition, lyrics, and production style, fitting perfectly into the target genre. Do not copy the original lyrics verbatim; instead, write new lyrics inspired by their themes and story.
 
     **Inspiration Lyrics (from file "${originalFileName}"):**
@@ -318,6 +338,7 @@ export const generateRemixedSongFromLyrics = async (
     - **Singer:** ${singerGender}
     - **Artist Type:** ${artistType}
     - **Mood:** ${mood}
+    ${remixInstruction}
 
     Generate a complete song package based on this, creating a new, plausible artist that would fit this remixed style. The genre you return in the final JSON output must be the same as the target genre provided above.`;
 
@@ -466,6 +487,28 @@ export const generateStorylines = async (topic: string): Promise<string[]> => {
     });
     // Split by newlines and filter out any empty lines or list markers.
     return response.text.split('\n').map(line => line.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
+};
+
+export const generateRandomSongPrompt = async (): Promise<string> => {
+    const prompt = "Generate a single, creative, interesting, and unique one-sentence song idea or storyline. Be imaginative. For example: 'A time traveler falls in love with a ghost from a past they can't change.' or 'An AI running a city discovers the last surviving tree.'";
+    
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            temperature: 0.9,
+        }
+    });
+    
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: response.text.length,
+        description: 'Generate Random Song Prompt'
+    });
+
+    return response.text.replace(/^["']|["']$/g, '').trim();
 };
 
 export const generateImage = async (prompt: string): Promise<string> => {
@@ -776,7 +819,7 @@ const audioAnalysisProfileSchema = { type: Type.OBJECT, properties: { genre: { t
 export const analyzeAudioForProfile = async (audioBlob: Blob): Promise<ArtistStyleProfile & { artistNameSuggestion: string }> => {
     const base64Audio = await blobToBase64(audioBlob);
     const audioPart = { inlineData: { mimeType: audioBlob.type, data: base64Audio } };
-    const textPart = { text: `You are an expert music A&R scout. Analyze the provided audio file and generate a detailed "Artist Style Profile". Suggest a creative and plausible artist name. The output must be ONLY a single JSON object.` };
+    const textPart = { text: `You are an expert music A&R scout.Analyze the provided audio file and generate a detailed "Artist Style Profile". Suggest a creative and plausible artist name. The output must be ONLY a single JSON object.` };
     const response = await ai.models.generateContent({ model: "gemini-2.5-flash", contents: { parts: [audioPart, textPart] }, config: { responseMimeType: "application/json", responseSchema: audioAnalysisProfileSchema } });
     const jsonText = response.text.trim();
     trackUsage({ model: 'gemini-2.5-flash', type: 'multimodal', inputChars: textPart.text.length, outputChars: jsonText.length, description: `Analyze Audio for Profile: ${(audioBlob as File).name}` });

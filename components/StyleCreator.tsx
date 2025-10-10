@@ -1,6 +1,6 @@
 import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
-import { generateProfileFromArtistName, remixArtistStyleProfile, ArtistStyleProfile, StoredArtistProfile } from '../services/geminiService';
-import { genres, singerGenders, artistTypes, moods, tempos, melodies, harmonies, rhythms, instrumentations, atmospheres, vocalStyles } from '../constants/music';
+import { generateProfileFromArtistName, remixArtistStyleProfile, ArtistStyleProfile, StoredArtistProfile, RemixResult } from '../services/geminiService';
+import { genres, singerGenders, artistTypes, moods, tempos, melodies, harmonies, rhythms, instrumentations, atmospheres, vocalStyles, styleFieldDescriptions } from '../constants/music';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
 
@@ -54,6 +54,25 @@ export const StyleCreator: React.FC = () => {
     const [selectedProfileKey, setSelectedProfileKey] = useState('');
     const [targetGenre, setTargetGenre] = useState(genres[0]);
     const [remixPrompt, setRemixPrompt] = useState('');
+    
+    // New state to hold the full remix result, including the new creative prompt
+    const [remixResult, setRemixResult] = useState<{ prompt: string; genre: string; newCreativePrompt: string } | null>(null);
+
+    // State for 'remix' mode source style
+    const [sourceStyle, setSourceStyle] = useState<ArtistStyleProfile>({
+        genre: genres[0],
+        singerGender: 'any',
+        artistType: 'any',
+        mood: moods[0],
+        tempo: tempos[2], // Default to Medium
+        melody: melodies[0],
+        harmony: harmonies[0],
+        rhythm: rhythms[0],
+        instrumentation: instrumentations[0],
+        atmosphere: atmospheres[0],
+        vocalStyle: vocalStyles[0],
+    });
+
 
     // Load saved profiles from localStorage
     const loadProfiles = useCallback(() => {
@@ -104,6 +123,7 @@ export const StyleCreator: React.FC = () => {
         setProfileName('');
         setArtistName('');
         setRemixPrompt('');
+        setRemixResult(null);
         // Don't reset selectedProfileKey or targetGenre for better UX
     };
     
@@ -124,15 +144,29 @@ export const StyleCreator: React.FC = () => {
     };
 
     const handleRemix = async () => {
-        if (!selectedProfileKey || !savedProfiles[selectedProfileKey]) return;
         setStatus('processing');
         setError(null);
         setProfileData(null);
-        const originalProfile = savedProfiles[selectedProfileKey].style;
+        setRemixResult(null);
+        const originalProfile = sourceStyle;
         try {
-            const data = await remixArtistStyleProfile(originalProfile, targetGenre, remixPrompt);
-            setProfileData(data);
-            setProfileName(`${selectedProfileKey} (${targetGenre} Remix)`);
+            const result = await remixArtistStyleProfile(originalProfile, targetGenre, remixPrompt);
+            
+            setProfileData(result.profile);
+            setRemixResult({
+                prompt: remixPrompt,
+                genre: targetGenre,
+                newCreativePrompt: result.newCreativePrompt,
+            });
+            
+            let newName = `${result.profile.genre} Remix`; // Default name
+             if (result.newCreativePrompt.trim()) {
+                const words = result.newCreativePrompt.trim().split(' ');
+                const snippet = words.slice(0, 4).join(' ');
+                newName = words.length > 4 ? `${snippet}...` : snippet;
+            }
+            setProfileName(`${newName} (${targetGenre})`);
+
             setStatus('success');
         } catch (err) {
             setError('Failed to remix style. The AI model might be busy.');
@@ -144,6 +178,11 @@ export const StyleCreator: React.FC = () => {
         if (!profileData) return;
         const { name, value } = e.target;
         setProfileData({ ...profileData, [name]: value as any });
+    };
+
+    const handleSourceStyleChange = (e: ChangeEvent<HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setSourceStyle(prev => ({ ...prev, [name]: value as any }));
     };
 
     const handleSave = () => {
@@ -195,6 +234,22 @@ export const StyleCreator: React.FC = () => {
             </div>
         </div>
     );
+
+    const renderStyleForm = (profileData: ArtistStyleProfile, handler: (e: ChangeEvent<HTMLSelectElement>) => void) => (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <SelectInput label="Genre" name="genre" value={profileData.genre} onChange={handler} options={genres} />
+            <SelectInput label="Singer" name="singerGender" value={profileData.singerGender} onChange={handler} options={singerGenders} />
+            <SelectInput label="Artist Type" name="artistType" value={profileData.artistType} onChange={handler} options={artistTypes} />
+            <SelectInput label="Mood" name="mood" value={profileData.mood} onChange={handler} options={moods} />
+            <SelectInput label="Tempo" name="tempo" value={profileData.tempo} onChange={handler} options={tempos} />
+            <SelectInput label="Vocal Style" name="vocalStyle" value={profileData.vocalStyle} onChange={handler} options={vocalStyles} />
+            <SelectInput label="Melody" name="melody" value={profileData.melody} onChange={handler} options={melodies} />
+            <SelectInput label="Harmony" name="harmony" value={profileData.harmony} onChange={handler} options={harmonies} />
+            <SelectInput label="Rhythm" name="rhythm" value={profileData.rhythm} onChange={handler} options={rhythms} />
+            <SelectInput label="Instrumentation" name="instrumentation" value={profileData.instrumentation} onChange={handler} options={instrumentations} />
+            <SelectInput label="Atmosphere/FX" name="atmosphere" value={profileData.atmosphere} onChange={handler} options={atmospheres} />
+        </div>
+    );
     
     const renderFormContent = () => {
         if (status === 'processing') {
@@ -204,28 +259,24 @@ export const StyleCreator: React.FC = () => {
         if (status === 'success' && profileData) {
             return (
                 <div className="space-y-4 animate-fade-in">
-                    <h3 className="text-xl font-semibold text-center text-teal-300">
+                    {mode === 'remix' && remixResult && (
+                        <div className="p-4 mb-4 bg-gray-900/50 rounded-lg border border-teal-500/50">
+                            <h4 className="text-lg font-semibold text-teal-300">AI-Generated Remix Idea:</h4>
+                            <p className="text-md text-gray-200 mt-2 p-3 bg-gray-800/50 rounded-md italic">
+                                "{remixResult.newCreativePrompt}"
+                            </p>
+                        </div>
+                    )}
+                    <h3 className="text-xl font-semibold text-center text-gray-300">
                         {mode === 'create' && `Generated Style for "${artistName}"`}
-                        {mode === 'remix' && 'Generated Remix Style'}
+                        {mode === 'remix' && 'Generated Style Profile'}
                         {mode === 'edit' && `Editing "${selectedProfileKey}"`}
                     </h3>
                     <div>
                         <label htmlFor="profile-name" className="block text-sm font-medium text-gray-400 mb-1">Save Profile As:</label>
                         <input type="text" id="profile-name" value={profileName} onChange={(e) => setProfileName(e.target.value)} className="w-full p-2 bg-gray-900 border border-gray-600 rounded-lg focus:ring-1 focus:ring-teal-500" />
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        <SelectInput label="Genre" name="genre" value={profileData.genre} onChange={handleProfileDataChange} options={genres} />
-                        <SelectInput label="Singer" name="singerGender" value={profileData.singerGender} onChange={handleProfileDataChange} options={singerGenders} />
-                        <SelectInput label="Artist Type" name="artistType" value={profileData.artistType} onChange={handleProfileDataChange} options={artistTypes} />
-                        <SelectInput label="Mood" name="mood" value={profileData.mood} onChange={handleProfileDataChange} options={moods} />
-                        <SelectInput label="Tempo" name="tempo" value={profileData.tempo} onChange={handleProfileDataChange} options={tempos} />
-                        <SelectInput label="Vocal Style" name="vocalStyle" value={profileData.vocalStyle} onChange={handleProfileDataChange} options={vocalStyles} />
-                        <SelectInput label="Melody" name="melody" value={profileData.melody} onChange={handleProfileDataChange} options={melodies} />
-                        <SelectInput label="Harmony" name="harmony" value={profileData.harmony} onChange={handleProfileDataChange} options={harmonies} />
-                        <SelectInput label="Rhythm" name="rhythm" value={profileData.rhythm} onChange={handleProfileDataChange} options={rhythms} />
-                        <SelectInput label="Instrumentation" name="instrumentation" value={profileData.instrumentation} onChange={handleProfileDataChange} options={instrumentations} />
-                        <SelectInput label="Atmosphere/FX" name="atmosphere" value={profileData.atmosphere} onChange={handleProfileDataChange} options={atmospheres} />
-                    </div>
+                    {renderStyleForm(profileData, handleProfileDataChange)}
                     <div className="flex gap-4 pt-2">
                         <button onClick={handleReset} className="w-full flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 border-2 border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700">Cancel</button>
                         <button onClick={handleSave} className="w-full flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg shadow-md hover:from-teal-600 hover:to-cyan-600">Save Profile</button>
@@ -247,33 +298,34 @@ export const StyleCreator: React.FC = () => {
                 );
             case 'remix':
                  return (
-                     <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label htmlFor="profile-select" className="block text-sm font-medium text-gray-400 mb-2">Source Profile</label>
-                                <select id="profile-select" value={selectedProfileKey} onChange={e => setSelectedProfileKey(e.target.value)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500" disabled={Object.keys(savedProfiles).length === 0}>
-                                    {Object.keys(savedProfiles).length > 0 ? Object.keys(savedProfiles).map(name => <option key={name} value={name}>{name}</option>) : <option>No profiles saved</option>}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="genre-select" className="block text-sm font-medium text-gray-400 mb-2">Target Genre</label>
-                                <select id="genre-select" value={targetGenre} onChange={e => setTargetGenre(e.target.value)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500">
-                                    {genres.map(g => <option key={g} value={g}>{g}</option>)}
-                                </select>
-                            </div>
+                     <div className="space-y-6">
+                        <div>
+                            <h3 className="text-xl font-semibold text-gray-300 mb-3 border-b border-gray-700 pb-2">1. Define Source Style</h3>
+                            {renderStyleForm(sourceStyle, handleSourceStyleChange)}
                         </div>
                         <div>
-                            <label htmlFor="remix-prompt" className="block text-sm font-medium text-gray-400 mb-2">Remix Prompt (Optional)</label>
-                            <textarea
-                                id="remix-prompt"
-                                value={remixPrompt}
-                                onChange={(e) => setRemixPrompt(e.target.value)}
-                                rows={3}
-                                placeholder="e.g., 'make it darker and more cinematic' or 'give it a 70s disco feel'"
-                                className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-all resize-y"
-                            />
+                            <h3 className="text-xl font-semibold text-gray-300 mb-3 border-b border-gray-700 pb-2">2. Define Remix Target</h3>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="genre-select" className="block text-sm font-medium text-gray-400 mb-2">Target Genre</label>
+                                    <select id="genre-select" value={targetGenre} onChange={e => setTargetGenre(e.target.value)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                        {genres.map(g => <option key={g} value={g}>{g}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="mt-4">
+                                <label htmlFor="remix-prompt" className="block text-sm font-medium text-gray-400 mb-2">Remix Prompt (Optional)</label>
+                                <textarea
+                                    id="remix-prompt"
+                                    value={remixPrompt}
+                                    onChange={(e) => setRemixPrompt(e.target.value)}
+                                    rows={3}
+                                    placeholder="e.g., 'make it darker and more cinematic' or 'give it a 70s disco feel'"
+                                    className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-all resize-y"
+                                />
+                            </div>
                         </div>
-                        <button onClick={handleRemix} disabled={!selectedProfileKey} className="w-full flex items-center justify-center gap-3 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg shadow-md hover:from-teal-600 hover:to-cyan-600 transition-all transform hover:scale-105 disabled:opacity-50">Remix Style</button>
+                        <button onClick={handleRemix} className="w-full flex items-center justify-center gap-3 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg shadow-md hover:from-teal-600 hover:to-cyan-600 transition-all transform hover:scale-105">Remix Style</button>
                     </div>
                 );
             case 'edit':
