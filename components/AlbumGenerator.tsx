@@ -1,15 +1,12 @@
 import React, { useState } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
-import { LyricsViewer } from './LyricsViewer';
-import { StoryboardViewer } from './StoryboardViewer';
+import { InteractiveImageEditor } from './InteractiveImageEditor';
 import {
-    generateAlbumDetails,
-    generateSongFromPrompt,
+    generateAlbumConcept,
     generateImage,
 } from '../services/geminiService';
-import { SongData, AlbumData } from '../types';
-import { genres, moods, tempos, melodies, harmonies, rhythms, instrumentations, atmospheres, vocalStyles } from '../constants/music';
+import { genres } from '../constants/music';
 
 type Status = 'prompt' | 'generating' | 'display' | 'error';
 
@@ -33,28 +30,16 @@ const SelectInput: React.FC<{
     </div>
 );
 
-const TrackDetailModal: React.FC<{ track: SongData, onClose: () => void }> = ({ track, onClose }) => (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 animate-fade-in-fast">
-        <div className="bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh]">
-            <header className="p-4 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
-                <h2 className="text-xl font-bold text-gray-200 truncate pr-4">{track.title}</h2>
-                <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-            </header>
-            <main className="flex-grow p-6 overflow-y-auto space-y-6">
-                <LyricsViewer lyrics={track.lyrics} />
-                <StoryboardViewer storyboard={track.storyboard} />
-            </main>
-        </div>
-    </div>
-);
-
 export const AlbumGenerator: React.FC = () => {
     const [status, setStatus] = useState<Status>('prompt');
     const [error, setError] = useState<string | null>(null);
-    const [albumData, setAlbumData] = useState<AlbumData | null>(null);
-    const [selectedTrack, setSelectedTrack] = useState<SongData | null>(null);
+    const [albumResult, setAlbumResult] = useState<{
+        albumTitle: string;
+        artistName: string;
+        artistBio: string;
+        albumCoverUrl: string;
+    } | null>(null);
+    const [showEditor, setShowEditor] = useState(false);
     
     // Form state
     const [albumPrompt, setAlbumPrompt] = useState('');
@@ -62,7 +47,6 @@ export const AlbumGenerator: React.FC = () => {
     const [artistName, setArtistName] = useState('');
     const [coverArtFile, setCoverArtFile] = useState<File | null>(null);
     const [coverArtPreview, setCoverArtPreview] = useState<string | null>(null);
-    const [numTracks, setNumTracks] = useState(4);
     const [genre, setGenre] = useState(genres[0]);
 
     const [generationProgress, setGenerationProgress] = useState({ step: '', current: 0, total: 1 });
@@ -93,14 +77,14 @@ export const AlbumGenerator: React.FC = () => {
         }
         setStatus('generating');
         setError(null);
-        setAlbumData(null);
+        setAlbumResult(null);
 
-        const totalSteps = numTracks + 2; // 1 for concept, 1 for cover, N for tracks
+        const totalSteps = 2; // 1 for concept, 1 for cover
 
         try {
-            // 1. Generate Album Details
+            // 1. Generate Album concept
             setGenerationProgress({ step: 'Developing album concept...', current: 1, total: totalSteps });
-            const albumDetails = await generateAlbumDetails(albumPrompt, numTracks, genre, albumName, artistName, !coverArtFile);
+            const albumConcept = await generateAlbumConcept(albumPrompt, genre, albumName, artistName, !coverArtFile);
             
             let finalAlbumCoverUrl = '';
 
@@ -110,37 +94,14 @@ export const AlbumGenerator: React.FC = () => {
                  finalAlbumCoverUrl = coverArtPreview;
             } else {
                 setGenerationProgress({ step: 'Designing album cover...', current: 2, total: totalSteps });
-                finalAlbumCoverUrl = await generateImage(albumDetails.albumCoverPrompt);
-            }
-
-            // 3. Generate each track
-            let allTracks: SongData[] = [];
-            for (let i = 0; i < albumDetails.tracklist.length; i++) {
-                const trackInfo = albumDetails.tracklist[i];
-                setGenerationProgress({ step: `Writing track ${i + 1}/${albumDetails.tracklist.length}: "${trackInfo.title}"`, current: 3 + i, total: totalSteps });
-
-                const songPrompt = `For an album titled "${albumName}" by artist "${artistName}", generate a complete song package for the track titled "${trackInfo.title}".
-                The concept for this specific track is: "${trackInfo.concept}".
-                The overall album concept is: "${albumPrompt}".
-                IMPORTANT: You MUST use the artist name "${artistName}" and artist bio "${albumDetails.artistBio}" in your response. The song title must be exactly "${trackInfo.title}".
-                Adhere strictly to the provided genre.`;
-                
-                const trackData = await generateSongFromPrompt(songPrompt, genre, 'any', 'any', moods[0], tempos[2], melodies[0], harmonies[0], rhythms[0], instrumentations[0], atmospheres[0], vocalStyles[0]);
-                
-                trackData.artistName = artistName;
-                trackData.artistBio = albumDetails.artistBio;
-                trackData.title = trackInfo.title;
-
-                allTracks.push(trackData);
+                finalAlbumCoverUrl = await generateImage(albumConcept.albumCoverPrompt);
             }
             
-            setAlbumData({
+            setAlbumResult({
                 albumTitle: albumName,
                 artistName: artistName,
-                artistBio: albumDetails.artistBio,
-                albumCoverPrompt: albumDetails.albumCoverPrompt,
+                artistBio: albumConcept.artistBio,
                 albumCoverUrl: finalAlbumCoverUrl,
-                tracks: allTracks,
             });
 
             setStatus('display');
@@ -155,7 +116,7 @@ export const AlbumGenerator: React.FC = () => {
     const handleReset = () => {
         setStatus('prompt');
         setError(null);
-        setAlbumData(null);
+        setAlbumResult(null);
         setAlbumPrompt('');
         setAlbumName('');
         setArtistName('');
@@ -165,9 +126,17 @@ export const AlbumGenerator: React.FC = () => {
 
     return (
         <div className="p-4 sm:p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700">
-            {selectedTrack && <TrackDetailModal track={selectedTrack} onClose={() => setSelectedTrack(null)} />}
+            {showEditor && albumResult && (
+                <InteractiveImageEditor
+                    initialImageUrl={albumResult.albumCoverUrl}
+                    onSave={(newUrl) => {
+                        setAlbumResult(prev => prev ? { ...prev, albumCoverUrl: newUrl } : null);
+                    }}
+                    onClose={() => setShowEditor(false)}
+                />
+            )}
             <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-transparent bg-clip-text">
-                Album Generator
+                Album Cover Generator
             </h2>
 
             {error && <ErrorMessage message={error} />}
@@ -202,15 +171,11 @@ export const AlbumGenerator: React.FC = () => {
                         )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="num-tracks" className="block text-sm font-medium text-gray-400 mb-2">Number of Tracks ({numTracks})</label>
-                            <input id="num-tracks" type="range" min="3" max="7" value={numTracks} onChange={(e) => setNumTracks(parseInt(e.target.value, 10))} className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500" />
-                        </div>
+                    <div>
                         <SelectInput label="Genre" value={genre} onChange={(e) => setGenre(e.target.value)} options={genres} disabled={false} />
                     </div>
 
-                    <button onClick={handleGenerate} disabled={!albumPrompt.trim() || !albumName.trim() || !artistName.trim()} className="w-full flex items-center justify-center gap-3 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 disabled:opacity-50">Generate Album</button>
+                    <button onClick={handleGenerate} disabled={!albumPrompt.trim() || !albumName.trim() || !artistName.trim()} className="w-full flex items-center justify-center gap-3 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 disabled:opacity-50">Generate Album Cover</button>
                 </div>
             )}
             
@@ -224,28 +189,43 @@ export const AlbumGenerator: React.FC = () => {
                 </div>
             )}
 
-            {status === 'display' && albumData && (
-                <div className="space-y-8 mt-6 animate-fade-in">
-                    <div className="flex flex-col md:flex-row items-center gap-6">
-                        <img src={albumData.albumCoverUrl} alt={`Album cover for ${albumData.albumTitle}`} className="w-48 h-48 rounded-lg shadow-lg border-4 border-purple-500/50 flex-shrink-0" />
-                        <div className="text-center md:text-left">
-                             <h3 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-transparent bg-clip-text">{albumData.albumTitle}</h3>
-                             <p className="text-2xl font-semibold text-gray-300">{albumData.artistName}</p>
-                             <p className="mt-2 text-sm text-gray-400">{albumData.artistBio}</p>
+            {status === 'display' && albumResult && (
+                <div className="space-y-6 mt-6 animate-fade-in">
+                    <div className="flex flex-col md:flex-row items-center justify-center gap-8">
+                        {/* Image Column */}
+                        <div className="relative group flex-shrink-0">
+                            <img src={albumResult.albumCoverUrl} alt={`Album cover for ${albumResult.albumTitle}`} className="w-64 h-64 md:w-80 md:h-80 rounded-lg shadow-2xl border-4 border-purple-500/50" />
+                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
+                                <button
+                                    onClick={() => setShowEditor(true)}
+                                    className="flex items-center gap-2 text-lg font-semibold px-6 py-3 bg-gray-700/80 rounded-lg shadow-md hover:bg-purple-600 transition-all"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                                        <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+                                    </svg>
+                                    Edit
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <h4 className="text-xl font-bold text-gray-200 mb-4">Tracklist</h4>
-                        <div className="bg-gray-900/50 rounded-lg border border-gray-700">
-                           {albumData.tracks.map((track, index) => (
-                               <div key={index} className="flex items-center justify-between p-3 border-b border-gray-700/50 last:border-b-0">
-                                   <div className="flex items-center gap-4">
-                                       <span className="text-gray-500 font-mono text-lg">{index + 1}</span>
-                                       <span className="font-semibold text-gray-200">{track.title}</span>
-                                   </div>
-                                   <button onClick={() => setSelectedTrack(track)} className="px-3 py-1 text-sm font-semibold bg-teal-600 text-white rounded-full hover:bg-teal-500 transition-colors">View Details</button>
-                               </div>
-                           ))}
+
+                        {/* Info Column */}
+                        <div className="text-center md:text-left max-w-md">
+                            <h3 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-transparent bg-clip-text">{albumResult.albumTitle}</h3>
+                            <p className="text-2xl font-semibold text-gray-300">{albumResult.artistName}</p>
+                            <p className="mt-2 text-sm text-gray-400">{albumResult.artistBio}</p>
+                            <div className="mt-6">
+                                <a
+                                    href={albumResult.albumCoverUrl}
+                                    download={`${albumResult.artistName.replace(/ /g, '_')}-${albumResult.albumTitle.replace(/ /g, '_')}.jpeg`}
+                                    className="inline-flex items-center justify-center gap-3 text-lg font-semibold px-8 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg shadow-lg hover:from-teal-600 hover:to-cyan-600 transition-all transform hover:scale-105"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    Download Cover
+                                </a>
+                            </div>
                         </div>
                     </div>
                     <div className="text-center pt-4">

@@ -55,13 +55,9 @@ export interface ChatMessage {
 }
 
 // New type for the album details result
-export interface AlbumDetails {
+export interface AlbumConcept {
     artistBio: string;
     albumCoverPrompt: string;
-    tracklist: {
-        title: string;
-        concept: string;
-    }[];
 }
 
 
@@ -278,37 +274,24 @@ export const generateSongFromPrompt = async (
 };
 
 // New schema for album details
-const albumDetailsSchema = {
+const albumConceptSchema = {
     type: Type.OBJECT,
     properties: {
         artistBio: { type: Type.STRING, description: "A short, creative biography for the provided artist, fitting their style and the album's theme." },
         albumCoverPrompt: { type: Type.STRING, description: "A detailed, artistic prompt for an image generation model to create an album cover. If the user provides their own image, this field should contain the text 'User-provided image.'." },
-        tracklist: {
-            type: Type.ARRAY,
-            description: "An array of objects, each representing a track on the album.",
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    title: { type: Type.STRING, description: "A creative title for this specific track." },
-                    concept: { type: Type.STRING, description: "A brief one-sentence concept or story for this specific track that fits within the album's overall theme." }
-                },
-                required: ["title", "concept"]
-            }
-        }
     },
-    required: ["artistBio", "albumCoverPrompt", "tracklist"]
+    required: ["artistBio", "albumCoverPrompt"]
 };
 
 
 // New service function for albums
-export const generateAlbumDetails = async (
-    prompt: string, 
-    numTracks: number, 
+export const generateAlbumConcept = async (
+    prompt: string,
     genre: string, 
     albumName: string, 
     artistName: string,
     shouldGenerateCoverPrompt: boolean
-): Promise<AlbumDetails> => {
+): Promise<AlbumConcept> => {
     
     const coverPromptInstruction = shouldGenerateCoverPrompt 
         ? "You MUST generate a detailed 'albumCoverPrompt' based on the album concept." 
@@ -320,12 +303,10 @@ export const generateAlbumDetails = async (
     **Artist Name:** "${artistName}"
     **Album Idea/Concept:** "${prompt}"
     **Genre:** ${genre}
-    **Number of Tracks:** ${numTracks}
 
     **Instructions:**
     1.  Generate a creative 'artistBio' for the provided artist that fits the album concept and genre.
     2.  ${coverPromptInstruction}
-    3.  Generate a 'tracklist' with a title and a brief one-sentence concept for each of the ${numTracks} songs. The tracklist array must contain exactly ${numTracks} items.
     `;
 
     const response = await ai.models.generateContent({
@@ -333,30 +314,22 @@ export const generateAlbumDetails = async (
         contents: fullPrompt,
         config: {
             responseMimeType: "application/json",
-            responseSchema: albumDetailsSchema,
+            responseSchema: albumConceptSchema,
         },
     });
 
     const jsonText = response.text.trim();
-    const albumDetails = JSON.parse(jsonText) as AlbumDetails;
-
-    if (albumDetails.tracklist.length !== numTracks) {
-        console.warn(`Model returned ${albumDetails.tracklist.length} tracks, but ${numTracks} were requested.`);
-        // Adjust tracklist to match requested number
-        if (albumDetails.tracklist.length > numTracks) {
-            albumDetails.tracklist = albumDetails.tracklist.slice(0, numTracks);
-        }
-    }
+    const albumConcept = JSON.parse(jsonText) as AlbumConcept;
     
     trackUsage({
         model: 'gemini-2.5-flash',
         type: 'text',
         inputChars: fullPrompt.length,
         outputChars: jsonText.length,
-        description: `Generate Album Details: ${albumName}`
+        description: `Generate Album Concept: ${albumName}`
     });
 
-    return albumDetails;
+    return albumConcept;
 };
 
 
