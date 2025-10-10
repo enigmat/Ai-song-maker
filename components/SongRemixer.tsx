@@ -66,7 +66,8 @@ export const SongRemixer: React.FC = () => {
         synths.current = {};
 
         try {
-            const parsedBeat = JSON.parse(songData.beatPattern);
+            const patternString = songData.beatPattern.replace(/```json\n?|\n?```/g, '').trim();
+            const parsedBeat = JSON.parse(patternString);
             if (!parsedBeat || typeof parsedBeat !== 'object') {
                 throw new Error("Invalid beat pattern format");
             }
@@ -349,8 +350,6 @@ export const SongRemixer: React.FC = () => {
 
                     </div>
                  );
-             default:
-                return <RemixPromptForm onGenerate={handleGenerate} isLoading={false} />;
         }
     }
 

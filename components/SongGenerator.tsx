@@ -123,7 +123,8 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
             Tone.Transport.bpm.value = songData.bpm;
         } else if (songData.beatPattern) {
             try {
-                const parsedBeat = JSON.parse(songData.beatPattern);
+                const patternString = songData.beatPattern.replace(/```json\n?|\n?```/g, '').trim();
+                const parsedBeat = JSON.parse(patternString);
                 synths.current = {
                     kick: new Tone.MembraneSynth().toDestination(),
                     snare: new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0 } }).toDestination(),

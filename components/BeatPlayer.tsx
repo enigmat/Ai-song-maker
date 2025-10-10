@@ -32,7 +32,8 @@ export const BeatPlayer: React.FC<BeatPlayerProps> = ({ beatPattern, isPlaying, 
     useEffect(() => {
         try {
             if (beatPattern) {
-                setEditableBeat(JSON.parse(beatPattern));
+                const patternString = beatPattern.replace(/```json\n?|\n?```/g, '').trim();
+                setEditableBeat(JSON.parse(patternString));
             } else {
                 setEditableBeat({});
             }

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Tabs } from './components/Tabs';
 import { SongGenerator } from './components/SongGenerator';
+import { AlbumGenerator } from './components/AlbumGenerator';
 import { SongRemixer } from './components/SongRemixer';
 import { AifConverter } from './components/AifConverter';
 import { Mp3Analyzer } from './components/Mp3Analyzer';
@@ -20,7 +21,7 @@ import { AIMastering } from './components/AIMastering';
 import { useProjects } from './hooks/useProjects';
 import { PlaybackContext } from './contexts/PlaybackContext';
 
-type ActiveTool = 'generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'analyzer' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering';
+type ActiveTool = 'generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'analyzer' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering';
 const ONBOARDING_KEY = 'mustbmusic_onboarding_complete_v1';
 
 const App: React.FC = () => {
@@ -87,6 +88,7 @@ const App: React.FC = () => {
                     </button>
                 </div>
             )}
+            {activeTool === 'album_generator' && <AlbumGenerator />}
             {activeTool === 'projects' && (
               <ProjectManager
                 projects={projects}

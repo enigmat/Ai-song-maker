@@ -16,6 +16,15 @@ export interface SongData {
     storyboard: string;
 }
 
+export interface AlbumData {
+    albumTitle: string;
+    artistName: string;
+    artistBio: string;
+    albumCoverPrompt: string;
+    albumCoverUrl: string;
+    tracks: SongData[];
+}
+
 export interface Project {
   id: string; // unique ID, e.g., timestamp
   name: string;
