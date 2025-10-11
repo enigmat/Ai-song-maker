@@ -273,6 +273,55 @@ export const generateSongFromPrompt = async (
     return songData;
 };
 
+// New schema for album name suggestions
+const albumNameSuggestionsSchema = {
+    type: Type.OBJECT,
+    properties: {
+        names: {
+            type: Type.ARRAY,
+            description: "A list of 5 creative and fitting album names based on the provided concept, artist, and genre.",
+            items: { type: Type.STRING }
+        }
+    },
+    required: ["names"]
+};
+
+// New service function for generating album names
+export const generateAlbumNames = async (
+    artistName: string,
+    albumConcept: string,
+    genre: string
+): Promise<string[]> => {
+    const prompt = `Based on the following artist, concept, and genre, generate 5 creative and fitting album name suggestions.
+
+    **Artist Name:** "${artistName}"
+    **Album Concept:** "${albumConcept}"
+    **Genre:** ${genre}
+    `;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: albumNameSuggestionsSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    const result = JSON.parse(jsonText) as { names: string[] };
+
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: jsonText.length,
+        description: `Generate Album Names for: ${artistName}`
+    });
+
+    return result.names;
+};
+
 // New schema for album details
 const albumConceptSchema = {
     type: Type.OBJECT,

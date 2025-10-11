@@ -5,6 +5,7 @@ import { InteractiveImageEditor } from './InteractiveImageEditor';
 import {
     generateAlbumConcept,
     generateImage,
+    generateAlbumNames,
 } from '../services/geminiService';
 import { genres } from '../constants/music';
 
@@ -48,6 +49,9 @@ export const AlbumGenerator: React.FC = () => {
     const [coverArtFile, setCoverArtFile] = useState<File | null>(null);
     const [coverArtPreview, setCoverArtPreview] = useState<string | null>(null);
     const [genre, setGenre] = useState(genres[0]);
+    
+    const [isSuggesting, setIsSuggesting] = useState(false);
+    const [nameSuggestions, setNameSuggestions] = useState<string[]>([]);
 
     const [generationProgress, setGenerationProgress] = useState({ step: '', current: 0, total: 1 });
     
@@ -67,6 +71,25 @@ export const AlbumGenerator: React.FC = () => {
             if (e.target.files && e.target.files.length > 0) {
                 setError('Please select a valid image file.');
             }
+        }
+    };
+
+    const handleSuggestNames = async () => {
+        if (!artistName.trim() || !albumPrompt.trim()) {
+            setError("Please provide an Artist Name and Album Concept to get suggestions.");
+            return;
+        }
+        setIsSuggesting(true);
+        setError(null);
+        setNameSuggestions([]);
+        try {
+            const suggestions = await generateAlbumNames(artistName, albumPrompt, genre);
+            setNameSuggestions(suggestions);
+        } catch (err) {
+            console.error("Failed to suggest names:", err);
+            setError("Could not generate album name suggestions. Please try again.");
+        } finally {
+            setIsSuggesting(false);
         }
     };
 
@@ -122,10 +145,12 @@ export const AlbumGenerator: React.FC = () => {
         setArtistName('');
         setCoverArtFile(null);
         setCoverArtPreview(null);
+        setNameSuggestions([]);
     };
 
     return (
         <div className="p-4 sm:p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700">
+            <style>{`.animate-fade-in-fast { animation: fade-in-fast 0.2s ease-out forwards; } @keyframes fade-in-fast { from { opacity: 0; } to { opacity: 1; } }`}</style>
             {showEditor && albumResult && (
                 <InteractiveImageEditor
                     initialImageUrl={albumResult.albumCoverUrl}
@@ -145,10 +170,44 @@ export const AlbumGenerator: React.FC = () => {
                 <div className="space-y-6 mt-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="album-name" className="block text-sm font-medium text-gray-400 mb-2">Album Name</label>
-                            <input id="album-name" type="text" value={albumName} onChange={(e) => setAlbumName(e.target.value)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="e.g., 'Chronicles of a Star Sailor'" />
+                            <div className="flex justify-between items-center mb-2">
+                                <label htmlFor="album-name" className="block text-sm font-medium text-gray-400">Album Name</label>
+                                <button
+                                    type="button"
+                                    onClick={handleSuggestNames}
+                                    disabled={isSuggesting || !artistName.trim() || !albumPrompt.trim()}
+                                    className="flex items-center gap-2 text-xs font-semibold px-3 py-1 bg-teal-600 rounded-full shadow-md hover:bg-teal-500 transition-all duration-300 disabled:opacity-50"
+                                >
+                                    {isSuggesting ? <LoadingSpinner size="sm" /> : '✨'}
+                                    Suggest Names
+                                </button>
+                            </div>
+                            <input id="album-name" type="text" value={albumName} onChange={(e) => { setAlbumName(e.target.value); setNameSuggestions([]); }} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="e.g., 'Chronicles of a Star Sailor'" />
+                            {isSuggesting && (
+                                <div className="mt-2 text-center text-sm text-gray-400 flex items-center justify-center gap-2">
+                                    <LoadingSpinner size="sm" /> Generating suggestions...
+                                </div>
+                            )}
+                            {nameSuggestions.length > 0 && !isSuggesting && (
+                                <div className="mt-2 space-y-1 bg-gray-900/50 border border-gray-700 rounded-lg p-2 animate-fade-in-fast">
+                                    <p className="text-xs text-gray-500 px-2 pb-1">Click to use a suggestion:</p>
+                                    {nameSuggestions.map((name, index) => (
+                                        <button
+                                            key={index}
+                                            type="button"
+                                            onClick={() => {
+                                                setAlbumName(name);
+                                                setNameSuggestions([]);
+                                            }}
+                                            className="w-full text-left p-2 rounded-md hover:bg-purple-600/50 transition-colors text-sm text-gray-300"
+                                        >
+                                            {name}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                         <div>
+                        <div>
                             <label htmlFor="artist-name" className="block text-sm font-medium text-gray-400 mb-2">Artist Name</label>
                             <input id="artist-name" type="text" value={artistName} onChange={(e) => setArtistName(e.target.value)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="e.g., 'The Cosmic Drifters'" />
                         </div>
