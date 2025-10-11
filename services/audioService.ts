@@ -63,6 +63,62 @@ export const audioBufferToMp3 = (buffer: AudioBuffer, onProgress?: (progress: nu
     return new Blob(mp3Data, { type: 'audio/mp3' });
 };
 
+/**
+ * Encodes an AudioBuffer into a WAV file format Blob.
+ * @param buffer The Web Audio API AudioBuffer to encode.
+ * @returns A Blob representing the WAV file.
+ */
+export const audioBufferToWav = (buffer: AudioBuffer): Blob => {
+    const numOfChan = buffer.numberOfChannels;
+    const length = buffer.length * numOfChan * 2 + 44;
+    const bufferOut = new ArrayBuffer(length);
+    const view = new DataView(bufferOut);
+    let pos = 0;
+
+    const writeString = (view: DataView, offset: number, str: string) => {
+        for (let i = 0; i < str.length; i++) {
+            view.setUint8(offset + i, str.charCodeAt(i));
+        }
+    };
+
+    // RIFF chunk descriptor
+    writeString(view, pos, 'RIFF'); pos += 4;
+    view.setUint32(pos, length - 8, true); pos += 4;
+    writeString(view, pos, 'WAVE'); pos += 4;
+
+    // fmt sub-chunk
+    writeString(view, pos, 'fmt '); pos += 4;
+    view.setUint32(pos, 16, true); pos += 4; // PCM
+    view.setUint16(pos, 1, true); pos += 2; // PCM
+    view.setUint16(pos, numOfChan, true); pos += 2;
+    view.setUint32(pos, buffer.sampleRate, true); pos += 4;
+    view.setUint32(pos, buffer.sampleRate * 2 * numOfChan, true); pos += 4; // byte rate
+    view.setUint16(pos, numOfChan * 2, true); pos += 2; // block align
+    view.setUint16(pos, 16, true); pos += 2; // bits per sample
+
+    // data sub-chunk
+    writeString(view, pos, 'data'); pos += 4;
+    view.setUint32(pos, length - pos - 4, true); pos += 4;
+
+    // write interleaved data
+    const channelsData = [];
+    for (let i = 0; i < numOfChan; i++) {
+        channelsData.push(buffer.getChannelData(i));
+    }
+
+    for (let i = 0; i < buffer.length; i++) {
+        for (let chan = 0; chan < numOfChan; chan++) {
+            let sample = Math.max(-1, Math.min(1, channelsData[chan][i]));
+            sample = (sample < 0 ? sample * 0x8000 : sample * 0x7FFF) | 0;
+            view.setInt16(pos, sample, true);
+            pos += 2;
+        }
+    }
+
+    return new Blob([view], { type: 'audio/wav' });
+};
+
+
 export const melodyToMidiBlob = (melody: MelodyNote[], bpm: number): Blob => {
     const track = new MidiWriter.Track();
     track.setTempo(bpm);
