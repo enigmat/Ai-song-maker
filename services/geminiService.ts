@@ -58,6 +58,7 @@ export interface ChatMessage {
 export interface AlbumConcept {
     artistBio: string;
     albumCoverPrompt: string;
+    artistImagePrompt: string;
 }
 
 
@@ -328,8 +329,9 @@ const albumConceptSchema = {
     properties: {
         artistBio: { type: Type.STRING, description: "A short, creative biography for the provided artist, fitting their style and the album's theme." },
         albumCoverPrompt: { type: Type.STRING, description: "A detailed, artistic prompt for an image generation model to create an album cover. If the user provides their own image, this field should contain the text 'User-provided image.'." },
+        artistImagePrompt: { type: Type.STRING, description: "A detailed, artistic prompt for an image generation model to create a portrait or photo of the artist, based on their name, bio, and genre. For example: 'Photo of a mysterious solo synthwave artist, mid-30s, wearing a retro jacket with neon trim, looking out over a futuristic city at night.'" }
     },
-    required: ["artistBio", "albumCoverPrompt"]
+    required: ["artistBio", "albumCoverPrompt", "artistImagePrompt"]
 };
 
 
@@ -356,6 +358,7 @@ export const generateAlbumConcept = async (
     **Instructions:**
     1.  Generate a creative 'artistBio' for the provided artist that fits the album concept and genre.
     2.  ${coverPromptInstruction}
+    3.  You MUST generate a detailed 'artistImagePrompt' to create a portrait of the artist. This should be based on their name, bio, and genre.
     `;
 
     const response = await ai.models.generateContent({

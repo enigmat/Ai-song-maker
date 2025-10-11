@@ -39,8 +39,9 @@ export const AlbumGenerator: React.FC = () => {
         artistName: string;
         artistBio: string;
         albumCoverUrl: string;
+        artistImageUrl: string;
     } | null>(null);
-    const [showEditor, setShowEditor] = useState(false);
+    const [editorTarget, setEditorTarget] = useState<'cover' | 'artist' | null>(null);
     
     // Form state
     const [albumPrompt, setAlbumPrompt] = useState('');
@@ -102,29 +103,34 @@ export const AlbumGenerator: React.FC = () => {
         setError(null);
         setAlbumResult(null);
 
-        const totalSteps = 2; // 1 for concept, 1 for cover
+        const totalSteps = coverArtFile ? 2 : 3; // 1. Concept, 2. Artist Image, (optional) 3. Cover Image
 
         try {
-            // 1. Generate Album concept
+            // Step 1: Generate Album concept
             setGenerationProgress({ step: 'Developing album concept...', current: 1, total: totalSteps });
             const albumConcept = await generateAlbumConcept(albumPrompt, genre, albumName, artistName, !coverArtFile);
             
-            let finalAlbumCoverUrl = '';
-
-            // 2. Handle Album Cover
+            // Step 2: Generate Artist Image
+            setGenerationProgress({ step: 'Creating artist portrait...', current: 2, total: totalSteps });
+            const artistImagePromise = generateImage(albumConcept.artistImagePrompt);
+            
+            let albumCoverPromise: Promise<string>;
             if (coverArtPreview) {
-                 setGenerationProgress({ step: 'Using provided album cover...', current: 2, total: totalSteps });
-                 finalAlbumCoverUrl = coverArtPreview;
+                 albumCoverPromise = Promise.resolve(coverArtPreview);
             } else {
-                setGenerationProgress({ step: 'Designing album cover...', current: 2, total: totalSteps });
-                finalAlbumCoverUrl = await generateImage(albumConcept.albumCoverPrompt);
+                // Step 3 (optional): Generate Album Cover
+                setGenerationProgress({ step: 'Designing album cover...', current: 3, total: totalSteps });
+                albumCoverPromise = generateImage(albumConcept.albumCoverPrompt);
             }
+
+            const [finalArtistImageUrl, finalAlbumCoverUrl] = await Promise.all([artistImagePromise, albumCoverPromise]);
             
             setAlbumResult({
                 albumTitle: albumName,
                 artistName: artistName,
                 artistBio: albumConcept.artistBio,
                 albumCoverUrl: finalAlbumCoverUrl,
+                artistImageUrl: finalArtistImageUrl
             });
 
             setStatus('display');
@@ -151,17 +157,21 @@ export const AlbumGenerator: React.FC = () => {
     return (
         <div className="p-4 sm:p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700">
             <style>{`.animate-fade-in-fast { animation: fade-in-fast 0.2s ease-out forwards; } @keyframes fade-in-fast { from { opacity: 0; } to { opacity: 1; } }`}</style>
-            {showEditor && albumResult && (
+            {editorTarget && albumResult && (
                 <InteractiveImageEditor
-                    initialImageUrl={albumResult.albumCoverUrl}
+                    initialImageUrl={editorTarget === 'cover' ? albumResult.albumCoverUrl : albumResult.artistImageUrl}
                     onSave={(newUrl) => {
-                        setAlbumResult(prev => prev ? { ...prev, albumCoverUrl: newUrl } : null);
+                         if (editorTarget === 'cover') {
+                            setAlbumResult(prev => prev ? { ...prev, albumCoverUrl: newUrl } : null);
+                        } else {
+                            setAlbumResult(prev => prev ? { ...prev, artistImageUrl: newUrl } : null);
+                        }
                     }}
-                    onClose={() => setShowEditor(false)}
+                    onClose={() => setEditorTarget(null)}
                 />
             )}
             <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-transparent bg-clip-text">
-                Album Cover Generator
+                Album Experience Generator
             </h2>
 
             {error && <ErrorMessage message={error} />}
@@ -234,7 +244,7 @@ export const AlbumGenerator: React.FC = () => {
                         <SelectInput label="Genre" value={genre} onChange={(e) => setGenre(e.target.value)} options={genres} disabled={false} />
                     </div>
 
-                    <button onClick={handleGenerate} disabled={!albumPrompt.trim() || !albumName.trim() || !artistName.trim()} className="w-full flex items-center justify-center gap-3 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 disabled:opacity-50">Generate Album Cover</button>
+                    <button onClick={handleGenerate} disabled={!albumPrompt.trim() || !albumName.trim() || !artistName.trim()} className="w-full flex items-center justify-center gap-3 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 disabled:opacity-50">Generate Album</button>
                 </div>
             )}
             
@@ -250,43 +260,47 @@ export const AlbumGenerator: React.FC = () => {
 
             {status === 'display' && albumResult && (
                 <div className="space-y-6 mt-6 animate-fade-in">
-                    <div className="flex flex-col md:flex-row items-center justify-center gap-8">
-                        {/* Image Column */}
-                        <div className="relative group flex-shrink-0">
-                            <img src={albumResult.albumCoverUrl} alt={`Album cover for ${albumResult.albumTitle}`} className="w-64 h-64 md:w-80 md:h-80 rounded-lg shadow-2xl border-4 border-purple-500/50" />
-                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
-                                <button
-                                    onClick={() => setShowEditor(true)}
-                                    className="flex items-center gap-2 text-lg font-semibold px-6 py-3 bg-gray-700/80 rounded-lg shadow-md hover:bg-purple-600 transition-all"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                                        <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
-                                        <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
-                                    </svg>
-                                    Edit
-                                </button>
+                     <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-700">
+                        <div className="flex flex-col sm:flex-row items-center gap-6 mb-6 pb-6 border-b border-gray-700">
+                            <div className="relative group flex-shrink-0">
+                                <img src={albumResult.artistImageUrl} alt={`Portrait of ${albumResult.artistName}`} className="w-24 h-24 rounded-full shadow-lg border-2 border-gray-600" />
+                                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+                                    <button onClick={() => setEditorTarget('artist')} className="p-2 bg-gray-700/80 rounded-full shadow-md hover:bg-purple-600 transition-all" title="Edit artist image">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="text-center sm:text-left">
+                                <p className="text-3xl font-bold text-gray-200">{albumResult.artistName}</p>
+                                <p className="mt-1 text-gray-400">{albumResult.artistBio}</p>
                             </div>
                         </div>
-
-                        {/* Info Column */}
-                        <div className="text-center md:text-left max-w-md">
-                            <h3 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-transparent bg-clip-text">{albumResult.albumTitle}</h3>
-                            <p className="text-2xl font-semibold text-gray-300">{albumResult.artistName}</p>
-                            <p className="mt-2 text-sm text-gray-400">{albumResult.artistBio}</p>
-                            <div className="mt-6">
-                                <a
-                                    href={albumResult.albumCoverUrl}
-                                    download={`${albumResult.artistName.replace(/ /g, '_')}-${albumResult.albumTitle.replace(/ /g, '_')}.jpeg`}
-                                    className="inline-flex items-center justify-center gap-3 text-lg font-semibold px-8 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg shadow-lg hover:from-teal-600 hover:to-cyan-600 transition-all transform hover:scale-105"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                    </svg>
-                                    Download Cover
-                                </a>
+                        
+                        <div className="flex flex-col md:flex-row items-center justify-center gap-8">
+                            <div className="relative group flex-shrink-0">
+                                <img src={albumResult.albumCoverUrl} alt={`Album cover for ${albumResult.albumTitle}`} className="w-64 h-64 md:w-80 md:h-80 rounded-lg shadow-2xl border-4 border-purple-500/50" />
+                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
+                                    <button onClick={() => setEditorTarget('cover')} className="flex items-center gap-2 text-lg font-semibold px-6 py-3 bg-gray-700/80 rounded-lg shadow-md hover:bg-purple-600 transition-all" title="Edit album cover">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
+                                        Edit Cover
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="text-center md:text-left">
+                                <h3 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-transparent bg-clip-text">{albumResult.albumTitle}</h3>
+                                 <div className="mt-6 flex flex-col gap-3">
+                                    <a href={albumResult.albumCoverUrl} download={`${albumResult.artistName.replace(/ /g, '_')}-${albumResult.albumTitle.replace(/ /g, '_')}_cover.jpeg`} className="inline-flex items-center justify-center gap-3 text-lg font-semibold px-8 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg shadow-lg hover:from-teal-600 hover:to-cyan-600 transition-all transform hover:scale-105">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                        Download Cover
+                                    </a>
+                                     <a href={albumResult.artistImageUrl} download={`${albumResult.artistName.replace(/ /g, '_')}_artist.jpeg`} className="inline-flex items-center justify-center gap-3 text-md font-semibold px-6 py-2 bg-gray-700 text-gray-300 rounded-lg shadow-md hover:bg-gray-600 transition-all">
+                                        Download Artist Image
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    
                     <div className="text-center pt-4">
                         <button onClick={handleReset} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 border-2 border-purple-500 text-purple-400 rounded-lg shadow-md hover:bg-purple-500 hover:text-white">Create Another Album</button>
                     </div>
