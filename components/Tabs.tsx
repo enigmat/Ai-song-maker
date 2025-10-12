@@ -1,6 +1,6 @@
 import React from 'react';
 
-type ActiveTool = 'generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'analyzer' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer';
+type ActiveTool = 'generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'analyzer' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools';
 
 interface TabsProps {
   activeTool: ActiveTool;
@@ -55,6 +55,12 @@ const ChordsIcon = () => (
 const JamSessionIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
         <path fillRule="evenodd" d="M14.735 2.222a.75.75 0 01.03.03l4.95 4.95a.75.75 0 01-.976 1.134l-1.35-1.157a6.26 6.26 0 00-8.381 8.381l1.157 1.35a.75.75 0 01-1.134.976l-4.95-4.95a.75.75 0 010-1.06l7.65-7.65a.75.75 0 011.03-.027zM11.69 7.72a3.25 3.25 0 10-4.6 4.6 3.25 3.25 0 004.6-4.6z" clipRule="evenodd" />
+    </svg>
+);
+
+const YouTubeIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-8.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L1 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33.22 2.65.28 1.3.07 2.49.1 3.59.1L12 5c4.19 0 6.8.16 8.83.44.9.25 1.48.83 1.73 1.73z" />
     </svg>
 );
 
@@ -127,7 +133,7 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowReci
   const nonActiveClasses = 'w-full flex items-center justify-center px-4 py-3 font-semibold text-sm sm:text-base rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white';
 
   return (
-    <div className="mt-8 p-1.5 bg-gray-900/50 rounded-xl border border-gray-700 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 items-center gap-2">
+    <div className="mt-8 p-1.5 bg-gray-900/50 rounded-xl border border-gray-700 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-9 items-center gap-2">
       <button onClick={() => onSelectTool('projects')} className={getButtonClasses('projects')}>
         <ProjectsIcon />
         Projects
@@ -155,6 +161,10 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowReci
       <button onClick={() => onSelectTool('remixer')} className={getButtonClasses('remixer')}>
         <RemixerIcon />
         Song Remixer
+      </button>
+      <button onClick={() => onSelectTool('youtube_tools')} className={getButtonClasses('youtube_tools')}>
+        <YouTubeIcon />
+        YouTube Tools
       </button>
       <button onClick={() => onSelectTool('jamsession')} className={getButtonClasses('jamsession')}>
         <JamSessionIcon />

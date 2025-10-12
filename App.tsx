@@ -21,8 +21,9 @@ import { AIMastering } from './components/AIMastering';
 import { useProjects } from './hooks/useProjects';
 import { PlaybackContext } from './contexts/PlaybackContext';
 import { SongExplorer } from './components/SongExplorer';
+import { YouTubeTools } from './components/YouTubeTools';
 
-type ActiveTool = 'generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'analyzer' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer';
+type ActiveTool = 'generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'analyzer' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools';
 const ONBOARDING_KEY = 'mustbmusic_onboarding_complete_v1';
 
 const App: React.FC = () => {
@@ -104,6 +105,7 @@ const App: React.FC = () => {
               />
             )}
             {activeTool === 'remixer' && <SongRemixer />}
+            {activeTool === 'youtube_tools' && <YouTubeTools />}
             {activeTool === 'vocaltools' && <VocalTools />}
             {activeTool === 'chords' && <ChordProgressionGenerator />}
             {activeTool === 'jamsession' && <JamSession />}

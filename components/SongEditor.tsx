@@ -3,12 +3,13 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { InteractiveImageEditor } from './InteractiveImageEditor';
 import { analyzeSongStructure } from '../services/geminiService';
 import { SongStructureViewer } from './SongStructureViewer';
-import type { SingerGender, ArtistType, VocalMelody } from '../services/geminiService';
 import type { SongData, SongStructureAnalysis } from '../types';
+import { CopyButton } from './CopyButton';
 
+// FIX: Define the SongEditorProps interface
 interface SongEditorProps {
     songData: SongData;
-    setSongData: (songData: SongData) => void;
+    setSongData: (data: Partial<SongData>) => void;
     onFinalize: () => void;
     onCancel: () => void;
     isLoading: boolean;
@@ -17,40 +18,6 @@ interface SongEditorProps {
     isRegeneratingImage: boolean;
     onImageUpdate: (newImageUrl: string) => void;
 }
-
-const CopyButton = ({ textToCopy, positionClasses }: { textToCopy: string; positionClasses: string }) => {
-    const [isCopied, setIsCopied] = useState(false);
-
-    const handleCopy = () => {
-        if (!textToCopy) return;
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            setIsCopied(true);
-            setTimeout(() => setIsCopied(false), 2000);
-        }).catch(err => console.error("Failed to copy text: ", err));
-    };
-
-    return (
-        <button
-            type="button"
-            onClick={handleCopy}
-            className={`absolute ${positionClasses} text-gray-400 hover:text-white transition-colors duration-200 p-1 rounded-full hover:bg-gray-700/50`}
-            title={isCopied ? "Copied!" : "Copy to clipboard"}
-            aria-label={isCopied ? "Content copied" : "Copy content to clipboard"}
-        >
-            {isCopied ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-            ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" />
-                    <path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h6a2 2 0 00-2-2H5z" />
-                </svg>
-            )}
-        </button>
-    );
-};
-
 
 export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, onFinalize, onCancel, isLoading, onRegenerateImage, artistImageUrl, isRegeneratingImage, onImageUpdate }) => {
     const [lyricsViewMode, setLyricsViewMode] = useState<'edit' | 'structured' | 'analysis'>('edit');
@@ -135,7 +102,7 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                     onChange={(e) => handleChange('lyrics', e.target.value)}
                     className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y font-serif pr-12"
                 />
-                <CopyButton textToCopy={songData.lyrics} positionClasses="top-3 right-3" />
+                <CopyButton textToCopy={songData.lyrics} className="absolute top-3 right-3" />
             </div>
         );
     };
@@ -165,7 +132,7 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                                 onChange={(e) => handleChange('title', e.target.value)}
                                 className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all pr-12"
                             />
-                            <CopyButton textToCopy={songData.title} positionClasses="top-1/2 right-3 -translate-y-1/2" />
+                            <CopyButton textToCopy={songData.title} className="absolute top-1/2 right-3 -translate-y-1/2" />
                         </div>
                     </div>
                     <div>
@@ -178,7 +145,7 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                                 onChange={(e) => handleChange('artistName', e.target.value)}
                                 className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all pr-12"
                             />
-                            <CopyButton textToCopy={songData.artistName} positionClasses="top-1/2 right-3 -translate-y-1/2" />
+                            <CopyButton textToCopy={songData.artistName} className="absolute top-1/2 right-3 -translate-y-1/2" />
                         </div>
                     </div>
                 </div>
@@ -193,7 +160,7 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                             onChange={(e) => handleChange('genre', e.target.value)}
                             className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all pr-12"
                         />
-                        <CopyButton textToCopy={songData.genre} positionClasses="top-1/2 right-3 -translate-y-1/2" />
+                        <CopyButton textToCopy={songData.genre} className="absolute top-1/2 right-3 -translate-y-1/2" />
                     </div>
                 </div>
 
@@ -207,7 +174,7 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                             onChange={(e) => handleChange('artistBio', e.target.value)}
                             className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y pr-12"
                         />
-                        <CopyButton textToCopy={songData.artistBio} positionClasses="top-3 right-3" />
+                        <CopyButton textToCopy={songData.artistBio} className="absolute top-3 right-3" />
                     </div>
                 </div>
 
@@ -245,7 +212,7 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                             onChange={(e) => handleChange('albumCoverPrompt', e.target.value)}
                             className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all resize-y font-mono text-sm pr-12"
                         />
-                        <CopyButton textToCopy={songData.albumCoverPrompt} positionClasses="top-3 right-3" />
+                        <CopyButton textToCopy={songData.albumCoverPrompt} className="absolute top-3 right-3" />
                     </div>
                     <div className="mt-4 p-4 bg-gray-900 rounded-lg border border-gray-600 flex justify-center items-center h-48">
                         {isRegeneratingImage ? (
@@ -280,7 +247,7 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                                 className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all resize-y font-mono text-sm pr-12"
                                 placeholder='e.g., {"kick": [0, 8], "snare": [4, 12], "hihat": [0,2,4,6,8,10,12,14]}'
                             />
-                            <CopyButton textToCopy={songData.beatPattern} positionClasses="top-3 right-3" />
+                            <CopyButton textToCopy={songData.beatPattern} className="absolute top-3 right-3" />
                         </div>
                     </div>
                     <div>
@@ -321,7 +288,7 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                             onChange={(e) => handleChange('styleGuide', e.target.value)}
                             className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y pr-12"
                         />
-                        <CopyButton textToCopy={songData.styleGuide} positionClasses="top-3 right-3" />
+                        <CopyButton textToCopy={songData.styleGuide} className="absolute top-3 right-3" />
                     </div>
                 </div>
 
@@ -336,7 +303,7 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                             className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y font-mono text-sm pr-12"
                             placeholder="A cinematic script based on the lyrics..."
                         />
-                        <CopyButton textToCopy={songData.storyboard} positionClasses="top-3 right-3" />
+                        <CopyButton textToCopy={songData.storyboard} className="absolute top-3 right-3" />
                     </div>
                 </div>
 

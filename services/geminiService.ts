@@ -61,6 +61,13 @@ export interface AlbumConcept {
     artistImagePrompt: string;
 }
 
+export interface YouTubeAssets {
+    title: string;
+    description: string;
+    tags: string[];
+    thumbnailPrompts: string[];
+}
+
 
 const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
 
@@ -725,6 +732,76 @@ export const editImage = async (base64ImageData: string, mimeType: string, promp
         }
     }
     throw new Error("The AI did not return an edited image. It may have responded: " + response.text);
+};
+
+const youtubeAssetsSchema = {
+    type: Type.OBJECT,
+    properties: {
+        title: {
+            type: Type.STRING,
+            description: "A catchy, SEO-friendly YouTube video title for the song."
+        },
+        description: {
+            type: Type.STRING,
+            description: "A well-structured YouTube video description. It should include sections for the song details, lyrics, artist links, and relevant hashtags. Use markdown for formatting."
+        },
+        tags: {
+            type: Type.ARRAY,
+            description: "A list of 15-20 relevant YouTube tags (keywords), including long-tail keywords, genre, mood, and artist name.",
+            items: { type: Type.STRING }
+        },
+        thumbnailPrompts: {
+            type: Type.ARRAY,
+            description: "An array of 3 distinct, creative, and detailed prompts for an image generation model to create a YouTube thumbnail. The prompts should be visually descriptive and compelling.",
+            items: { type: Type.STRING }
+        }
+    },
+    required: ["title", "description", "tags", "thumbnailPrompts"]
+};
+
+export const generateYouTubeAssets = async (
+    songTitle: string,
+    artistName: string,
+    genre: string,
+    vibe: string
+): Promise<YouTubeAssets> => {
+    const prompt = `Act as a YouTube music promotion expert. Your task is to generate a complete set of YouTube assets for a new song release.
+
+    **Song Details:**
+    - **Title:** "${songTitle}"
+    - **Artist:** "${artistName}"
+    - **Genre:** ${genre}
+    - **Vibe/Description:** "${vibe || 'Not provided. Infer from other details.'}"
+
+    **Instructions:**
+    1.  Create a catchy and SEO-optimized \`title\` for the YouTube video.
+    2.  Write a comprehensive \`description\`. Include placeholders like "[Link to Spotify]", "[Artist Website]", etc. and use hashtags.
+    3.  Generate a list of 15-20 effective \`tags\`.
+    4.  Come up with 3 diverse and visually striking \`thumbnailPrompts\` for an AI image generator. These should describe scenes, not just abstract concepts. For example: "Epic fantasy landscape painting of a lone knight watching a glowing city under a purple nebula, digital art, high detail, cinematic lighting."
+
+    Provide the output in the specified JSON format.`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: youtubeAssetsSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    const assets = JSON.parse(jsonText) as YouTubeAssets;
+
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: jsonText.length,
+        description: `Generate YouTube Assets for: ${songTitle}`
+    });
+
+    return assets;
 };
 
 export interface Ratings {
