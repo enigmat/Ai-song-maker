@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type, Modality, LiveServerMessage, Blob } from "@google/genai";
+import { GoogleGenAI, Type, Modality, LiveServerMessage, Blob, GenerateContentResponse } from "@google/genai";
 import { trackUsage } from './usageService';
 import type { SongData, SongStructureAnalysis } from '../types';
 
@@ -630,6 +630,43 @@ export const generateRandomSongPrompt = async (): Promise<string> => {
     return response.text.replace(/^["']|["']$/g, '').trim();
 };
 
+export const exploreSong = async (title: string, lyrics: string): Promise<GenerateContentResponse> => {
+    const prompt = `Act as an expert musicologist and music historian.
+    Based on the following song information, find and provide a detailed summary using your search tool.
+    
+    Song Title: "${title}"
+    Lyrics Snippet (if provided): "${lyrics || 'Not provided.'}"
+
+    Please provide a comprehensive summary including the following details if available:
+    - **Artist**: The primary recording artist(s).
+    - **Album**: The album the song was released on.
+    - **Release Year**: The year the song was originally released.
+    - **Genre(s)**: The main genres and subgenres.
+    - **Songwriter(s)**: The credited writers of the music and lyrics.
+    - **Producer(s)**: The credited producers.
+    - **Interesting Facts**: Any notable awards, chart performance, cultural impact, or behind-the-scenes stories.
+    
+    Format your entire response using Markdown for clear readability.`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            tools: [{ googleSearch: {} }],
+        },
+    });
+
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: response.text.length,
+        description: `Song Explorer: ${title}`
+    });
+
+    return response;
+};
+
 export const generateImage = async (prompt: string): Promise<string> => {
     const response = await ai.models.generateImages({
         model: 'imagen-4.0-generate-001',
@@ -689,6 +726,49 @@ export const editImage = async (base64ImageData: string, mimeType: string, promp
     }
     throw new Error("The AI did not return an edited image. It may have responded: " + response.text);
 };
+
+export const generateVideoFromStoryboard = async (storyboard: string): Promise<string> => {
+    let operation = await ai.models.generateVideos({
+        model: 'veo-2.0-generate-001',
+        prompt: storyboard,
+        config: {
+            numberOfVideos: 1
+        }
+    });
+
+    while (!operation.done) {
+        await new Promise(resolve => setTimeout(resolve, 10000)); // Poll every 10 seconds
+        operation = await ai.operations.getVideosOperation({ operation: operation });
+    }
+
+    if (operation.error) {
+        throw new Error(operation.error.message || 'Video generation operation failed.');
+    }
+
+    const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+    if (!downloadLink) {
+        throw new Error("Video generation succeeded, but no download link was provided.");
+    }
+    
+    // The link needs the API key
+    const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+    
+    if (!response.ok) {
+        throw new Error(`Failed to download video file. Status: ${response.statusText}`);
+    }
+
+    const videoBlob = await response.blob();
+    
+    trackUsage({
+        model: 'veo-2.0-generate-001',
+        type: 'video',
+        count: 1,
+        description: `Video: ${storyboard.substring(0, 50)}...`
+    });
+
+    return URL.createObjectURL(videoBlob);
+};
+
 
 export interface Ratings {
     commercialPotential: { score: number; justification: string };

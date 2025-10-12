@@ -20,8 +20,9 @@ import { StyleCreator } from './components/StyleCreator';
 import { AIMastering } from './components/AIMastering';
 import { useProjects } from './hooks/useProjects';
 import { PlaybackContext } from './contexts/PlaybackContext';
+import { SongExplorer } from './components/SongExplorer';
 
-type ActiveTool = 'generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'analyzer' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering';
+type ActiveTool = 'generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'analyzer' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer';
 const ONBOARDING_KEY = 'mustbmusic_onboarding_complete_v1';
 
 const App: React.FC = () => {
@@ -89,6 +90,7 @@ const App: React.FC = () => {
                 </div>
             )}
             {activeTool === 'album_generator' && <AlbumGenerator />}
+            {activeTool === 'song_explorer' && <SongExplorer />}
             {activeTool === 'projects' && (
               <ProjectManager
                 projects={projects}

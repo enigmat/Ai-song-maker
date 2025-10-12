@@ -8,12 +8,13 @@ import { StyleGuideViewer } from './StyleGuideViewer';
 import { ErrorMessage } from './ErrorMessage';
 import { LoadingSpinner } from './LoadingSpinner';
 import { MelodyStudio } from './MelodyStudio';
-import { generateSongFromPrompt, generateImage, MelodyAnalysis } from '../services/geminiService';
+import { generateSongFromPrompt, generateImage, MelodyAnalysis, generateVideoFromStoryboard } from '../services/geminiService';
 import { audioBufferToMp3 } from '../services/audioService';
 import { Project, SongData } from '../types';
 import type { SingerGender, ArtistType, ArtistStyleProfile } from '../services/geminiService';
 import { PlaybackContextType } from '../contexts/PlaybackContext';
 import { StoryboardViewer } from './StoryboardViewer';
+import { MusicVideoPlayer } from './MusicVideoPlayer';
 
 
 declare var Tone: any; // Using Tone.js from CDN
@@ -31,6 +32,12 @@ const defaultSongData: SongData = {
     styleGuide: '', beatPattern: '', singerGender: 'any', artistType: 'any',
     vocalMelody: null, bpm: 120, genre: '', storyboard: '',
 };
+
+const VideoIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+    </svg>
+);
 
 export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateProject, setPlaybackControls }) => {
     const getInitialStatus = (): AppStatus => {
@@ -52,6 +59,9 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [isRenderingMp3, setIsRenderingMp3] = useState(false);
     const [mp3Url, setMp3Url] = useState<string | null>(null);
+    
+    const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+    const [videoUrl, setVideoUrl] = useState(project.videoUrl || null);
 
     const [isPlaying, setIsPlaying] = useState(false);
     const [isAudioReady, setIsAudioReady] = useState(false);
@@ -175,8 +185,9 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
       return () => {
         if (hummedInstrumental?.url) URL.revokeObjectURL(hummedInstrumental.url);
         if (mp3Url) URL.revokeObjectURL(mp3Url);
+        if (videoUrl) URL.revokeObjectURL(videoUrl);
       };
-    }, [hummedInstrumental, mp3Url]);
+    }, [hummedInstrumental, mp3Url, videoUrl]);
 
 
     const handleGenerate = async ( prompt: string, ...styleArgs: any[]) => {
@@ -187,6 +198,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
         setStatus('generating');
         setError(null);
         setArtistImageUrl('');
+        setVideoUrl(null);
         if (effectiveInstrumentalUrl) {
             handleDataChange({ ...defaultSongData, bpm: songData.bpm });
         }
@@ -204,7 +216,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
             setIsGeneratingImage(true);
             generateImage(data.albumCoverPrompt).then(imageUrl => {
                 setArtistImageUrl(imageUrl);
-                onUpdateProject({ ...project, songData: data, artistImageUrl: imageUrl });
+                onUpdateProject({ ...project, songData: data, artistImageUrl: imageUrl, videoUrl: null });
             }).catch(imgErr => {
                 console.error("Image generation failed:", imgErr);
                 setError("Could not generate the artist image.");
@@ -247,6 +259,28 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
         setHummedMelody(melody);
         setIsMelodyStudioOpen(false);
     };
+
+    const handleGenerateVideo = async () => {
+        if (!songData.storyboard) {
+            setError("A storyboard is required to generate a music video.");
+            return;
+        }
+        setIsGeneratingVideo(true);
+        if(videoUrl) URL.revokeObjectURL(videoUrl);
+        setVideoUrl(null);
+        setError(null);
+        try {
+            const url = await generateVideoFromStoryboard(songData.storyboard);
+            setVideoUrl(url);
+            onUpdateProject({ ...project, videoUrl: url });
+        } catch (err) {
+            console.error("Video generation failed:", err);
+            setError("Failed to generate the music video. Please try again.");
+        } finally {
+            setIsGeneratingVideo(false);
+        }
+    };
+
 
     const handleGenerateMp3 = async () => {
         if (mp3Url) {
@@ -343,6 +377,22 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
 
                         <LyricsViewer lyrics={songData.lyrics} />
                         <StoryboardViewer storyboard={songData.storyboard} />
+                        
+                        {songData.storyboard && (
+                            <div className="mt-4 text-center">
+                                <button
+                                    onClick={handleGenerateVideo}
+                                    disabled={isGeneratingVideo}
+                                    className="w-full sm:w-auto inline-flex items-center justify-center gap-3 text-lg font-semibold px-8 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg shadow-lg hover:from-teal-600 hover:to-cyan-600 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-wait"
+                                >
+                                    {isGeneratingVideo ? <LoadingSpinner /> : <VideoIcon />}
+                                    {isGeneratingVideo ? 'Generating Video...' : 'Generate Music Video'}
+                                </button>
+                            </div>
+                        )}
+                
+                        <MusicVideoPlayer isGenerating={isGeneratingVideo} videoUrl={videoUrl} />
+                        
                         <StyleGuideViewer styleGuide={songData.styleGuide} isLoading={false} />
                         <div className="text-center pt-4">
                              <button onClick={() => setStatus('editing')} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 border-2 border-purple-500 text-purple-400 rounded-lg shadow-md hover:bg-purple-500 hover:text-white transition-all duration-300">
