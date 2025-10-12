@@ -727,49 +727,6 @@ export const editImage = async (base64ImageData: string, mimeType: string, promp
     throw new Error("The AI did not return an edited image. It may have responded: " + response.text);
 };
 
-export const generateVideoFromStoryboard = async (storyboard: string): Promise<string> => {
-    let operation = await ai.models.generateVideos({
-        model: 'veo-2.0-generate-001',
-        prompt: storyboard,
-        config: {
-            numberOfVideos: 1
-        }
-    });
-
-    while (!operation.done) {
-        await new Promise(resolve => setTimeout(resolve, 10000)); // Poll every 10 seconds
-        operation = await ai.operations.getVideosOperation({ operation: operation });
-    }
-
-    if (operation.error) {
-        throw new Error(operation.error.message || 'Video generation operation failed.');
-    }
-
-    const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-    if (!downloadLink) {
-        throw new Error("Video generation succeeded, but no download link was provided.");
-    }
-    
-    // The link needs the API key
-    const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
-    
-    if (!response.ok) {
-        throw new Error(`Failed to download video file. Status: ${response.statusText}`);
-    }
-
-    const videoBlob = await response.blob();
-    
-    trackUsage({
-        model: 'veo-2.0-generate-001',
-        type: 'video',
-        count: 1,
-        description: `Video: ${storyboard.substring(0, 50)}...`
-    });
-
-    return URL.createObjectURL(videoBlob);
-};
-
-
 export interface Ratings {
     commercialPotential: { score: number; justification: string };
     originality: { score: number; justification: string };

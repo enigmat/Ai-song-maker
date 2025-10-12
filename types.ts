@@ -32,7 +32,6 @@ export interface Project {
   updatedAt: string;
   songData: SongData | null;
   artistImageUrl: string | null;
-  videoUrl: string | null;
   generationParams: ArtistStyleProfile | null;
   originalPrompt: string | null;
 }

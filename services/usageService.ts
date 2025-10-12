@@ -18,10 +18,6 @@ const PRICING = {
     'gemini-2.5-flash-native-audio-preview-09-2025': {
         perSecond: 0.28 / PER_MILLION,
     },
-    'veo-2.0-generate-001': {
-        // Pricing for video models is not public, using an estimate.
-        perVideo: 25.00 / PER_MILLION, 
-    },
 };
 
 const USAGE_STORAGE_KEY = 'mustbmusic_api_usage';
@@ -30,7 +26,7 @@ const MAX_LOG_ENTRIES = 100;
 export interface ApiCallLog {
     timestamp: number;
     model: string;
-    type: 'text' | 'image' | 'audio' | 'multimodal' | 'video';
+    type: 'text' | 'image' | 'audio' | 'multimodal';
     cost: number;
     description: string;
 }
@@ -47,7 +43,7 @@ export interface UsageData {
 
 interface TrackUsageParams {
     model: keyof typeof PRICING;
-    type: 'text' | 'image' | 'audio' | 'multimodal' | 'video';
+    type: 'text' | 'image' | 'audio' | 'multimodal';
     inputChars?: number;
     outputChars?: number;
     count?: number; // For images/videos
@@ -116,14 +112,6 @@ export const trackUsage = (params: TrackUsageParams): void => {
         usage.totalAudioSeconds += seconds;
     }
     
-    if (params.type === 'video') {
-        const count = params.count || 0;
-        if ('perVideo' in modelPricing) {
-            cost += count * modelPricing.perVideo;
-        }
-        usage.totalVideos = (usage.totalVideos || 0) + count;
-    }
-
     usage.totalCost += cost;
 
     const newLogEntry: ApiCallLog = {
