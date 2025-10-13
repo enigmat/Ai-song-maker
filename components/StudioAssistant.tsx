@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getStudioAssistantResponse, ChatMessage } from '../services/geminiService';
+import { getStudioAssistantResponse } from '../services/geminiService';
+import type { ChatMessage } from '../types';
 import { LoadingSpinner } from './LoadingSpinner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';

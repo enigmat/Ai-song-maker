@@ -8,10 +8,10 @@ import { StyleGuideViewer } from './StyleGuideViewer';
 import { ErrorMessage } from './ErrorMessage';
 import { LoadingSpinner } from './LoadingSpinner';
 import { MelodyStudio } from './MelodyStudio';
-import { generateSongFromPrompt, generateImage, MelodyAnalysis } from '../services/geminiService';
+import { generateSongFromPrompt, generateImage } from '../services/geminiService';
 import { audioBufferToMp3 } from '../services/audioService';
 import { Project, SongData } from '../types';
-import type { SingerGender, ArtistType, ArtistStyleProfile } from '../services/geminiService';
+import type { SingerGender, ArtistType, ArtistStyleProfile, MelodyAnalysis } from '../types';
 import { PlaybackContextType } from '../contexts/PlaybackContext';
 import { StoryboardViewer } from './StoryboardViewer';
 

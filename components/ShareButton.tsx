@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-// Fix: Module '"../App"' has no exported member 'SingerGender' or 'ArtistType'. They are exported from geminiService.
-import type { SingerGender, ArtistType } from '../services/geminiService';
-import type { VocalMelody } from '../services/geminiService';
+import type { SingerGender, ArtistType, VocalMelody } from '../types';
 
 interface ShareButtonProps {
   title: string;

@@ -3,7 +3,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
 import { generateMelodyFromHum } from '../services/geminiService';
 import { melodyToMidiBlob, melodyToMp3 } from '../services/audioService';
-import type { MelodyAnalysis } from '../services/geminiService';
+import type { MelodyAnalysis } from '../types';
 
 interface MelodyStudioProps {
   onClose: () => void;

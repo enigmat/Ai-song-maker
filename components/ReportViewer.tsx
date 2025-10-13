@@ -1,5 +1,5 @@
 import React from 'react';
-import type { AnalysisReport } from '../services/geminiService';
+import type { AnalysisReport } from '../types';
 
 interface ReportViewerProps {
     report: AnalysisReport;

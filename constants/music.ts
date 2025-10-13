@@ -1,4 +1,4 @@
-import type { SingerGender, ArtistType } from '../services/geminiService';
+import type { SingerGender, ArtistType } from '../types';
 
 export const genres = [
     'Pop', 'Rock', 'Hip Hop / Rap', 'R&B / Soul', 'Electronic', 'Country', 'Jazz', 'Classical', 'Latin', 'Metal', 'Indie', 'Alternative', 'Folk', 'Acoustic', 'Afrobeat', 'Ambient', 'Blues', 'Club', 'Dance', 'Dancehall', 'Disco', 'Drum & Bass', 'Dubstep', 'Funk', 'Gospel', 'House', 'Instrumental', 'Lo-fi', 'Punk', 'Reggae', 'Synthwave', 'Techno', 'Trance', 'Trap'
@@ -117,3 +117,32 @@ export const styleFieldDescriptions = {
     atmosphere: "The sonic texture created by production effects like reverb or distortion. 'Spacious and Reverb-heavy' creates a sense of vastness, while 'Dry and Intimate' feels close and personal.",
     vocalStyle: "The specific manner of singing. 'Clear & Melodic' focuses on the tune, while 'Rhythmic & Spoken' is closer to rap. This heavily influences the performance's character."
 };
+
+export const instrumentOptions = {
+    Drums: ['808 Kit', '909 Kit', 'Acoustic Rock Kit', 'Vintage Funk Kit', 'Lo-fi Hip Hop Kit', 'Trap Kit', 'LinnDrum Machine'],
+    Bass: ['Deep 808 Sub Bass', 'Electric Funk Slap Bass', 'Upright Jazz Bass', 'Acid Synth Bass', 'Moog-style Synth Bass', 'Muted Electric Bass'],
+    Strings: ['Cinematic Violins Section', 'Pizzicato String Plucks', 'Intimate String Quartet', 'Lush Synth Pad', 'Orchestral Swells'],
+    Horns: ['Solo Jazz Saxophone', 'Powerful Brass Section Hits', 'Muted Trumpet Solo', 'Synth Brass Stabs'],
+    Guitar: ['Clean Jazz Guitar Chords', 'Distorted Rock Power Chords', 'Acoustic Folk Strumming', 'Funky Wah-Wah Guitar'],
+    Keys: ['Grand Piano Melody', 'Electric Rhodes Piano', 'Classic B3 Organ Licks', 'Synth Arpeggio Sequence']
+};
+
+export const beatStyles = [
+    'Clean & Polished',
+    'Gritty & Distorted',
+    'Minimal & Sparse',
+    'Complex & Layered',
+    'Organic & Live',
+    'Synthetic & Electronic'
+];
+
+export const beatRegions = [
+    'None',
+    'West Coast G-Funk',
+    'East Coast Boom Bap',
+    'Southern Trap',
+    'UK Grime/Drill',
+    'Latin Reggaeton',
+    'Jamaican Dancehall',
+    'Afrobeat',
+];

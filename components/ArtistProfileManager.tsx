@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, ChangeEvent } from 'react';
-import { analyzeAudioForProfile, ArtistStyleProfile, StoredArtistProfile, ArtistSong } from '../services/geminiService';
+import { analyzeAudioForProfile } from '../services/geminiService';
+import type { ArtistStyleProfile, StoredArtistProfile, ArtistSong } from '../types';
 import { genres, singerGenders, artistTypes, moods, tempos, melodies, harmonies, rhythms, instrumentations, atmospheres, vocalStyles, styleFieldDescriptions } from '../constants/music';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';

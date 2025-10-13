@@ -2,8 +2,7 @@ import React from 'react';
 import { ShareButton } from './ShareButton';
 import { LoadingSpinner } from './LoadingSpinner';
 import { DownloadMenu } from './DownloadMenu';
-import type { SingerGender, ArtistType, VocalMelody } from '../services/geminiService';
-import type { SongData } from '../types';
+import type { SingerGender, ArtistType, VocalMelody, SongData } from '../types';
 
 interface ArtistProfileProps {
   title: string;

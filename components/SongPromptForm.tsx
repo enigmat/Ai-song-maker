@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { SongStorylineGenerator } from './SongStorylineGenerator';
-import type { SingerGender, ArtistType, ArtistStyleProfile, StoredArtistProfile } from '../services/geminiService';
+import type { SingerGender, ArtistType, ArtistStyleProfile, StoredArtistProfile } from '../types';
 import { generateRandomSongPrompt } from '../services/geminiService';
 import {
     genres, singerGenders, artistTypes, moods, tempos,

@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { generateChordProgressions, ChordProgression } from '../services/geminiService';
+import { generateChordProgressions } from '../services/geminiService';
+import type { ChordProgression } from '../types';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
 import { genres, moods, musicalKeys } from '../constants/music';

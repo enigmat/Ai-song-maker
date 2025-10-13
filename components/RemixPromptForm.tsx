@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
-import type { SingerGender, ArtistType } from '../services/geminiService';
+import type { SingerGender, ArtistType } from '../types';
 import { singerGenders, artistTypes, moods, genres } from '../constants/music';
 
 interface RemixPromptFormProps {

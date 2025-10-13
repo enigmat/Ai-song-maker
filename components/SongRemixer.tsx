@@ -8,8 +8,8 @@ import { MasterPlayButton } from './MasterPlayButton';
 import { StyleGuideViewer } from './StyleGuideViewer';
 import { ErrorMessage } from './ErrorMessage';
 import { LoadingSpinner } from './LoadingSpinner';
-import { generateRemixedSong, generateRemixedSongFromLyrics, generateNewBeatPattern, generateImage, transcribeAudio, SingerGender, ArtistType } from '../services/geminiService';
-import type { SongData } from '../types';
+import { generateRemixedSong, generateRemixedSongFromLyrics, generateNewBeatPattern, generateImage, transcribeAudio } from '../services/geminiService';
+import type { SongData, SingerGender, ArtistType } from '../types';
 import { StoryboardViewer } from './StoryboardViewer';
 
 declare var Tone: any; // Using Tone.js from CDN
@@ -211,7 +211,8 @@ export const SongRemixer: React.FC = () => {
         setIsRandomizingBeat(true);
         setError(null);
         try {
-            const newBeat = await generateNewBeatPattern(songData.styleGuide, songData.genre);
+            const prompt = `A beat for a ${songData.genre} song. Style guide: ${songData.styleGuide}`;
+            const newBeat = await generateNewBeatPattern(prompt);
             setSongData(prev => ({ ...prev, beatPattern: newBeat }));
         } catch(err) {
             console.error("Beat randomization failed:", err);

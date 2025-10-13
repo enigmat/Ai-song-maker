@@ -51,7 +51,8 @@ export const useProjects = () => {
             // If loading fails, start with a fresh default project
             createProject('My First Song', true);
         }
-    }, [createProject]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const saveProjects = useCallback((updatedProjects: Project[]) => {
         setProjects(updatedProjects);

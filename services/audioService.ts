@@ -1,4 +1,4 @@
-import type { MelodyNote } from './geminiService';
+import type { MelodyNote } from '../types';
 
 // Declaration for lamejs and MidiWriterJS from CDN
 declare var lamejs: any;

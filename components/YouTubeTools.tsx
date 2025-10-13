@@ -3,7 +3,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
 import { genres } from '../constants/music';
 import { generateYouTubeAssets, generateImage } from '../services/geminiService';
-import type { YouTubeAssets } from '../services/geminiService';
+import type { YouTubeAssets } from '../types';
 import { CopyButton } from './CopyButton';
 
 const ThumbnailGenerator: React.FC<{ prompt: string }> = ({ prompt }) => {

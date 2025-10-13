@@ -1,5 +1,6 @@
 import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
-import { generateProfileFromArtistName, remixArtistStyleProfile, ArtistStyleProfile, StoredArtistProfile, RemixResult } from '../services/geminiService';
+import { generateProfileFromArtistName, remixArtistStyleProfile } from '../services/geminiService';
+import type { ArtistStyleProfile, StoredArtistProfile, RemixResult } from '../types';
 import { genres, singerGenders, artistTypes, moods, tempos, melodies, harmonies, rhythms, instrumentations, atmospheres, vocalStyles, styleFieldDescriptions } from '../constants/music';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';

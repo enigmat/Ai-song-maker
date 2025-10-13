@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
-import { analyzeSong, AnalysisReport } from '../services/geminiService';
+import { analyzeSong } from '../services/geminiService';
+import type { AnalysisReport } from '../types';
 import { DownloadButton } from './DownloadButton';
 import { ReportViewer } from './ReportViewer';
 import { genres, moods } from '../constants/music';

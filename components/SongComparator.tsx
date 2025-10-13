@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
-import { compareSongs, ComparisonReport, SongComparisonMetrics } from '../services/geminiService';
+import { compareSongs } from '../services/geminiService';
+import type { ComparisonReport, SongComparisonMetrics } from '../types';
 import { genres, moods } from '../constants/music';
 
 const TrophyIcon = () => (
@@ -192,64 +193,3 @@ export const SongComparator: React.FC = () => {
 
     return (
         <div className="p-4 sm:p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700">
-            <h2 className="text-2xl font-bold text-center mb-1 text-gray-200">Song Comparator</h2>
-            <p className="text-center text-gray-400 mb-6">Which track has more hit potential? Let our AI A&R scout decide.</p>
-
-            {error && <ErrorMessage message={error} onRetry={status === 'error' ? handleCompare : undefined} />}
-
-            {isProcessing ? (
-                <div className="text-center p-10">
-                    <LoadingSpinner size="lg" />
-                    <p className="mt-4 text-gray-400 text-lg animate-pulse">Comparing tracks...</p>
-                    <p className="text-gray-500">Our AI is analyzing the potential of your songs.</p>
-                </div>
-            ) : (
-                <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Song 1 */}
-                        <div className="space-y-4 p-4 bg-gray-900/50 rounded-lg border border-teal-500/30">
-                            <h3 className="text-xl font-semibold text-center text-teal-400">Song 1</h3>
-                            <FileInput songNumber={1} file={song1File} onFileSelect={(f) => handleFileSelect(f, 1)} disabled={isProcessing} />
-                             <div>
-                                <label htmlFor="s1-genre" className="block text-sm font-medium text-gray-400 mb-1">Genre</label>
-                                <select id="s1-genre" value={song1Genre} onChange={e => setSong1Genre(e.target.value)} disabled={isProcessing} className="w-full p-2 bg-gray-800 border border-gray-600 rounded-md focus:ring-1 focus:ring-teal-500 text-sm">
-                                    {genres.map(g => <option key={g} value={g}>{g}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="s1-vibe" className="block text-sm font-medium text-gray-400 mb-1">Vibe / Mood</label>
-                                <select id="s1-vibe" value={song1Vibe} onChange={e => setSong1Vibe(e.target.value)} disabled={isProcessing} className="w-full p-2 bg-gray-800 border border-gray-600 rounded-md focus:ring-1 focus:ring-teal-500 text-sm">
-                                    {moods.map(v => <option key={v} value={v}>{v}</option>)}
-                                </select>
-                            </div>
-                        </div>
-
-                        {/* Song 2 */}
-                        <div className="space-y-4 p-4 bg-gray-900/50 rounded-lg border border-pink-500/30">
-                             <h3 className="text-xl font-semibold text-center text-pink-400">Song 2</h3>
-                             <FileInput songNumber={2} file={song2File} onFileSelect={(f) => handleFileSelect(f, 2)} disabled={isProcessing} />
-                             <div>
-                                <label htmlFor="s2-genre" className="block text-sm font-medium text-gray-400 mb-1">Genre</label>
-                                <select id="s2-genre" value={song2Genre} onChange={e => setSong2Genre(e.target.value)} disabled={isProcessing} className="w-full p-2 bg-gray-800 border border-gray-600 rounded-md focus:ring-1 focus:ring-pink-500 text-sm">
-                                    {genres.map(g => <option key={g} value={g}>{g}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="s2-vibe" className="block text-sm font-medium text-gray-400 mb-1">Vibe / Mood</label>
-                                <select id="s2-vibe" value={song2Vibe} onChange={e => setSong2Vibe(e.target.value)} disabled={isProcessing} className="w-full p-2 bg-gray-800 border border-gray-600 rounded-md focus:ring-1 focus:ring-pink-500 text-sm">
-                                    {moods.map(v => <option key={v} value={v}>{v}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="pt-4">
-                        <button onClick={handleCompare} disabled={isProcessing || !song1File || !song2File} className="w-full flex items-center justify-center gap-3 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
-                             Compare Songs
-                        </button>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};

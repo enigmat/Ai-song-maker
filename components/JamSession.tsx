@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, FunctionDeclaration, Type, Modality, LiveServerMessage } from '@google/genai';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
-// Fix: Import `trackUsage` from the correct service file.
 import { createPcmBlob } from '../services/geminiService';
 import { trackUsage } from '../services/usageService';
 

@@ -1,73 +1,36 @@
-import { GoogleGenAI, Type, Modality, LiveServerMessage, Blob, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, Type, Modality, LiveServerMessage, Blob as GenAIBlob, GenerateContentResponse } from "@google/genai";
 import { trackUsage } from './usageService';
-import type { SongData, SongStructureAnalysis } from '../types';
+import type { 
+    SongData, 
+    SongStructureAnalysis, 
+    SingerGender, 
+    ArtistType,
+    ArtistStyleProfile,
+    MelodyAnalysis,
+    ChatMessage,
+    AlbumConcept,
+    YouTubeAssets,
+    RemixResult,
+    AnalysisReport,
+    ComparisonReport,
+    ChordProgression,
+} from '../types';
 
-// Type definitions, matching the expected structure from the AI.
-export type SingerGender = 'male' | 'female' | 'non-binary' | 'any';
-export type ArtistType = 'solo' | 'band' | 'duo' | 'any';
-export type VocalMelody = Record<string, any>; // Placeholder for a more complex type if needed
-
-// Defines the parameters that make up an artist's signature style.
-export interface ArtistStyleProfile {
-  genre: string;
-  singerGender: SingerGender;
-  artistType: ArtistType;
-  mood: string;
-  tempo: string;
-  melody: string;
-  harmony: string;
-  rhythm: string;
-  instrumentation: string;
-  atmosphere: string;
-  vocalStyle: string;
-}
-
-// This defines a single song saved under an artist
-export interface ArtistSong {
-    title: string;
-    songPrompt: string;
-    lyrics: string;
-    albumCoverPrompt: string;
-    createdAt: string; // ISO Date string
-}
-
-// This is the structure of the value in our localStorage dictionary
-export interface StoredArtistProfile {
-    style: ArtistStyleProfile;
-    songs: ArtistSong[];
-}
-
-// New type for hummed melody notes
-export interface MelodyNote {
-    pitch: string; // e.g., "C4"
-    startTime: number; // in seconds
-    duration: number; // in seconds
-}
-
-export interface MelodyAnalysis {
-    bpm: number;
-    notes: MelodyNote[];
-}
-
-export interface ChatMessage {
-  role: 'user' | 'model';
-  parts: { text: string }[];
-}
-
-// New type for the album details result
-export interface AlbumConcept {
-    artistBio: string;
-    albumCoverPrompt: string;
-    artistImagePrompt: string;
-}
-
-export interface YouTubeAssets {
-    title: string;
-    description: string;
-    tags: string[];
-    thumbnailPrompts: string[];
-}
-
+export type { 
+    SongData, 
+    SongStructureAnalysis, 
+    SingerGender, 
+    ArtistType,
+    ArtistStyleProfile,
+    MelodyAnalysis,
+    ChatMessage,
+    AlbumConcept,
+    YouTubeAssets,
+    RemixResult,
+    AnalysisReport,
+    ComparisonReport,
+    ChordProgression,
+};
 
 const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
 
@@ -160,11 +123,6 @@ export const generateProfileFromArtistName = async (artistName: string): Promise
 
     return profile;
 };
-
-export interface RemixResult {
-    profile: ArtistStyleProfile;
-    newCreativePrompt: string;
-}
 
 const remixResultSchema = {
     type: Type.OBJECT,
@@ -571,12 +529,11 @@ export const generateMelodyFromHum = async (audioBlob: Blob): Promise<MelodyAnal
 };
 
 
-export const generateNewBeatPattern = async (styleGuide: string, genre: string): Promise<string> => {
-    const prompt = `Based on the following music style guide for a "${genre}" song, generate ONLY a JSON string for a new 16-step drum pattern.
-        Style Guide: "${styleGuide}"
-        The JSON should only contain keys for 'kick', 'snare', 'hihat', and 'clap', with values being arrays of integers from 0 to 15.
+export const generateNewBeatPattern = async (promptText: string): Promise<string> => {
+    const prompt = `Generate ONLY a JSON string for a 16-step drum pattern for the following description: "${promptText}".
+        The JSON must only contain keys for 'kick', 'snare', 'hihat', and 'clap', with values being arrays of integers from 0 to 15.
         Example format: '{"kick": [0, 8], "snare": [4, 12], "hihat": [0,2,4,6,8,10,12,14]}'
-        Do not include any other text, explanations, or markdown formatting.`;
+        Do not include any other text, explanations, or markdown formatting. The entire output must be a valid JSON string.`;
 
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -591,6 +548,70 @@ export const generateNewBeatPattern = async (styleGuide: string, genre: string):
         inputChars: prompt.length,
         outputChars: cleanedText.length,
         description: 'Generate Beat Pattern'
+    });
+
+    return cleanedText;
+};
+
+export const generateBeatFromAudio = async (audioBlob: Blob): Promise<string> => {
+    const base64Audio = await blobToBase64(audioBlob);
+
+    const audioPart = {
+        inlineData: {
+            mimeType: audioBlob.type,
+            data: base64Audio,
+        },
+    };
+
+    const textPart = {
+        text: `Analyze the rhythm, tempo, style, and feel of this audio file. Based on your analysis, generate a complementary 16-step drum pattern.
+        The output must be ONLY a JSON string. The JSON must only contain keys for 'kick', 'snare', 'hihat', and 'clap', with values being arrays of integers from 0 to 15.
+        Example format: '{"kick": [0, 8], "snare": [4, 12], "hihat": [0,2,4,6,8,10,12,14]}'
+        Do not include any other text, explanations, or markdown formatting.`
+    };
+    
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: { parts: [audioPart, textPart] },
+    });
+    
+    const cleanedText = response.text.replace(/```json\n?|\n?```/g, '').trim();
+
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'multimodal',
+        inputChars: textPart.text.length,
+        outputChars: cleanedText.length,
+        description: 'Generate Beat from Audio'
+    });
+    
+    return cleanedText;
+};
+
+
+export const evolveBeatPattern = async (pattern: string, instruction: string): Promise<string> => {
+    const prompt = `You are an expert drum machine programmer. I will provide you with a 16-step drum pattern in JSON format and an instruction.
+Your task is to modify the pattern according to the instruction and return ONLY the new, valid JSON pattern.
+Keep the structure of the JSON the same (keys: kick, snare, hihat, clap; values: arrays of numbers 0-15). Do not add any explanatory text or markdown.
+
+Instruction: "${instruction}"
+
+Existing Pattern:
+${pattern}`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+    });
+
+    const cleanedText = response.text.replace(/```json\n?|\n?```/g, '').trim();
+
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: cleanedText.length,
+        description: 'Evolve Beat Pattern'
     });
 
     return cleanedText;
@@ -804,24 +825,6 @@ export const generateYouTubeAssets = async (
     return assets;
 };
 
-export interface Ratings {
-    commercialPotential: { score: number; justification: string };
-    originality: { score: number; justification: string };
-    composition: { score: number; justification: string };
-    productionQuality: { score: number; justification: string };
-}
-export interface Marketability {
-    targetAudience: string;
-    playlistFit: string[];
-    syncPotential: string;
-}
-export interface AnalysisReport {
-    ratings: Ratings;
-    pros: string[];
-    cons: string[];
-    summary: string;
-    marketability: Marketability;
-}
 const ratingProperty = { type: Type.OBJECT, properties: { score: { type: Type.INTEGER }, justification: { type: Type.STRING } }, required: ["score", "justification"] };
 const analysisReportSchema = {
     type: Type.OBJECT,
@@ -842,24 +845,8 @@ export const analyzeSong = async (fileName: string, genre: string, description: 
     return JSON.parse(jsonText) as AnalysisReport;
 };
 
-export interface SongComparisonMetrics {
-    commercialPotential: { score: number; justification: string };
-    originality: { score: number; justification: string };
-    composition: { score: number; justification: string };
-    productionQuality: { score: number; justification: string };
-    summary: string;
-}
-export interface ComparisonReport {
-    overallWinner: { song: 'song1' | 'song2' | 'tie'; justification: string };
-    marketabilityWinner: { song: 'song1' | 'song2' | 'tie'; justification: string };
-    spotifyWinner: { song: 'song1' | 'song2' | 'tie'; justification: string };
-    song1Analysis: SongComparisonMetrics;
-    song2Analysis: SongComparisonMetrics;
-    recommendationsForSong1: string[];
-    recommendationsForSong2: string[];
-}
-const songComparisonMetricsProperty = { type: Type.OBJECT, properties: { commercialPotential: { ...ratingProperty }, originality: { ...ratingProperty }, composition: { ...ratingProperty }, productionQuality: { ...ratingProperty }, summary: { type: Type.STRING } }, required: ["commercialPotential", "originality", "composition", "productionQuality", "summary"] };
 const winnerProperty = { type: Type.OBJECT, properties: { song: { type: Type.STRING }, justification: { type: Type.STRING } }, required: ["song", "justification"] };
+const songComparisonMetricsProperty = { type: Type.OBJECT, properties: { commercialPotential: { ...ratingProperty }, originality: { ...ratingProperty }, composition: { ...ratingProperty }, productionQuality: { ...ratingProperty }, summary: { type: Type.STRING } }, required: ["commercialPotential", "originality", "composition", "productionQuality", "summary"] };
 const comparisonReportSchema = { type: Type.OBJECT, properties: { overallWinner: { ...winnerProperty }, marketabilityWinner: { ...winnerProperty }, spotifyWinner: { ...winnerProperty }, song1Analysis: songComparisonMetricsProperty, song2Analysis: songComparisonMetricsProperty, recommendationsForSong1: { type: Type.ARRAY, items: { type: Type.STRING } }, recommendationsForSong2: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["overallWinner", "marketabilityWinner", "spotifyWinner", "song1Analysis", "song2Analysis", "recommendationsForSong1", "recommendationsForSong2"] };
 export const compareSongs = async (song1Name: string, song1Genre: string, song1Vibe: string, song2Name: string, song2Genre: string, song2Vibe: string): Promise<ComparisonReport> => {
     const fullPrompt = `Act as an expert A&R scout. Provide a detailed, hypothetical comparison of two songs. Song 1: "${song1Name}" (Genre: ${song1Genre}, Vibe: ${song1Vibe}). Song 2: "${song2Name}" (Genre: ${song2Genre}, Vibe: ${song2Vibe}). Your task: Declare winners for Overall, Marketability, and Spotify Potential. Provide detailed analysis and recommendations for each song.`;
@@ -876,11 +863,6 @@ export const enhanceLyrics = async (originalLyrics: string): Promise<string> => 
     return response.text.trim();
 };
 
-export interface ChordProgression {
-    progression: string;
-    description: string;
-    theoryExplanation: string;
-}
 const chordProgressionSchema = { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { progression: { type: Type.STRING }, description: { type: Type.STRING }, theoryExplanation: { type: Type.STRING } }, required: ["progression", "description", "theoryExplanation"] } };
 export const generateChordProgressions = async (key: string, genre: string, mood: string): Promise<ChordProgression[]> => {
     const prompt = `Act as an expert music theorist. Generate 5 unique chord progressions for Key: ${key}, Genre: ${genre}, Mood: ${mood}. For each, provide the chord sequence, a brief description, and a 1-2 sentence music theory explanation.`;
@@ -989,7 +971,7 @@ export async function decodeAudioData(
 }
 
 
-export function createPcmBlob(data: Float32Array): Blob {
+export function createPcmBlob(data: Float32Array): GenAIBlob {
   const l = data.length;
   const int16 = new Int16Array(l);
   for (let i = 0; i < l; i++) {
@@ -1055,6 +1037,6 @@ export const analyzeAudioForProfile = async (audioBlob: Blob): Promise<ArtistSty
     const textPart = { text: `You are an expert music A&R scout.Analyze the provided audio file and generate a detailed "Artist Style Profile". Suggest a creative and plausible artist name. The output must be ONLY a single JSON object.` };
     const response = await ai.models.generateContent({ model: "gemini-2.5-flash", contents: { parts: [audioPart, textPart] }, config: { responseMimeType: "application/json", responseSchema: audioAnalysisProfileSchema } });
     const jsonText = response.text.trim();
-    trackUsage({ model: 'gemini-2.5-flash', type: 'multimodal', inputChars: textPart.text.length, outputChars: jsonText.length, description: `Analyze Audio for Profile: ${(audioBlob as File).name}` });
+    trackUsage({ model: 'gemini-2.5-flash', type: 'multimodal', inputChars: textPart.text.length, outputChars: jsonText.length, description: `Analyze Audio for Profile: ${(audioBlob as any).name || 'audio blob'}` });
     return JSON.parse(jsonText) as ArtistStyleProfile & { artistNameSuggestion: string };
 };
