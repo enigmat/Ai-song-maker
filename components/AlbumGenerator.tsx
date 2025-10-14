@@ -1,3 +1,6 @@
+
+
+
 import React, { useState } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
@@ -8,6 +11,8 @@ import {
     generateAlbumNames,
 } from '../services/geminiService';
 import { genres } from '../constants/music';
+
+declare var ID3Writer: any;
 
 type Status = 'prompt' | 'generating' | 'display' | 'error';
 
@@ -31,6 +36,54 @@ const SelectInput: React.FC<{
     </div>
 );
 
+const DownloadWithArtButton: React.FC<{ track: File, coverArtUrl: string }> = ({ track, coverArtUrl }) => {
+    const [status, setStatus] = useState<'idle' | 'processing' | 'error'>('idle');
+
+    const handleDownload = async () => {
+        setStatus('processing');
+        try {
+            const audioBuffer = await track.arrayBuffer();
+            const coverArtRes = await fetch(coverArtUrl);
+            const coverArtBuffer = await coverArtRes.arrayBuffer();
+
+            const writer = new ID3Writer(audioBuffer);
+            writer.setFrame('APIC', {
+                type: 3, // Cover (front)
+                data: coverArtBuffer,
+                description: 'Cover',
+            });
+            writer.addTag();
+
+            const taggedBlob = writer.getBlob();
+            const url = URL.createObjectURL(taggedBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = track.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            setStatus('idle');
+        } catch (error) {
+            console.error("Failed to add art and download:", error);
+            setStatus('error');
+        }
+    };
+
+    return (
+        <button
+            onClick={handleDownload}
+            disabled={status === 'processing'}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2 bg-teal-600 text-white rounded-md shadow-md hover:bg-teal-500 transition-all disabled:opacity-50"
+        >
+            {status === 'processing' ? <LoadingSpinner size="sm" /> : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            )}
+            Download with Art
+        </button>
+    );
+};
+
 export const AlbumGenerator: React.FC = () => {
     const [status, setStatus] = useState<Status>('prompt');
     const [error, setError] = useState<string | null>(null);
@@ -50,6 +103,7 @@ export const AlbumGenerator: React.FC = () => {
     const [coverArtFile, setCoverArtFile] = useState<File | null>(null);
     const [coverArtPreview, setCoverArtPreview] = useState<string | null>(null);
     const [genre, setGenre] = useState(genres[0]);
+    const [uploadedTracks, setUploadedTracks] = useState<File[]>([]);
     
     const [isSuggesting, setIsSuggesting] = useState(false);
     const [nameSuggestions, setNameSuggestions] = useState<string[]>([]);
@@ -58,20 +112,38 @@ export const AlbumGenerator: React.FC = () => {
     
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file && file.type.startsWith('image/')) {
-            setCoverArtFile(file);
-            setError(null);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setCoverArtPreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+
+        // FIX: The type of `file` can be ambiguous. Using `instanceof File` acts as a type guard
+        // to ensure `file` is a File object before accessing its properties. This resolves the
+        // error where `type` was not found on type `unknown`.
+        if (file instanceof File) {
+            if (file.type.startsWith('image/')) {
+                setCoverArtFile(file);
+                setError(null);
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setCoverArtPreview(reader.result as string);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                setCoverArtFile(null);
+                setCoverArtPreview(null);
+                setError('Please select a valid image file.');
+            }
         } else {
             setCoverArtFile(null);
             setCoverArtPreview(null);
-            if (e.target.files && e.target.files.length > 0) {
-                setError('Please select a valid image file.');
+        }
+    };
+
+    const handleTrackUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const files = Array.from(e.target.files);
+            const validFiles = files.filter(f => f.type.startsWith('audio/'));
+            if (validFiles.length !== files.length) {
+                setError("Some files were not valid audio files and were ignored.");
             }
+            setUploadedTracks(prev => [...prev, ...validFiles]);
         }
     };
 
@@ -152,6 +224,7 @@ export const AlbumGenerator: React.FC = () => {
         setCoverArtFile(null);
         setCoverArtPreview(null);
         setNameSuggestions([]);
+        setUploadedTracks([]);
     };
 
     return (
@@ -227,7 +300,7 @@ export const AlbumGenerator: React.FC = () => {
                         <textarea id="album-prompt" rows={3} value={albumPrompt} onChange={(e) => setAlbumPrompt(e.target.value)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="e.g., 'A synth-pop concept album about a robot falling in love with a star.'" />
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                         <div>
                              <label htmlFor="cover-art-file" className="block text-sm font-medium text-gray-400 mb-2">Album Cover (Optional)</label>
                              <input id="cover-art-file" type="file" accept="image/*" onChange={handleFileChange} className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600/50 file:text-purple-200 hover:file:bg-purple-600/70" />
@@ -238,6 +311,16 @@ export const AlbumGenerator: React.FC = () => {
                                 <img src={coverArtPreview} alt="Album cover preview" className="w-24 h-24 rounded-md inline-block border-2 border-gray-600" />
                             </div>
                         )}
+                         <div>
+                            <label htmlFor="track-upload" className="block text-sm font-medium text-gray-400 mb-2">Add Tracks (Optional)</label>
+                            <input id="track-upload" type="file" accept="audio/mpeg,audio/wav" multiple onChange={handleTrackUpload} className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600/50 file:text-purple-200 hover:file:bg-purple-600/70" />
+                            <p className="text-xs text-gray-500 mt-1">Upload MP3/WAV files to add your new cover art to them.</p>
+                            {uploadedTracks.length > 0 && (
+                                <div className="mt-2 text-xs text-gray-400 space-y-1">
+                                    {uploadedTracks.map(t => <p key={t.name} className="truncate">✓ {t.name}</p>)}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div>
@@ -300,6 +383,20 @@ export const AlbumGenerator: React.FC = () => {
                             </div>
                         </div>
                     </div>
+
+                    {uploadedTracks.length > 0 && (
+                        <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-700">
+                            <h3 className="text-xl font-bold text-gray-200 mb-4">Your Tracks</h3>
+                            <div className="space-y-3">
+                                {uploadedTracks.map((track, index) => (
+                                    <div key={index} className="bg-gray-800/50 p-3 rounded-lg flex flex-col sm:flex-row justify-between items-center gap-3">
+                                        <p className="font-semibold text-gray-300 truncate" title={track.name}>{track.name}</p>
+                                        <DownloadWithArtButton track={track} coverArtUrl={albumResult.albumCoverUrl} />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     
                     <div className="text-center pt-4">
                         <button onClick={handleReset} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 border-2 border-purple-500 text-purple-400 rounded-lg shadow-md hover:bg-purple-500 hover:text-white">Create Another Album</button>

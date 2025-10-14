@@ -1,6 +1,6 @@
 import React from 'react';
 
-type ActiveTool = 'generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'analyzer' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'rollout_planner';
+type ActiveTool = 'generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools';
 
 interface TabsProps {
   activeTool: ActiveTool;
@@ -61,12 +61,6 @@ const JamSessionIcon = () => (
 const YouTubeIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
         <path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-8.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L1 12c0-2.19.16-3.8.44-4.83.25.9.83 1.48 1.73 1.73.47-.13 1.33.22 2.65.28 1.3.07 2.49.1 3.59.1L12 5c4.19 0 6.8.16 8.83.44.9.25 1.48.83 1.73 1.73z" />
-    </svg>
-);
-
-const RolloutPlannerIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
     </svg>
 );
 
@@ -172,9 +166,9 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowReci
         <YouTubeIcon />
         YouTube Tools
       </button>
-      <button onClick={() => onSelectTool('rollout_planner')} className={getButtonClasses('rollout_planner')}>
-        <RolloutPlannerIcon />
-        Rollout Planner
+      <button onClick={() => onSelectTool('release_toolkit')} className={getButtonClasses('release_toolkit')}>
+        <AnalyzerIcon />
+        Release Toolkit
       </button>
       <button onClick={() => onSelectTool('jamsession')} className={getButtonClasses('jamsession')}>
         <JamSessionIcon />
@@ -195,10 +189,6 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowReci
       <button onClick={() => onSelectTool('mastering')} className={getButtonClasses('mastering')}>
         <MasteringIcon />
         AI Mastering
-      </button>
-      <button onClick={() => onSelectTool('analyzer')} className={getButtonClasses('analyzer')}>
-        <AnalyzerIcon />
-        MP3 Analyzer
       </button>
       <button onClick={() => onSelectTool('comparator')} className={getButtonClasses('comparator')}>
         <ComparatorIcon />

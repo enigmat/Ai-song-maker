@@ -5,7 +5,7 @@ import { SongGenerator } from './components/SongGenerator';
 import { AlbumGenerator } from './components/AlbumGenerator';
 import { SongRemixer } from './components/SongRemixer';
 import { AifConverter } from './components/AifConverter';
-import { Mp3Analyzer } from './components/Mp3Analyzer';
+import { ReleaseToolkit } from './components/ReleaseToolkit';
 import { SongComparator } from './components/SongComparator';
 import { VocalTools } from './components/VocalTools';
 import { ChordProgressionGenerator } from './components/ChordProgressionGenerator';
@@ -22,10 +22,9 @@ import { useProjects } from './hooks/useProjects';
 import { PlaybackContext } from './contexts/PlaybackContext';
 import { SongExplorer } from './components/SongExplorer';
 import { YouTubeTools } from './components/YouTubeTools';
-import { RolloutPlanGenerator } from './components/RolloutPlanGenerator';
 
 
-type ActiveTool = 'generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'analyzer' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'rollout_planner';
+type ActiveTool = 'generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools';
 const ONBOARDING_KEY = 'mustbmusic_onboarding_complete_v1';
 
 const App: React.FC = () => {
@@ -108,7 +107,7 @@ const App: React.FC = () => {
             )}
             {activeTool === 'remixer' && <SongRemixer />}
             {activeTool === 'youtube_tools' && <YouTubeTools />}
-            {activeTool === 'rollout_planner' && <RolloutPlanGenerator />}
+            {activeTool === 'release_toolkit' && <ReleaseToolkit />}
             {activeTool === 'vocaltools' && <VocalTools />}
             {activeTool === 'chords' && <ChordProgressionGenerator />}
             {activeTool === 'jamsession' && <JamSession />}
@@ -116,7 +115,6 @@ const App: React.FC = () => {
             {activeTool === 'style_creator' && <StyleCreator />}
             {activeTool === 'profiles' && <ArtistProfileManager />}
             {activeTool === 'converter' && <AifConverter />}
-            {activeTool === 'analyzer' && <Mp3Analyzer />}
             {activeTool === 'comparator' && <SongComparator />}
             {activeTool === 'mastering' && <AIMastering />}
             {activeTool === 'dashboard' && <UsageDashboard />}

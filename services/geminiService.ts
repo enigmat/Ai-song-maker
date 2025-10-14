@@ -15,6 +15,7 @@ import type {
     ComparisonReport,
     ChordProgression,
     RolloutPlan,
+    ListenerProfile,
 } from '../types';
 
 export type { 
@@ -32,6 +33,7 @@ export type {
     ComparisonReport,
     ChordProgression,
     RolloutPlan,
+    ListenerProfile,
 };
 
 const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
@@ -736,7 +738,7 @@ export const editImage = async (base64ImageData: string, mimeType: string, promp
             ],
         },
         config: {
-            responseModalities: [Modality.IMAGE, Modality.TEXT],
+            responseModalities: [Modality.IMAGE],
         },
     });
     
@@ -839,8 +841,15 @@ const analysisReportSchema = {
     },
     required: ["ratings", "pros", "cons", "summary", "marketability"]
 };
-export const analyzeSong = async (fileName: string, genre: string, description: string): Promise<AnalysisReport> => {
-    const prompt = `Act as an expert A&R scout and music critic. Based on the following information about a song, provide a detailed analysis. The analysis should be hypothetical. File Name: "${fileName}", Genre: "${genre}", Description: "${description}". Your analysis must include: Overall Scorecard, Pros & Cons, and Marketability.`;
+export const analyzeSong = async (fileName: string, artistName: string, artistType: string, targetAudience: string): Promise<AnalysisReport> => {
+    const prompt = `Act as an expert A&R scout and music critic. Based on the following information about a song, provide a detailed analysis. The analysis should be hypothetical. 
+    
+    **File Name:** "${fileName}"
+    **Artist Name:** "${artistName}"
+    **Artist Type:** "${artistType}"
+    **Target Audience Description:** "${targetAudience}"
+    
+    Your analysis must include: Overall Scorecard (Commercial Potential, Originality, Composition, Production Quality), Pros & Cons, and Marketability (Target Audience, Playlist Fit, Sync Potential). Use the artist's description of their target audience to inform your marketability assessment.`;
     const response = await ai.models.generateContent({ model: "gemini-2.5-flash", contents: prompt, config: { responseMimeType: "application/json", responseSchema: analysisReportSchema } });
     const jsonText = response.text.trim();
     trackUsage({ model: 'gemini-2.5-flash', type: 'text', inputChars: prompt.length, outputChars: jsonText.length, description: `Analyze Song: ${fileName}` });
@@ -960,7 +969,7 @@ const rolloutPlanSchema = {
         },
         socialMediaContent: {
             type: Type.ARRAY,
-            description: "Specific content ideas for various social media platforms.",
+            description: "Specific content ideas for various social media platforms, incorporating user-selected ideas where provided.",
             items: {
                 type: Type.OBJECT,
                 properties: {
@@ -986,18 +995,31 @@ const rolloutPlanSchema = {
     required: ["rollout", "socialMediaContent", "emailSnippets"]
 };
 
-export const generateRolloutPlan = async (songTitle: string, artistName: string, genre: string, vibe: string): Promise<RolloutPlan> => {
+export const generateRolloutPlan = async (
+    songTitle: string, 
+    artistName: string, 
+    artistType: string, 
+    releaseDate: string, 
+    targetAudience: string,
+    selectedContentIdeas: string[]
+): Promise<RolloutPlan> => {
+
+    const selectedIdeasPrompt = selectedContentIdeas.length > 0
+        ? `\n**User-Selected Content Ideas:** Critically, you MUST incorporate the following user-selected ideas into your 'socialMediaContent' section, expanding on them or assigning them to appropriate platforms:\n- ${selectedContentIdeas.join('\n- ')}\n`
+        : '';
+    
     const prompt = `Act as an expert music marketing and promotion manager. Generate a comprehensive music rollout plan for a new single. The plan must include three main sections: a detailed timeline, social media content ideas, and email newsletter snippets.
 
-    **Song Details:**
+    **Song & Artist Details:**
     - Title: "${songTitle}"
     - Artist: "${artistName}"
-    - Genre: ${genre}
-    - Vibe/Description: "${vibe || 'Not provided. Infer from other details.'}"
-
+    - Artist Type: ${artistType}
+    - Planned Release Date: ${releaseDate || 'Not specified. Create a generic 8-week timeline.'}
+    - Target Audience: "${targetAudience || 'Not provided. Infer from other details.'}"
+    ${selectedIdeasPrompt}
     **Instructions:**
-    1.  For the 'rollout' timeline, create actionable tasks for these key periods: 6 Weeks Before Release, 4 Weeks Before, 2 Weeks Before, 1 Week Before, Release Week, and Post-Release.
-    2.  For 'socialMediaContent', provide 3-4 specific, creative post ideas for each of these platforms: Instagram, TikTok, and Twitter/X.
+    1.  For the 'rollout' timeline, create actionable tasks for key periods relative to the release date (e.g., 8 Weeks Before, 6 Weeks Before, 4 Weeks Before, 2 Weeks Before, 1 Week Before, Release Week, and Post-Release).
+    2.  For 'socialMediaContent', provide 3-4 specific, creative post ideas for each of these platforms: Instagram, TikTok, and Twitter/X, tailored to the target audience. If user-selected ideas are provided, you must integrate them.
     3.  For 'emailSnippets', provide 2-3 distinct emails for different stages of the campaign (e.g., announcement, reminder, release day).
     
     Return the entire plan in the specified JSON format.`;
@@ -1020,6 +1042,125 @@ export const generateRolloutPlan = async (songTitle: string, artistName: string,
         description: `Generate Rollout Plan for: ${songTitle}`
     });
     return JSON.parse(jsonText) as RolloutPlan;
+};
+
+const listenerProfileSchema = {
+    type: Type.OBJECT,
+    properties: {
+        archetypeName: { type: Type.STRING, description: "A creative and evocative name for this ideal listener archetype, like 'The Neo-Retro Navigator' or 'The Urban Explorer'." },
+        description: { type: Type.STRING, description: "A rich, descriptive paragraph summarizing this listener's personality, worldview, and relationship with music." },
+        demographics: {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING, description: "The title for this section, which must be 'Demographics'." },
+                details: {
+                    type: Type.ARRAY,
+                    description: "A list of bullet points detailing the listener's demographic information, such as age, location, occupation, and income.",
+                    items: { type: Type.STRING }
+                }
+            },
+            required: ["title", "details"]
+        },
+        psychographics: {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING, description: "The title for this section, which must be 'Psychographics'." },
+                details: {
+                    type: Type.ARRAY,
+                    description: "A list of bullet points describing the listener's values, interests, lifestyle, and motivations.",
+                    items: { type: Type.STRING }
+                }
+            },
+            required: ["title", "details"]
+        },
+        musicHabits: {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING, description: "The title for this section, which must be 'Music Habits'." },
+                details: {
+                    type: Type.ARRAY,
+                    description: "A list of bullet points explaining how, where, and why the listener engages with music, including discovery methods and live event attendance.",
+                    items: { type: Type.STRING }
+                }
+            },
+            required: ["title", "details"]
+        }
+    },
+    required: ["archetypeName", "description", "demographics", "psychographics", "musicHabits"]
+};
+
+export const generateListenerProfile = async (
+    artistName: string,
+    artistType: string,
+    songName: string,
+    audienceDescription: string
+): Promise<ListenerProfile> => {
+    const prompt = `Act as an expert music marketer and audience researcher. Based on the provided details, create a rich and detailed "Ideal Listener" profile. This profile should be a vivid and actionable persona that the artist can use for marketing.
+
+    **Artist Name:** "${artistName}"
+    **Artist Type:** ${artistType}
+    **Song Name:** "${songName}"
+    **Artist's Description of Target Audience:** "${audienceDescription}"
+
+    **Instructions:**
+    1.  Create a compelling \`archetypeName\` for this listener (e.g., "The Neo-Retro Navigator").
+    2.  Write a summary \`description\` paragraph that brings the persona to life.
+    3.  Fill out the \`demographics\`, \`psychographics\`, and \`musicHabits\` sections with several detailed bullet points each.
+    4.  The final output must be a single JSON object matching the provided schema exactly.`;
+    
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: listenerProfileSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    trackUsage({ model: 'gemini-2.5-flash', type: 'text', inputChars: prompt.length, outputChars: jsonText.length, description: `Generate Listener Profile for: ${artistName}` });
+    return JSON.parse(jsonText) as ListenerProfile;
+};
+
+const contentIdeasSchema = {
+    type: Type.OBJECT,
+    properties: {
+        ideas: {
+            type: Type.ARRAY,
+            description: "A list of 20 creative, short-form video content ideas tailored to the song, artist, and audience. Ideas should be suitable for platforms like TikTok, Instagram Reels, and YouTube Shorts. Each idea should be a short, actionable sentence.",
+            items: { type: Type.STRING }
+        }
+    },
+    required: ["ideas"]
+};
+
+export const generateContentIdeas = async (songName: string, artistName: string, artistType: string, targetAudience: string): Promise<string[]> => {
+    const prompt = `Act as a viral marketing expert for musicians. Based on the provided song and artist details, generate a list of 20 creative, concise, and actionable content ideas for short-form video platforms like TikTok, Instagram Reels, and YouTube Shorts.
+
+    **Song Name:** "${songName}"
+    **Artist Name:** "${artistName}"
+    **Artist Type:** ${artistType}
+    **Target Audience:** "${targetAudience}"
+
+    **Instructions:**
+    - The ideas should be diverse, covering trends, behind-the-scenes, storytelling, and direct engagement.
+    - Each idea must be a single, short sentence.
+    - Tailor the ideas to the described target audience.
+    - Return the list of 20 ideas in the specified JSON format.`;
+    
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: contentIdeasSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    trackUsage({ model: 'gemini-2.5-flash', type: 'text', inputChars: prompt.length, outputChars: jsonText.length, description: `Generate Content Ideas for: ${songName}` });
+    const result = JSON.parse(jsonText) as { ideas: string[] };
+    return result.ideas;
 };
 
 
