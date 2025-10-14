@@ -196,3 +196,13 @@ export interface ListenerProfile {
   psychographics: ListenerProfileSection;
   musicHabits: ListenerProfileSection;
 }
+
+export interface PressRelease {
+  headline: string;
+  dateline: string; // e.g., "LOS ANGELES, CA"
+  introduction: string; // First paragraph
+  body: string; // Middle paragraphs, combined as a single string with newlines
+  quote: string; // A simulated quote from the artist
+  aboutArtist: string; // The boilerplate
+  callToAction: string; // E.g., "The single is available on all major streaming platforms."
+}

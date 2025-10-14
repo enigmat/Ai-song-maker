@@ -22,9 +22,10 @@ import { useProjects } from './hooks/useProjects';
 import { PlaybackContext } from './contexts/PlaybackContext';
 import { SongExplorer } from './components/SongExplorer';
 import { YouTubeTools } from './components/YouTubeTools';
+import { PressReleaseGenerator } from './components/PressReleaseGenerator';
 
 
-type ActiveTool = 'generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools';
+type ActiveTool = 'generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release';
 const ONBOARDING_KEY = 'mustbmusic_onboarding_complete_v1';
 
 const App: React.FC = () => {
@@ -108,6 +109,7 @@ const App: React.FC = () => {
             {activeTool === 'remixer' && <SongRemixer />}
             {activeTool === 'youtube_tools' && <YouTubeTools />}
             {activeTool === 'release_toolkit' && <ReleaseToolkit />}
+            {activeTool === 'press_release' && <PressReleaseGenerator />}
             {activeTool === 'vocaltools' && <VocalTools />}
             {activeTool === 'chords' && <ChordProgressionGenerator />}
             {activeTool === 'jamsession' && <JamSession />}

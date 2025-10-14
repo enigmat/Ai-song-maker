@@ -1,6 +1,6 @@
 import React from 'react';
 
-type ActiveTool = 'generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools';
+type ActiveTool = 'generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release';
 
 interface TabsProps {
   activeTool: ActiveTool;
@@ -120,6 +120,13 @@ const DashboardIcon = () => (
     </svg>
 );
 
+const PressReleaseIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+      <path fillRule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6a1 1 0 010 2H5a1 1 0 010-2zm0 4h6a1 1 0 010 2H5a1 1 0 010-2zm0 4h6a1 1 0 010 2H5a1 1 0 010-2z" clipRule="evenodd" />
+      <path d="M15 7h1a1 1 0 011 1v5.5a1.5 1.5 0 01-3 0V8a1 1 0 011-1z" />
+    </svg>
+);
+
 export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowRecipe }) => {
   const getButtonClasses = (tool: ActiveTool) => {
     const isActive = activeTool === tool;
@@ -169,6 +176,10 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowReci
       <button onClick={() => onSelectTool('release_toolkit')} className={getButtonClasses('release_toolkit')}>
         <AnalyzerIcon />
         Release Toolkit
+      </button>
+      <button onClick={() => onSelectTool('press_release')} className={getButtonClasses('press_release')}>
+        <PressReleaseIcon />
+        Press Release
       </button>
       <button onClick={() => onSelectTool('jamsession')} className={getButtonClasses('jamsession')}>
         <JamSessionIcon />

@@ -316,7 +316,7 @@ export const ReleaseToolkit: React.FC = () => {
                             </div>
                         </div>
                         
-                        {activeTab === 'analysis' && analysisReport && <ReportViewer report={analysisReport} fileName={file?.name || 'track'} onClose={() => {}} />}
+                        {activeTab === 'analysis' && analysisReport && <ReportViewer report={analysisReport} fileName={file?.name || 'track'} onClose={() => setActiveTab('listener')} />}
                         {activeTab === 'listener' && listenerProfile && <ListenerProfileDisplay profile={listenerProfile} onDownload={handleDownloadProfile} />}
                         {activeTab === 'plan' && rolloutPlan && <RolloutPlannerDisplay plan={rolloutPlan} />}
 

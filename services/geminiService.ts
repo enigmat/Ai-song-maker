@@ -16,6 +16,7 @@ import type {
     ChordProgression,
     RolloutPlan,
     ListenerProfile,
+    PressRelease,
 } from '../types';
 
 export type { 
@@ -34,6 +35,7 @@ export type {
     ChordProgression,
     RolloutPlan,
     ListenerProfile,
+    PressRelease,
 };
 
 const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
@@ -1161,6 +1163,68 @@ export const generateContentIdeas = async (songName: string, artistName: string,
     trackUsage({ model: 'gemini-2.5-flash', type: 'text', inputChars: prompt.length, outputChars: jsonText.length, description: `Generate Content Ideas for: ${songName}` });
     const result = JSON.parse(jsonText) as { ideas: string[] };
     return result.ideas;
+};
+
+const pressReleaseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        headline: { type: Type.STRING, description: "A catchy, professional headline for the press release." },
+        dateline: { type: Type.STRING, description: "The city and state for the dateline, e.g., 'LOS ANGELES, CA'. Do not include the date." },
+        introduction: { type: Type.STRING, description: "The compelling introductory paragraph (the lead). Must include artist name, release title, and release date." },
+        body: { type: Type.STRING, description: "Two to three paragraphs providing more detail about the song/album, its creation, themes, and sound. Use professional language. Use '\\n\\n' to separate paragraphs." },
+        quote: { type: Type.STRING, description: "An insightful and engaging quote from the artist about the music." },
+        aboutArtist: { type: Type.STRING, description: "A concise 'About the Artist' boilerplate paragraph." },
+        callToAction: { type: Type.STRING, description: "A concluding sentence or two telling the reader where to find the music." },
+    },
+    required: ["headline", "dateline", "introduction", "body", "quote", "aboutArtist", "callToAction"]
+};
+
+export const generatePressRelease = async (
+    artistName: string,
+    releaseTitle: string,
+    releaseDate: string,
+    story: string,
+    keywords: string,
+    links: string
+): Promise<PressRelease> => {
+    const prompt = `Act as an expert music publicist. Write a professional and engaging press release for an upcoming music release. Adhere strictly to the standard press release format.
+
+    **Artist Name:** ${artistName}
+    **Release Title:** ${releaseTitle}
+    **Release Date:** ${releaseDate}
+    **The Story / Key Details:** ${story}
+    **Descriptive Keywords:** ${keywords}
+    **Relevant Links (for context, do not include in the main body):** ${links}
+    
+    **Instructions:**
+    1.  Create a compelling \`headline\`.
+    2.  Generate a \`dateline\` (City, ST only).
+    3.  Write a strong \`introduction\` that includes the artist, title, and release date.
+    4.  Develop the \`body\` with 2-3 paragraphs expanding on the story and keywords.
+    5.  Create a plausible artist \`quote\`.
+    6.  Write a concise \`aboutArtist\` boilerplate.
+    7.  End with a clear \`callToAction\`.
+    
+    Return the entire press release in the specified JSON format.`;
+    
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: pressReleaseSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: jsonText.length,
+        description: `Generate Press Release for: ${releaseTitle}`
+    });
+    return JSON.parse(jsonText) as PressRelease;
 };
 
 
