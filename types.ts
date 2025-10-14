@@ -1,4 +1,5 @@
 
+
 // Type definitions, matching the expected structure from the AI.
 export type SingerGender = 'male' | 'female' | 'non-binary' | 'any';
 export type ArtistType = 'solo' | 'band' | 'duo' | 'any';
@@ -157,4 +158,30 @@ export interface SongSection {
 export interface SongStructureAnalysis {
   overallFeedback: string;
   sections: SongSection[];
+}
+
+export interface RolloutTask {
+  task: string;
+  description: string;
+}
+
+export interface RolloutTimeframe {
+  timeframe: string;
+  tasks: RolloutTask[];
+}
+
+export interface SocialMediaIdea {
+  platform: string;
+  ideas: string[];
+}
+
+export interface EmailSnippet {
+  subject: string;
+  body: string;
+}
+
+export interface RolloutPlan {
+  rollout: RolloutTimeframe[];
+  socialMediaContent: SocialMediaIdea[];
+  emailSnippets: EmailSnippet[];
 }

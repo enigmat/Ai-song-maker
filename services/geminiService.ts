@@ -14,6 +14,7 @@ import type {
     AnalysisReport,
     ComparisonReport,
     ChordProgression,
+    RolloutPlan,
 } from '../types';
 
 export type { 
@@ -30,6 +31,7 @@ export type {
     AnalysisReport,
     ComparisonReport,
     ChordProgression,
+    RolloutPlan,
 };
 
 const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
@@ -929,6 +931,95 @@ ${lyrics}
     const jsonText = response.text.trim();
     trackUsage({ model: 'gemini-2.5-flash', type: 'text', inputChars: prompt.length, outputChars: jsonText.length, description: 'Analyze Song Structure' });
     return JSON.parse(jsonText) as SongStructureAnalysis;
+};
+
+const rolloutPlanSchema = {
+    type: Type.OBJECT,
+    properties: {
+        rollout: {
+            type: Type.ARRAY,
+            description: "A detailed timeline of tasks leading up to and following the release.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    timeframe: { type: Type.STRING, description: "e.g., '6 Weeks Before Release'" },
+                    tasks: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                task: { type: Type.STRING, description: "The title of the task." },
+                                description: { type: Type.STRING, description: "A brief explanation of the task." }
+                            },
+                            required: ["task", "description"]
+                        }
+                    }
+                },
+                required: ["timeframe", "tasks"]
+            }
+        },
+        socialMediaContent: {
+            type: Type.ARRAY,
+            description: "Specific content ideas for various social media platforms.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    platform: { type: Type.STRING, description: "e.g., 'Instagram', 'TikTok'" },
+                    ideas: { type: Type.ARRAY, items: { type: Type.STRING } }
+                },
+                required: ["platform", "ideas"]
+            }
+        },
+        emailSnippets: {
+            type: Type.ARRAY,
+            description: "Ready-to-use email newsletter snippets for different stages of the campaign.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    subject: { type: Type.STRING, description: "The email subject line." },
+                    body: { type: Type.STRING, description: "The email body content." }
+                },
+                required: ["subject", "body"]
+            }
+        }
+    },
+    required: ["rollout", "socialMediaContent", "emailSnippets"]
+};
+
+export const generateRolloutPlan = async (songTitle: string, artistName: string, genre: string, vibe: string): Promise<RolloutPlan> => {
+    const prompt = `Act as an expert music marketing and promotion manager. Generate a comprehensive music rollout plan for a new single. The plan must include three main sections: a detailed timeline, social media content ideas, and email newsletter snippets.
+
+    **Song Details:**
+    - Title: "${songTitle}"
+    - Artist: "${artistName}"
+    - Genre: ${genre}
+    - Vibe/Description: "${vibe || 'Not provided. Infer from other details.'}"
+
+    **Instructions:**
+    1.  For the 'rollout' timeline, create actionable tasks for these key periods: 6 Weeks Before Release, 4 Weeks Before, 2 Weeks Before, 1 Week Before, Release Week, and Post-Release.
+    2.  For 'socialMediaContent', provide 3-4 specific, creative post ideas for each of these platforms: Instagram, TikTok, and Twitter/X.
+    3.  For 'emailSnippets', provide 2-3 distinct emails for different stages of the campaign (e.g., announcement, reminder, release day).
+    
+    Return the entire plan in the specified JSON format.`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: rolloutPlanSchema,
+        },
+    });
+    
+    const jsonText = response.text.trim();
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: jsonText.length,
+        description: `Generate Rollout Plan for: ${songTitle}`
+    });
+    return JSON.parse(jsonText) as RolloutPlan;
 };
 
 
