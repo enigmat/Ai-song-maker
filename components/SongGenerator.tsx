@@ -2,7 +2,6 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { SongPromptForm } from './SongPromptForm';
 import { SongEditor } from './SongEditor';
 import { ArtistProfile } from './ArtistProfile';
-import { LyricsViewer } from './LyricsViewer';
 import { MasterPlayButton } from './MasterPlayButton';
 import { StyleGuideViewer } from './StyleGuideViewer';
 import { ErrorMessage } from './ErrorMessage';
@@ -496,8 +495,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
                             </div>
                         </div>
 
-                        <LyricsViewer lyrics={songData.lyrics} />
-                        <StoryboardViewer storyboard={songData.storyboard} />
+                        <StoryboardViewer storyboard={songData.storyboard} lyrics={songData.lyrics} />
                         
                         <StyleGuideViewer styleGuide={songData.styleGuide} isLoading={false} />
                         <div className="text-center pt-4">

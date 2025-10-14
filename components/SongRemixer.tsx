@@ -2,7 +2,6 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { RemixPromptForm } from './RemixPromptForm';
 import { SongEditor } from './SongEditor';
 import { ArtistProfile } from './ArtistProfile';
-import { LyricsViewer } from './LyricsViewer';
 import { BeatPlayer } from './BeatPlayer';
 import { MasterPlayButton } from './MasterPlayButton';
 import { StyleGuideViewer } from './StyleGuideViewer';
@@ -324,7 +323,7 @@ export const SongRemixer: React.FC = () => {
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <LyricsViewer lyrics={songData.lyrics} />
+                            <StoryboardViewer storyboard={songData.storyboard} lyrics={songData.lyrics} />
                             <BeatPlayer 
                                 beatPattern={songData.beatPattern} 
                                 isPlaying={isPlaying} 
@@ -336,7 +335,6 @@ export const SongRemixer: React.FC = () => {
                             />
                         </div>
                         
-                        <StoryboardViewer storyboard={songData.storyboard} />
                         <StyleGuideViewer styleGuide={songData.styleGuide} isLoading={false} />
 
                         <div className="text-center pt-4">
