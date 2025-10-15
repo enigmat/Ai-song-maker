@@ -1,4 +1,4 @@
-import React, { useState, ChangeEvent } from 'react';
+import React, { useState, ChangeEvent, useEffect, useRef } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
 import { CopyButton } from './CopyButton';
@@ -29,6 +29,12 @@ const StyleProfileDisplay: React.FC<{ profile: ArtistStyleProfile }> = ({ profil
     </div>
 );
 
+const DownloadIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+    </svg>
+);
+
 
 export const ArtistGenerator: React.FC = () => {
     const [status, setStatus] = useState<Status>('prompt');
@@ -44,6 +50,57 @@ export const ArtistGenerator: React.FC = () => {
     const [singerGender, setSingerGender] = useState<SingerGender>('any');
     const [artistType, setArtistType] = useState<ArtistType>('any');
     const [artistName, setArtistName] = useState('');
+    const [trackName, setTrackName] = useState('');
+    
+    // New state for download menu
+    const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
+    const downloadMenuRef = useRef<HTMLDivElement>(null);
+    const [profileDataUrl, setProfileDataUrl] = useState<string | null>(null);
+
+    // Effect for closing menu on outside click
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (downloadMenuRef.current && !downloadMenuRef.current.contains(event.target as Node)) {
+                setIsDownloadMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Effect for creating/revoking blob URL for profile data download
+    useEffect(() => {
+        if (isDownloadMenuOpen && result && !profileDataUrl) {
+            const { persona } = result;
+            let content = `ARTIST PROFILE: ${persona.artistName}\n\n`;
+            content += `== BIO ==\n${persona.artistBio}\n\n`;
+            content += `== MUSICAL STYLE ==\n`;
+            for (const [key, value] of Object.entries(persona.styleProfile)) {
+                const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
+                content += `${formattedKey}: ${value}\n`;
+            }
+            content += `\n== SIGNATURE SONG CONCEPTS ==\n`;
+            persona.signatureSongConcepts.forEach(concept => {
+                content += `- ${concept}\n`;
+            });
+            content += `\n== AI IMAGE PROMPTS ==\n`;
+            content += `Artist Portrait Prompt:\n${persona.artistImagePrompt}\n\n`;
+            content += `General Visual Identity Prompt:\n${persona.visualIdentityPrompt}\n`;
+
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            setProfileDataUrl(URL.createObjectURL(blob));
+        } else if (!isDownloadMenuOpen && profileDataUrl) {
+            URL.revokeObjectURL(profileDataUrl);
+            setProfileDataUrl(null);
+        }
+        
+        // Cleanup on unmount or when result changes
+        return () => {
+            if (profileDataUrl) {
+                URL.revokeObjectURL(profileDataUrl);
+            }
+        };
+    }, [isDownloadMenuOpen, result, profileDataUrl]);
 
     const handleGenerate = async () => {
         if (!prompt.trim()) {
@@ -56,7 +113,7 @@ export const ArtistGenerator: React.FC = () => {
 
         try {
             setGenerationMessage("Crafting artist persona...");
-            const persona = await generateArtistPersona(prompt, genre, singerGender, artistType, artistName);
+            const persona = await generateArtistPersona(prompt, genre, singerGender, artistType, artistName, trackName);
 
             setGenerationMessage("Generating artist portrait...");
             const artistImageUrl = await generateImage(persona.artistImagePrompt);
@@ -118,6 +175,7 @@ export const ArtistGenerator: React.FC = () => {
         setResult(null);
         setPrompt('');
         setArtistName('');
+        setTrackName('');
     };
 
     const renderSuccess = () => result && (
@@ -155,6 +213,43 @@ export const ArtistGenerator: React.FC = () => {
                 >
                     {isSaving ? <LoadingSpinner /> : 'Save Artist Profile'}
                 </button>
+
+                <div className="relative" ref={downloadMenuRef}>
+                    <button
+                        onClick={() => setIsDownloadMenuOpen(!isDownloadMenuOpen)}
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 bg-gray-700 text-gray-200 rounded-lg shadow-md hover:bg-gray-600 transition-all"
+                        aria-haspopup="true"
+                        aria-expanded={isDownloadMenuOpen}
+                    >
+                        <DownloadIcon />
+                        Download Assets
+                    </button>
+                    {isDownloadMenuOpen && (
+                        <div className="absolute bottom-full mb-2 w-56 origin-bottom bg-gray-800 border border-gray-700 rounded-md shadow-lg z-10 animate-fade-in-fast">
+                            <div className="py-1" role="menu">
+                                <a
+                                    href={result.artistImageUrl}
+                                    download={`${result.persona.artistName.replace(/ /g, '_')}_artist_portrait.jpeg`}
+                                    className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 w-full text-left"
+                                    role="menuitem"
+                                >
+                                    Download Image (.jpeg)
+                                </a>
+                                {profileDataUrl && (
+                                    <a
+                                        href={profileDataUrl}
+                                        download={`${result.persona.artistName.replace(/ /g, '_')}_profile.txt`}
+                                        className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 w-full text-left"
+                                        role="menuitem"
+                                    >
+                                        Download Profile (.txt)
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                  <button onClick={handleReset} className="w-full sm:w-auto flex items-center justify-center gap-2 text-lg font-semibold px-6 py-3 border-2 border-gray-600 text-gray-300 rounded-lg shadow-md hover:bg-gray-700 hover:text-white">
                     Create Another
                 </button>
@@ -208,6 +303,17 @@ export const ArtistGenerator: React.FC = () => {
                                     {artistTypes.map(at => <option key={at.value} value={at.value}>{at.label}</option>)}
                                 </select>
                             </div>
+                        </div>
+                        <div>
+                            <label htmlFor="track-name" className="block text-sm font-medium text-gray-400 mb-2">Track Name / Song Idea (Optional)</label>
+                            <input
+                                id="track-name"
+                                type="text"
+                                value={trackName}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setTrackName(e.target.value)}
+                                className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                placeholder="e.g., 'Cybernetic Love'"
+                            />
                         </div>
                          <div>
                             <label htmlFor="artist-name" className="block text-sm font-medium text-gray-400 mb-2">Artist Name (Optional)</label>

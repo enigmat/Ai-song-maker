@@ -213,11 +213,13 @@ export const generateArtistPersona = async (
     genre: string,
     singerGender: SingerGender,
     artistType: ArtistType,
-    artistName?: string
+    artistName?: string,
+    trackName?: string
 ): Promise<ArtistPersona> => {
     const fullPrompt = `Act as an expert A&R executive and creative director. Based on the following user idea and constraints, generate a complete and cohesive artist persona.
 
     **User Idea:** "${prompt}"
+    ${trackName ? `\n**Inspirational Song Idea:** "${trackName}"\nThis song idea should heavily influence the artist's bio and their signature song concepts.` : ''}
 
     **Constraints:**
     - Genre: ${genre}
@@ -231,7 +233,7 @@ export const generateArtistPersona = async (
     3.  Generate a highly specific \`artistImagePrompt\` to create a portrait of the artist.
     4.  Create a broader \`visualIdentityPrompt\` for the artist's brand.
     5.  Fill out a complete \`styleProfile\` that musically defines the artist's sound, strictly adhering to the provided Genre, Singer, and Artist Type constraints.
-    6.  Provide a list of 3-5 \`signatureSongConcepts\` that this artist would write about.
+    6.  Provide a list of 3-5 \`signatureSongConcepts\` that this artist would write about. ${trackName ? 'If a song idea was provided, one of these concepts should be it or be very similar.' : ''}
 
     The entire output must be a single JSON object that strictly adheres to the provided schema.`;
 

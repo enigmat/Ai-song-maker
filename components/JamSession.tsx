@@ -81,7 +81,7 @@ export const JamSession: React.FC = () => {
         const sequence = chords.map((chord, i) => ({
             time: `0:${i}`, // Play each chord for a quarter note
             note: [`${chord}3`, `${chord}4`, `${chord}5`],
-            duration: '2n',
+            duration: '4n',
         }));
 
         new Tone.Part((time, value) => {
