@@ -3,7 +3,8 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
 import { CopyButton } from './CopyButton';
 import { generateArtistPersona, generateImage } from '../services/geminiService';
-import type { ArtistPersona, ArtistStyleProfile, StoredArtistProfile } from '../types';
+import type { ArtistPersona, ArtistStyleProfile, StoredArtistProfile, SingerGender, ArtistType } from '../types';
+import { genres, singerGenders, artistTypes } from '../constants/music';
 
 const PROFILES_STORAGE_KEY = 'mustbmusic_artist_profiles';
 
@@ -38,6 +39,12 @@ export const ArtistGenerator: React.FC = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
 
+    // New state for additional inputs
+    const [genre, setGenre] = useState(genres[0]);
+    const [singerGender, setSingerGender] = useState<SingerGender>('any');
+    const [artistType, setArtistType] = useState<ArtistType>('any');
+    const [artistName, setArtistName] = useState('');
+
     const handleGenerate = async () => {
         if (!prompt.trim()) {
             setError("Please enter an idea for your artist.");
@@ -49,7 +56,7 @@ export const ArtistGenerator: React.FC = () => {
 
         try {
             setGenerationMessage("Crafting artist persona...");
-            const persona = await generateArtistPersona(prompt);
+            const persona = await generateArtistPersona(prompt, genre, singerGender, artistType, artistName);
 
             setGenerationMessage("Generating artist portrait...");
             const artistImageUrl = await generateImage(persona.artistImagePrompt);
@@ -110,6 +117,7 @@ export const ArtistGenerator: React.FC = () => {
         setError(null);
         setResult(null);
         setPrompt('');
+        setArtistName('');
     };
 
     const renderSuccess = () => result && (
@@ -169,16 +177,47 @@ export const ArtistGenerator: React.FC = () => {
             case 'error':
             default:
                 return (
-                    <div className="space-y-4 max-w-2xl mx-auto">
+                    <div className="space-y-6 max-w-2xl mx-auto">
                         <div>
-                            <label htmlFor="artist-prompt" className="block text-sm font-medium text-gray-400 mb-2">Describe Your Artist</label>
+                            <label htmlFor="artist-prompt" className="block text-sm font-medium text-gray-400 mb-2">Describe Your Artist*</label>
                             <textarea
                                 id="artist-prompt"
-                                rows={5}
+                                rows={4}
                                 value={prompt}
                                 onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
                                 className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-all resize-y"
                                 placeholder="e.g., 'A mysterious solo synthwave artist from the future, trapped in the 80s.'"
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                             <div>
+                                <label htmlFor="genre" className="block text-sm font-medium text-gray-400 mb-2">Genre*</label>
+                                <select id="genre" value={genre} onChange={(e) => setGenre(e.target.value)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                    {genres.map(g => <option key={g} value={g}>{g}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="singerGender" className="block text-sm font-medium text-gray-400 mb-2">Singer*</label>
+                                <select id="singerGender" value={singerGender} onChange={(e) => setSingerGender(e.target.value as SingerGender)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                    {singerGenders.map(sg => <option key={sg.value} value={sg.value}>{sg.label}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="artistType" className="block text-sm font-medium text-gray-400 mb-2">Artist Type*</label>
+                                <select id="artistType" value={artistType} onChange={(e) => setArtistType(e.target.value as ArtistType)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                    {artistTypes.map(at => <option key={at.value} value={at.value}>{at.label}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                         <div>
+                            <label htmlFor="artist-name" className="block text-sm font-medium text-gray-400 mb-2">Artist Name (Optional)</label>
+                            <input
+                                id="artist-name"
+                                type="text"
+                                value={artistName}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setArtistName(e.target.value)}
+                                className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                placeholder="Leave blank for AI to generate a name"
                             />
                         </div>
                         <button

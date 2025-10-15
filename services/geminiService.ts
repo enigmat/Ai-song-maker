@@ -208,17 +208,29 @@ const artistPersonaSchema = {
     required: ["artistName", "artistBio", "artistImagePrompt", "visualIdentityPrompt", "styleProfile", "signatureSongConcepts"]
 };
 
-export const generateArtistPersona = async (prompt: string): Promise<ArtistPersona> => {
-    const fullPrompt = `Act as an expert A&R executive and creative director. Based on the following user idea, generate a complete and cohesive artist persona. The persona must be fully-realized with a distinct identity.
+export const generateArtistPersona = async (
+    prompt: string,
+    genre: string,
+    singerGender: SingerGender,
+    artistType: ArtistType,
+    artistName?: string
+): Promise<ArtistPersona> => {
+    const fullPrompt = `Act as an expert A&R executive and creative director. Based on the following user idea and constraints, generate a complete and cohesive artist persona.
 
     **User Idea:** "${prompt}"
 
+    **Constraints:**
+    - Genre: ${genre}
+    - Singer: ${singerGender}
+    - Artist Type: ${artistType}
+    ${artistName ? `- Artist Name: You MUST use the name "${artistName}".` : '- Artist Name: Create a unique and fitting name.'}
+
     **Instructions:**
-    1.  Create a unique \`artistName\`.
-    2.  Write a detailed \`artistBio\` of at least two paragraphs.
+    1.  Create the artist's name based on the constraint above.
+    2.  Write a detailed \`artistBio\` of at least two paragraphs that fits the idea and constraints.
     3.  Generate a highly specific \`artistImagePrompt\` to create a portrait of the artist.
     4.  Create a broader \`visualIdentityPrompt\` for the artist's brand.
-    5.  Fill out a complete \`styleProfile\` that musically defines the artist's sound.
+    5.  Fill out a complete \`styleProfile\` that musically defines the artist's sound, strictly adhering to the provided Genre, Singer, and Artist Type constraints.
     6.  Provide a list of 3-5 \`signatureSongConcepts\` that this artist would write about.
 
     The entire output must be a single JSON object that strictly adheres to the provided schema.`;
