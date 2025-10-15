@@ -111,6 +111,15 @@ export interface ChordProgression {
     theoryExplanation: string;
 }
 
+export interface ArtistPersona {
+  artistName: string;
+  artistBio: string;
+  artistImagePrompt: string;
+  visualIdentityPrompt: string;
+  styleProfile: ArtistStyleProfile;
+  signatureSongConcepts: string[];
+}
+
 export interface SongData {
     title: string;
     artistName: string;
@@ -205,4 +214,12 @@ export interface PressRelease {
   quote: string; // A simulated quote from the artist
   aboutArtist: string; // The boilerplate
   callToAction: string; // E.g., "The single is available on all major streaming platforms."
+}
+
+export interface SocialMediaKit {
+    profilePicture: string; // base64 data URL
+    postImage: string; // base64 data URL
+    storyImage: string; // base64 data URL
+    headerImage: string; // base64 data URL
+    thumbnailImage: string; // base64 data URL
 }

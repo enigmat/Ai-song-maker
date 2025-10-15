@@ -17,6 +17,8 @@ import type {
     RolloutPlan,
     ListenerProfile,
     PressRelease,
+    SocialMediaKit,
+    ArtistPersona,
 } from '../types';
 
 export type { 
@@ -36,6 +38,8 @@ export type {
     RolloutPlan,
     ListenerProfile,
     PressRelease,
+    SocialMediaKit,
+    ArtistPersona,
 };
 
 const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
@@ -185,6 +189,61 @@ export const remixArtistStyleProfile = async (
     });
 
     return result;
+};
+
+const artistPersonaSchema = {
+    type: Type.OBJECT,
+    properties: {
+        artistName: { type: Type.STRING, description: "A creative and plausible name for the artist or band." },
+        artistBio: { type: Type.STRING, description: "A detailed and engaging biography for the artist, fitting their persona and style. It should be at least two paragraphs long." },
+        artistImagePrompt: { type: Type.STRING, description: "A detailed, artistic prompt for an image generation model to create a compelling portrait or photo of the artist. The prompt should describe the artist's appearance, clothing, setting, mood, and photographic style (e.g., 'Close-up photo of a mysterious solo synthwave artist, mid-30s, wearing a retro jacket with neon trim, looking out over a futuristic city at night, moody lighting, anamorphic lens flare.')." },
+        visualIdentityPrompt: { type: Type.STRING, description: "A general prompt describing the artist's overall visual brand identity, suitable for creating logos, merchandise, or other brand assets. e.g., 'Minimalist and geometric, using triangles and muted neon colors. A feeling of retro-futurism and melancholy.'" },
+        styleProfile: artistStyleProfileSchema,
+        signatureSongConcepts: {
+            type: Type.ARRAY,
+            description: "A list of 3 to 5 creative, one-sentence song concepts or titles that this artist would create, fitting their style and bio.",
+            items: { type: Type.STRING }
+        }
+    },
+    required: ["artistName", "artistBio", "artistImagePrompt", "visualIdentityPrompt", "styleProfile", "signatureSongConcepts"]
+};
+
+export const generateArtistPersona = async (prompt: string): Promise<ArtistPersona> => {
+    const fullPrompt = `Act as an expert A&R executive and creative director. Based on the following user idea, generate a complete and cohesive artist persona. The persona must be fully-realized with a distinct identity.
+
+    **User Idea:** "${prompt}"
+
+    **Instructions:**
+    1.  Create a unique \`artistName\`.
+    2.  Write a detailed \`artistBio\` of at least two paragraphs.
+    3.  Generate a highly specific \`artistImagePrompt\` to create a portrait of the artist.
+    4.  Create a broader \`visualIdentityPrompt\` for the artist's brand.
+    5.  Fill out a complete \`styleProfile\` that musically defines the artist's sound.
+    6.  Provide a list of 3-5 \`signatureSongConcepts\` that this artist would write about.
+
+    The entire output must be a single JSON object that strictly adheres to the provided schema.`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: fullPrompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: artistPersonaSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    const artistPersona = JSON.parse(jsonText) as ArtistPersona;
+
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: fullPrompt.length,
+        outputChars: jsonText.length,
+        description: `Generate Artist Persona for: ${prompt.substring(0, 30)}...`
+    });
+
+    return artistPersona;
 };
 
 
@@ -1227,6 +1286,41 @@ export const generatePressRelease = async (
     return JSON.parse(jsonText) as PressRelease;
 };
 
+export const generateSocialMediaKit = async (prompt: string, artistName: string, releaseTitle: string): Promise<SocialMediaKit> => {
+    const model = 'imagen-4.0-generate-001';
+    
+    const generate = async (aspectRatio: '1:1' | '9:16' | '16:9', suffix: string) => {
+        const fullPrompt = `${prompt}, ${suffix}. Include text '${artistName}' and '${releaseTitle}' where appropriate, artistically integrated.`;
+        const response = await ai.models.generateImages({
+            model,
+            prompt: fullPrompt,
+            config: {
+                numberOfImages: 1,
+                outputMimeType: 'image/jpeg',
+                aspectRatio,
+            },
+        });
+        trackUsage({ model, type: 'image', count: 1, description: `Social Media Kit: ${suffix}` });
+        return `data:image/jpeg;base64,${response.generatedImages[0].image.imageBytes}`;
+    };
+
+    const [
+        profilePicture,
+        postImage,
+        storyImage,
+        headerImage,
+        thumbnailImage,
+    ] = await Promise.all([
+        generate('1:1', "simple, clean, bold, suitable for a small profile picture"),
+        generate('1:1', "eye-catching, suitable for a social media post"),
+        generate('9:16', "vertical format, suitable for a story background"),
+        generate('16:9', "wide panoramic banner, suitable for a social media header"),
+        generate('16:9', "vibrant, high-contrast, suitable for a video thumbnail"),
+    ]);
+
+    return { profilePicture, postImage, storyImage, headerImage, thumbnailImage };
+};
+
 
 export function encode(bytes: Uint8Array) {
   let binary = '';
@@ -1270,6 +1364,7 @@ export async function decodeAudioData(
 export function createPcmBlob(data: Float32Array): GenAIBlob {
   const l = data.length;
   const int16 = new Int16Array(l);
+  // FIX: Changed `len` to `l` to fix reference error.
   for (let i = 0; i < l; i++) {
     const s = Math.max(-1, Math.min(1, data[i]));
     // The correct conversion for 16-bit signed PCM.

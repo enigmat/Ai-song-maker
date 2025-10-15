@@ -107,13 +107,12 @@ export const AlbumGenerator: React.FC = () => {
 
     const [generationProgress, setGenerationProgress] = useState({ step: '', current: 0, total: 1 });
     
+    // FIX: The type of `e.target.files[0]` was being inferred as `unknown`.
+    // By checking `e.target.files` and its length before accessing the file,
+    // we provide a clearer path for TypeScript's type inference.
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-
-        // FIX: The type of `file` can be ambiguous. Using `instanceof File` acts as a type guard
-        // to ensure `file` is a File object before accessing its properties. This resolves the
-        // error where `type` was not found on type `unknown`.
-        if (file instanceof File) {
+        if (e.target.files && e.target.files.length > 0) {
+            const file = e.target.files[0];
             if (file.type.startsWith('image/')) {
                 setCoverArtFile(file);
                 setError(null);
@@ -136,7 +135,10 @@ export const AlbumGenerator: React.FC = () => {
     const handleTrackUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const files = Array.from(e.target.files);
-            const validFiles = files.filter(f => f.type.startsWith('audio/'));
+            // FIX: The error on this line indicates 'f' is of type 'unknown'. This is likely due to
+            // a strict TypeScript configuration. Adding a type guard or changing the logic
+            // to be more defensive, similar to `handleFileChange`, can resolve this.
+            const validFiles = files.filter((f: File) => f.type.startsWith('audio/'));
             if (validFiles.length !== files.length) {
                 setError("Some files were not valid audio files and were ignored.");
             }

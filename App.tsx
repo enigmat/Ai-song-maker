@@ -17,15 +17,17 @@ import { OnboardingWizard } from './components/OnboardingWizard';
 import { AssistantController } from './components/AssistantController';
 import { StudioAssistant } from './components/StudioAssistant';
 import { StyleCreator } from './components/StyleCreator';
+import { ArtistGenerator } from './components/ArtistGenerator';
 import { AIMastering } from './components/AIMastering';
 import { useProjects } from './hooks/useProjects';
 import { PlaybackContext } from './contexts/PlaybackContext';
 import { SongExplorer } from './components/SongExplorer';
 import { YouTubeTools } from './components/YouTubeTools';
 import { PressReleaseGenerator } from './components/PressReleaseGenerator';
+import { SocialMediaKitGenerator } from './components/SocialMediaKitGenerator';
 
 
-type ActiveTool = 'generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release';
+type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit';
 const ONBOARDING_KEY = 'mustbmusic_onboarding_complete_v1';
 
 const App: React.FC = () => {
@@ -92,6 +94,7 @@ const App: React.FC = () => {
                     </button>
                 </div>
             )}
+            {activeTool === 'artist_generator' && <ArtistGenerator />}
             {activeTool === 'album_generator' && <AlbumGenerator />}
             {activeTool === 'song_explorer' && <SongExplorer />}
             {activeTool === 'projects' && (
@@ -110,6 +113,7 @@ const App: React.FC = () => {
             {activeTool === 'youtube_tools' && <YouTubeTools />}
             {activeTool === 'release_toolkit' && <ReleaseToolkit />}
             {activeTool === 'press_release' && <PressReleaseGenerator />}
+            {activeTool === 'social_media_kit' && <SocialMediaKitGenerator />}
             {activeTool === 'vocaltools' && <VocalTools />}
             {activeTool === 'chords' && <ChordProgressionGenerator />}
             {activeTool === 'jamsession' && <JamSession />}
