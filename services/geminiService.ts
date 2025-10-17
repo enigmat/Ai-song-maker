@@ -19,6 +19,7 @@ import type {
     PressRelease,
     SocialMediaKit,
     ArtistPersona,
+    SoundPackItem,
 } from '../types';
 
 export type { 
@@ -40,6 +41,7 @@ export type {
     PressRelease,
     SocialMediaKit,
     ArtistPersona,
+    SoundPackItem,
 };
 
 const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
@@ -1333,6 +1335,90 @@ export const generateSocialMediaKit = async (prompt: string, artistName: string,
     ]);
 
     return { profilePicture, postImage, storyImage, headerImage, thumbnailImage };
+};
+
+const soundPackItemSchema = {
+    type: Type.OBJECT,
+    properties: {
+        genre: { type: Type.STRING, description: "The target genre for this version." },
+        newLyrics: { type: Type.STRING, description: "Completely new lyrics inspired by the original, but tailored to the new genre. Formatted with sections like [Verse 1], [Chorus]." },
+        styleGuide: { type: Type.STRING, description: "A detailed guide for music production in the new genre, including mood, instrumentation, vocal style, and tempo." },
+        creativeConcept: { type: Type.STRING, description: "A one-sentence creative concept that guided this specific genre remix."}
+    },
+    required: ["genre", "newLyrics", "styleGuide", "creativeConcept"]
+};
+
+export type ArtistPackType = 'Male Vocalist' | 'Female Vocalist' | 'Band';
+
+export const generateSoundPack = async (
+    originalLyrics: string,
+    originalInspiration: string,
+    targetGenres: string[],
+    artistPackType: ArtistPackType
+): Promise<SoundPackItem[]> => {
+    let singerGender: SingerGender;
+    let artistType: ArtistType;
+
+    switch(artistPackType) {
+        case 'Male Vocalist':
+            singerGender = 'male';
+            artistType = 'solo';
+            break;
+        case 'Female Vocalist':
+            singerGender = 'female';
+            artistType = 'solo';
+            break;
+        case 'Band':
+        default:
+            singerGender = 'any';
+            artistType = 'band';
+            break;
+    }
+
+    const generationPromises = targetGenres.map(genre => {
+        const prompt = `Act as an expert music producer and A&R. Your task is to completely reimagine a song in a new genre.
+        
+        **Original Inspiration (${originalInspiration}):**
+        ---
+        ${originalLyrics}
+        ---
+
+        **Target Genre:** ${genre}
+        **Singer Gender:** ${singerGender}
+        **Artist Type:** ${artistType}
+
+        **Instructions:**
+        1.  Create a new, one-sentence \`creativeConcept\` for this reimagining.
+        2.  Write completely \`newLyrics\` inspired by the original's themes but fitting the new concept and genre.
+        3.  Write a detailed \`styleGuide\` for a production in the target genre.
+        4.  The output must be a single JSON object matching the schema.`;
+
+        return ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: soundPackItemSchema,
+            },
+        });
+    });
+
+    const responses = await Promise.all(generationPromises);
+
+    const soundPackItems = responses.map((response, index) => {
+        const jsonText = response.text.trim();
+        const promptLength = (targetGenres[index] || '').length + originalLyrics.length + 200; // Rough estimate
+        trackUsage({
+            model: 'gemini-2.5-flash',
+            type: 'text',
+            inputChars: promptLength,
+            outputChars: jsonText.length,
+            description: `Sound Pack Item: ${targetGenres[index]}`
+        });
+        return JSON.parse(jsonText) as SoundPackItem;
+    });
+
+    return soundPackItems;
 };
 
 

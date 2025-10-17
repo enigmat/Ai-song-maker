@@ -25,9 +25,10 @@ import { SongExplorer } from './components/SongExplorer';
 import { YouTubeTools } from './components/YouTubeTools';
 import { PressReleaseGenerator } from './components/PressReleaseGenerator';
 import { SocialMediaKitGenerator } from './components/SocialMediaKitGenerator';
+import { SoundPackGenerator } from './components/SoundPackGenerator';
 
 
-type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit';
+type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator';
 const ONBOARDING_KEY = 'mustbmusic_onboarding_complete_v1';
 
 const App: React.FC = () => {
@@ -110,6 +111,7 @@ const App: React.FC = () => {
               />
             )}
             {activeTool === 'remixer' && <SongRemixer />}
+            {activeTool === 'sound_pack_generator' && <SoundPackGenerator />}
             {activeTool === 'youtube_tools' && <YouTubeTools />}
             {activeTool === 'release_toolkit' && <ReleaseToolkit />}
             {activeTool === 'press_release' && <PressReleaseGenerator />}

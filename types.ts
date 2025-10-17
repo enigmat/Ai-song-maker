@@ -223,3 +223,10 @@ export interface SocialMediaKit {
     headerImage: string; // base64 data URL
     thumbnailImage: string; // base64 data URL
 }
+
+export interface SoundPackItem {
+    genre: string;
+    newLyrics: string;
+    styleGuide: string;
+    creativeConcept: string;
+}
