@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 
-type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit';
+type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator';
 
 interface TabsProps {
   activeTool: ActiveTool;
@@ -34,6 +34,8 @@ const MasteringIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className=
 const DashboardIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" /><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" /></svg> );
 const PressReleaseIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6a1 1 0 010 2H5a1 1 0 010-2zm0 4h6a1 1 0 010 2H5a1 1 0 010-2zm0 4h6a1 1 0 010 2H5a1 1 0 010-2z" clipRule="evenodd" /><path d="M15 7h1a1 1 0 011 1v5.5a1.5 1.5 0 01-3 0V8a1 1 0 011-1z" /></svg> );
 const SocialMediaIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" /></svg> );
+const SoundPackIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg> );
+
 
 // FIX: Changed JSX.Element to React.ReactElement to resolve namespace error.
 const toolList: { id: ActiveTool; label: string; icon: React.ReactElement }[] = [
@@ -45,6 +47,7 @@ const toolList: { id: ActiveTool; label: string; icon: React.ReactElement }[] = 
     { id: 'assistant', label: 'Assistant', icon: <AssistantIcon /> },
     { id: 'style_creator', label: 'Style Creator', icon: <StyleCreatorIcon /> },
     { id: 'remixer', label: 'Song Remixer', icon: <RemixerIcon /> },
+    { id: 'sound_pack_generator', label: 'Sound Pack Generator', icon: <SoundPackIcon /> },
     { id: 'social_media_kit', label: 'Social Media Kit', icon: <SocialMediaIcon /> },
     { id: 'youtube_tools', label: 'YouTube Tools', icon: <YouTubeIcon /> },
     { id: 'release_toolkit', label: 'Release Toolkit', icon: <AnalyzerIcon /> },

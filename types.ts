@@ -1,6 +1,6 @@
 // Type definitions, matching the expected structure from the AI.
 export type SingerGender = 'male' | 'female' | 'non-binary' | 'any';
-export type ArtistType = 'solo' | 'band' | 'duo' | 'any';
+export type ArtistType = 'solo' | 'band' | 'duet' | 'any';
 export type VocalMelody = Record<string, any>; // Placeholder for a more complex type if needed
 
 // Defines the parameters that make up an artist's signature style.

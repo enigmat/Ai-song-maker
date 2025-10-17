@@ -57,7 +57,7 @@ const songDataSchema = {
         styleGuide: { type: Type.STRING, description: "A detailed guide for music production, including genre, mood, instrumentation, vocal style, and tempo. Should be a few sentences long." },
         beatPattern: { type: Type.STRING, description: "A JSON string representing a 16-step drum pattern. Keys can be 'kick', 'snare', 'hihat', 'clap'. Values are arrays of integers from 0 to 15. Example: '{\"kick\": [0, 8], \"snare\": [4, 12], \"hihat\": [0,2,4,6,8,10,12,14]}'" },
         singerGender: { type: Type.STRING, description: "The gender of the singer ('male', 'female', 'non-binary', or 'any')." },
-        artistType: { type: Type.STRING, description: "The type of artist ('solo', 'band', 'duo', or 'any')." },
+        artistType: { type: Type.STRING, description: "The type of artist ('solo', 'band', 'duet', or 'any')." },
         vocalMelody: { type: Type.NULL, description: "This should always be null for now." },
         bpm: { type: Type.INTEGER, description: "The tempo of the song in beats per minute (BPM), typically between 60 and 180." },
         genre: { type: Type.STRING, description: "The musical genre of the song (e.g., 'Synthwave', 'Indie Rock', 'Lo-fi Hip Hop')." },
@@ -97,7 +97,7 @@ const artistStyleProfileSchema = {
     properties: {
         genre: { type: Type.STRING, description: "The primary musical genre." },
         singerGender: { type: Type.STRING, description: "The typical gender of the lead vocalist ('male', 'female', 'non-binary', 'any')." },
-        artistType: { type: Type.STRING, description: "The type of artist ('solo', 'band', 'duo', 'any')." },
+        artistType: { type: Type.STRING, description: "The type of artist ('solo', 'band', 'duet', 'any')." },
         mood: { type: Type.STRING, description: "The dominant mood or emotion of their music." },
         tempo: { type: Type.STRING, description: "The typical tempo range (e.g., 'Slow (60-80 BPM)')." },
         melody: { type: Type.STRING, description: "The common melodic style (e.g., 'Simple and Catchy')." },
@@ -1348,7 +1348,7 @@ const soundPackItemSchema = {
     required: ["genre", "newLyrics", "styleGuide", "creativeConcept"]
 };
 
-export type ArtistPackType = 'Male Vocalist' | 'Female Vocalist' | 'Band';
+export type ArtistPackType = 'Male Vocalist' | 'Female Vocalist' | 'Band' | 'Duet';
 
 export const generateSoundPack = async (
     originalLyrics: string,
@@ -1367,6 +1367,10 @@ export const generateSoundPack = async (
         case 'Female Vocalist':
             singerGender = 'female';
             artistType = 'solo';
+            break;
+        case 'Duet':
+            singerGender = 'any';
+            artistType = 'duet';
             break;
         case 'Band':
         default:

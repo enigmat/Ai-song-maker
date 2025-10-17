@@ -189,6 +189,7 @@ export const SoundPackGenerator: React.FC = () => {
                     <option>Male Vocalist</option>
                     <option>Female Vocalist</option>
                     <option>Band</option>
+                    <option>Duet</option>
                 </select>
             </div>
 

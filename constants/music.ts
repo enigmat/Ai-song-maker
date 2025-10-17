@@ -83,7 +83,7 @@ export const artistTypes: { value: ArtistType, label: string }[] = [
     { value: 'any', label: 'Any' },
     { value: 'solo', label: 'Solo' },
     { value: 'band', label: 'Band' },
-    { value: 'duo', label: 'Duo' },
+    { value: 'duet', label: 'Duet' },
 ];
 
 export const musicalKeys = [
