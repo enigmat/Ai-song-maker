@@ -20,6 +20,9 @@ import type {
     SocialMediaKit,
     ArtistPersona,
     SoundPackItem,
+    BridgeOption,
+    MixdownReport,
+    MerchKit,
 } from '../types';
 
 export type { 
@@ -42,6 +45,9 @@ export type {
     SocialMediaKit,
     ArtistPersona,
     SoundPackItem,
+    BridgeOption,
+    MixdownReport,
+    MerchKit,
 };
 
 const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
@@ -1423,6 +1429,225 @@ export const generateSoundPack = async (
     });
 
     return soundPackItems;
+};
+
+export const getLyricalSuggestions = async (lyrics: string, prompt: string): Promise<string> => {
+    const fullPrompt = `Act as an expert lyrical co-writer and poet. A user is working on the lyrics below and needs help. Your task is to provide creative suggestions based on their request.
+
+    **Current Lyrics:**
+    ---
+    ${lyrics}
+    ---
+
+    **User's Request:** "${prompt}"
+
+    **Instructions:**
+    - Provide 3-5 distinct, actionable suggestions.
+    - For each suggestion, briefly explain *why* it improves the lyric (e.g., "This enhances the imagery," "This creates a stronger internal rhyme").
+    - Format your entire response using Markdown for clear readability.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: fullPrompt,
+    });
+
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: fullPrompt.length,
+        outputChars: response.text.length,
+        description: 'Lyrical Co-Writer Suggestion'
+    });
+
+    return response.text.trim();
+};
+
+const bridgeOptionsSchema = {
+    type: Type.ARRAY,
+    items: {
+        type: Type.OBJECT,
+        properties: {
+            type: { type: Type.STRING, description: "The conceptual approach for this bridge (e.g., 'New Perspective', 'Emotional Climax', 'Musical Shift')." },
+            lyrics: { type: Type.STRING, description: "The generated lyrics for the bridge, formatted with line breaks." },
+            explanation: { type: Type.STRING, description: "A brief music theory or songwriting explanation for why this bridge works." }
+        },
+        required: ["type", "lyrics", "explanation"]
+    }
+};
+
+export const generateBridges = async (verse: string, chorus: string): Promise<BridgeOption[]> => {
+    const prompt = `Act as an expert songwriter and music theorist. I need a bridge for my song. Generate exactly three distinct bridge options based on the provided verse and chorus lyrics.
+
+    **Verse Lyrics:**
+    ---
+    ${verse}
+    ---
+
+    **Chorus Lyrics:**
+    ---
+    ${chorus}
+    ---
+
+    **Instructions:**
+    Generate an array of three JSON objects. Each object must contain:
+    1.  \`type\`: The conceptual approach. The three types must be: 'New Perspective', 'Emotional Climax', and 'Musical Shift'.
+    2.  \`lyrics\`: The generated bridge lyrics that fit the song's theme.
+    3.  \`explanation\`: A brief (1-2 sentences) explanation of the songwriting technique used.`;
+    
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: bridgeOptionsSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    trackUsage({ model: 'gemini-2.5-flash', type: 'text', inputChars: prompt.length, outputChars: jsonText.length, description: 'Generate Bridges' });
+    return JSON.parse(jsonText) as BridgeOption[];
+};
+
+const mixdownReportSchema = {
+    type: Type.OBJECT,
+    properties: {
+        frequencyBalance: {
+            type: Type.OBJECT,
+            properties: {
+                feedback: { type: Type.STRING, description: "Feedback on the overall frequency balance (lows, mids, highs)." },
+                suggestion: { type: Type.STRING, description: "An actionable suggestion to improve the frequency balance." }
+            },
+            required: ["feedback", "suggestion"]
+        },
+        dynamics: {
+            type: Type.OBJECT,
+            properties: {
+                feedback: { type: Type.STRING, description: "Feedback on the dynamic range and compression." },
+                suggestion: { type: Type.STRING, description: "An actionable suggestion to improve dynamics." }
+            },
+            required: ["feedback", "suggestion"]
+        },
+        stereoImage: {
+            type: Type.OBJECT,
+            properties: {
+                feedback: { type: Type.STRING, description: "Feedback on the stereo width and panning." },
+                suggestion: { type: Type.STRING, description: "An actionable suggestion to improve the stereo image." }
+            },
+            required: ["feedback", "suggestion"]
+        },
+        overallSummary: {
+            type: Type.STRING,
+            description: "A brief, encouraging summary of the mix's strengths and key area for improvement."
+        }
+    },
+    required: ["frequencyBalance", "dynamics", "stereoImage", "overallSummary"]
+};
+
+export const analyzeMixdown = async (audioBlob: Blob): Promise<MixdownReport> => {
+    const base64Audio = await blobToBase64(audioBlob);
+
+    const audioPart = {
+        inlineData: {
+            mimeType: audioBlob.type,
+            data: base64Audio,
+        },
+    };
+
+    const textPart = {
+        text: `You are an expert audio mastering engineer. Analyze the provided audio mix. Provide constructive, professional feedback in the specified JSON format. Your analysis should cover three key areas:
+1.  **Frequency Balance:** Comment on the relationship between bass, mids, and treble. Is anything masking something else? Is it muddy or too harsh?
+2.  **Dynamics:** Comment on the overall dynamic range. Does it sound punchy, or is it over-compressed? Is there a good contrast between loud and soft sections?
+3.  **Stereo Image:** Comment on the width and depth of the mix. Is it engaging? Is the panning effective?
+Provide an overall summary at the end. Be encouraging but honest.`
+    };
+    
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: { parts: [audioPart, textPart] },
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: mixdownReportSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'multimodal',
+        inputChars: textPart.text.length,
+        outputChars: jsonText.length,
+        description: `Analyze Mixdown: ${(audioBlob as any).name || 'audio blob'}`
+    });
+    return JSON.parse(jsonText) as MixdownReport;
+};
+
+export const generateMerchMockups = async (artistName: string, visualPrompt: string): Promise<MerchKit> => {
+    const model = 'imagen-4.0-generate-001';
+
+    const generate = async (prompt: string) => {
+        const response = await ai.models.generateImages({
+            model,
+            prompt,
+            config: {
+                numberOfImages: 1,
+                outputMimeType: 'image/jpeg',
+                aspectRatio: '1:1',
+            },
+        });
+        trackUsage({ model, type: 'image', count: 1, description: `Merch Mockup: ${prompt.substring(0, 30)}` });
+        return `data:image/jpeg;base64,${response.generatedImages[0].image.imageBytes}`;
+    };
+
+    const [tshirt, hoodie, poster, hat] = await Promise.all([
+        generate(`Product mockup photo of a black t-shirt featuring the name '${artistName}' and a design inspired by: '${visualPrompt}'. Centered graphic, clean studio background.`),
+        generate(`Product mockup photo of a grey hoodie featuring the name '${artistName}' and a design inspired by: '${visualPrompt}'. Centered graphic on the front, clean studio background.`),
+        generate(`A high-resolution poster design for the musical artist '${artistName}' based on the theme: '${visualPrompt}'. Include the artist's name prominently.`),
+        generate(`Product mockup photo of a black baseball cap with an embroidered logo on the front. The logo should feature the name '${artistName}' and be inspired by the theme: '${visualPrompt}'.`)
+    ]);
+
+    return { tshirt, hoodie, poster, hat };
+};
+
+export const generatePlaylistPitch = async (songTitle: string, artistName: string, genre: string, vibe: string, sellingPoints: string): Promise<string> => {
+    const prompt = `Act as an expert music publicist writing a pitch for a playlist curator. The tone must be professional, concise, and compelling. Do not be overly familiar or use slang.
+
+    **Artist:** ${artistName}
+    **Song:** ${songTitle}
+    **Genre:** ${genre}
+    **Vibe/Mood:** ${vibe}
+    **Key Selling Points/Hooks:** ${sellingPoints || 'Not provided.'}
+
+    Based on this, write an email pitch. The entire output should be plain text.
+    1.  Start with a compelling subject line.
+    2.  The body should briefly introduce the song, explain why it's a good fit for a playlist (mentioning genre and mood), highlight any key selling points, and provide a clear call to action with a placeholder link.
+    3.  Keep the total word count under 150 words.
+
+    Example structure to follow:
+    Subject: [Your Subject]
+
+    Hi Curator,
+
+    [Body of email]
+
+    Thanks for your consideration.
+
+    Best,
+    ${artistName}`;
+    
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+    });
+    
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: response.text.length,
+        description: `Playlist Pitch for: ${songTitle}`
+    });
+
+    return response.text.trim();
 };
 
 

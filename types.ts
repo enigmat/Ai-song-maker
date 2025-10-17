@@ -230,3 +230,28 @@ export interface SoundPackItem {
     styleGuide: string;
     creativeConcept: string;
 }
+
+export interface BridgeOption {
+    type: string; // e.g., 'New Perspective'
+    lyrics: string;
+    explanation: string;
+}
+
+export interface MixdownReportSection {
+    feedback: string;
+    suggestion: string;
+}
+
+export interface MixdownReport {
+    frequencyBalance: MixdownReportSection;
+    dynamics: MixdownReportSection;
+    stereoImage: MixdownReportSection;
+    overallSummary: string;
+}
+
+export interface MerchKit {
+    tshirt: string;
+    hoodie: string;
+    poster: string;
+    hat: string;
+}

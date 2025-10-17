@@ -26,9 +26,13 @@ import { YouTubeTools } from './components/YouTubeTools';
 import { PressReleaseGenerator } from './components/PressReleaseGenerator';
 import { SocialMediaKitGenerator } from './components/SocialMediaKitGenerator';
 import { SoundPackGenerator } from './components/SoundPackGenerator';
+import { BridgeBuilder } from './components/BridgeBuilder';
+import { MixdownAnalyzer } from './components/MixdownAnalyzer';
+import { MerchMockupStudio } from './components/MerchMockupStudio';
+import { PlaylistPitchAssistant } from './components/PlaylistPitchAssistant';
 
 
-type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator';
+type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant';
 const ONBOARDING_KEY = 'mustbmusic_onboarding_complete_v1';
 
 const App: React.FC = () => {
@@ -116,7 +120,10 @@ const App: React.FC = () => {
             {activeTool === 'release_toolkit' && <ReleaseToolkit />}
             {activeTool === 'press_release' && <PressReleaseGenerator />}
             {activeTool === 'social_media_kit' && <SocialMediaKitGenerator />}
+            {activeTool === 'merch_mockup_studio' && <MerchMockupStudio />}
+            {activeTool === 'playlist_pitch_assistant' && <PlaylistPitchAssistant />}
             {activeTool === 'vocaltools' && <VocalTools />}
+            {activeTool === 'bridge_builder' && <BridgeBuilder />}
             {activeTool === 'chords' && <ChordProgressionGenerator />}
             {activeTool === 'jamsession' && <JamSession />}
             {activeTool === 'assistant' && <StudioAssistant />}
@@ -125,6 +132,7 @@ const App: React.FC = () => {
             {activeTool === 'converter' && <AifConverter />}
             {activeTool === 'comparator' && <SongComparator />}
             {activeTool === 'mastering' && <AIMastering />}
+            {activeTool === 'mixdown_analyzer' && <MixdownAnalyzer />}
             {activeTool === 'dashboard' && <UsageDashboard />}
           </main>
         </div>

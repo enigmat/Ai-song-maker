@@ -5,6 +5,7 @@ import { analyzeSongStructure } from '../services/geminiService';
 import { SongStructureViewer } from './SongStructureViewer';
 import type { SongData, SongStructureAnalysis } from '../types';
 import { CopyButton } from './CopyButton';
+import { LyricalCoWriterModal } from './LyricalCoWriterModal';
 
 // FIX: Define the SongEditorProps interface
 interface SongEditorProps {
@@ -25,6 +26,7 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<SongStructureAnalysis | null>(null);
     const [analysisError, setAnalysisError] = useState<string | null>(null);
+    const [isCoWriterOpen, setIsCoWriterOpen] = useState(false);
     
     const handleChange = (field: keyof SongData, value: string | number) => {
         setSongData({ ...songData, [field]: value });
@@ -114,6 +116,16 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                     initialImageUrl={artistImageUrl}
                     onSave={handleSaveEditedImage}
                     onClose={() => setShowImageEditor(false)}
+                />
+            )}
+            {isCoWriterOpen && (
+                <LyricalCoWriterModal
+                    initialLyrics={songData.lyrics}
+                    onClose={() => setIsCoWriterOpen(false)}
+                    onApplySuggestion={(newLyrics) => {
+                        handleChange('lyrics', newLyrics);
+                        setIsCoWriterOpen(false);
+                    }}
                 />
             )}
             <div className="animate-fade-in space-y-6 p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700">
@@ -273,6 +285,7 @@ export const SongEditor: React.FC<SongEditorProps> = ({ songData, setSongData, o
                             <button onClick={() => setLyricsViewMode('edit')} aria-pressed={lyricsViewMode === 'edit'} className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${lyricsViewMode === 'edit' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Edit</button>
                             <button onClick={() => setLyricsViewMode('structured')} aria-pressed={lyricsViewMode === 'structured'} className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${lyricsViewMode === 'structured' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>View</button>
                             <button onClick={handleAnalyze} aria-pressed={lyricsViewMode === 'analysis'} className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${lyricsViewMode === 'analysis' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Analyze</button>
+                            <button onClick={() => setIsCoWriterOpen(true)} className="px-3 py-1 text-xs font-semibold rounded-md transition-colors text-gray-400 hover:bg-gray-700">Co-Writer</button>
                         </div>
                     </div>
                     {renderLyricsView()}
