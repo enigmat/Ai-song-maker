@@ -1349,9 +1349,10 @@ const soundPackItemSchema = {
         genre: { type: Type.STRING, description: "The target genre for this version." },
         newLyrics: { type: Type.STRING, description: "Completely new lyrics inspired by the original, but tailored to the new genre. Formatted with sections like [Verse 1], [Chorus]." },
         styleGuide: { type: Type.STRING, description: "A detailed guide for music production in the new genre, including mood, instrumentation, vocal style, and tempo." },
-        creativeConcept: { type: Type.STRING, description: "A one-sentence creative concept that guided this specific genre remix."}
+        creativeConcept: { type: Type.STRING, description: "A one-sentence creative concept that guided this specific genre remix."},
+        albumCoverPrompt: { type: Type.STRING, description: "A detailed, artistic prompt for an image generation model to create a compelling album cover for this specific genre remix. The prompt should reflect the new creative concept, genre, and mood." }
     },
-    required: ["genre", "newLyrics", "styleGuide", "creativeConcept"]
+    required: ["genre", "newLyrics", "styleGuide", "creativeConcept", "albumCoverPrompt"]
 };
 
 export type ArtistPackType = 'Male Vocalist' | 'Female Vocalist' | 'Band' | 'Duet';
@@ -1401,7 +1402,8 @@ export const generateSoundPack = async (
         1.  Create a new, one-sentence \`creativeConcept\` for this reimagining.
         2.  Write completely \`newLyrics\` inspired by the original's themes but fitting the new concept and genre.
         3.  Write a detailed \`styleGuide\` for a production in the target genre.
-        4.  The output must be a single JSON object matching the schema.`;
+        4.  Generate a detailed, artistic \`albumCoverPrompt\` for an image generation model to create a compelling album cover for this specific genre remix. The prompt should reflect the new creative concept, genre, and mood.
+        5.  The output must be a single JSON object matching the schema.`;
 
         return ai.models.generateContent({
             model: "gemini-2.5-flash",

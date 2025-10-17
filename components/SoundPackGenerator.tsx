@@ -3,7 +3,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
 import { CopyButton } from './CopyButton';
 import { genres } from '../constants/music';
-import { generateSoundPack, transcribeAudio, ArtistPackType } from '../services/geminiService';
+import { generateSoundPack, transcribeAudio, ArtistPackType, generateImage } from '../services/geminiService';
 import type { SoundPackItem } from '../types';
 
 declare var saveAs: any;
@@ -31,6 +31,8 @@ export const SoundPackGenerator: React.FC = () => {
 
     // Result state
     const [reportData, setReportData] = useState<SoundPackItem[]>([]);
+    const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+    const [imageLoadingStates, setImageLoadingStates] = useState<Record<string, boolean>>({});
     
     const handleGenreChange = (genre: string, isChecked: boolean) => {
         setSelectedGenres(prev => {
@@ -93,6 +95,26 @@ export const SoundPackGenerator: React.FC = () => {
             setReportData(results);
             setStatus('success');
 
+            const initialLoadingStates: Record<string, boolean> = {};
+            results.forEach(item => {
+                initialLoadingStates[item.genre] = true;
+            });
+            setImageLoadingStates(initialLoadingStates);
+            setImageUrls({});
+
+            results.forEach(item => {
+                generateImage(item.albumCoverPrompt)
+                    .then(url => {
+                        setImageUrls(prev => ({ ...prev, [item.genre]: url }));
+                    })
+                    .catch(err => {
+                        console.error(`Failed to generate image for ${item.genre}`, err);
+                    })
+                    .finally(() => {
+                        setImageLoadingStates(prev => ({ ...prev, [item.genre]: false }));
+                    });
+            });
+
         } catch (err: any) {
             console.error("Sound pack generation failed:", err);
             setError(err.message || 'Failed to generate sound pack. The AI model might be busy.');
@@ -115,6 +137,7 @@ export const SoundPackGenerator: React.FC = () => {
             reportText += `CREATIVE CONCEPT: ${item.creativeConcept}\n\n`;
             reportText += `NEW LYRICS:\n${item.newLyrics}\n\n`;
             reportText += `STYLE GUIDE:\n${item.styleGuide}\n\n`;
+            reportText += `ALBUM COVER PROMPT:\n${item.albumCoverPrompt}\n\n`;
             reportText += `========================================\n\n`;
         });
 
@@ -130,6 +153,8 @@ export const SoundPackGenerator: React.FC = () => {
         setSelectedGenres([]);
         setArtistType('Male Vocalist');
         setReportData([]);
+        setImageUrls({});
+        setImageLoadingStates({});
     }, []);
 
     const renderForm = () => (
@@ -212,13 +237,30 @@ export const SoundPackGenerator: React.FC = () => {
                 <div key={index} className="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
                     <h4 className="text-xl font-bold text-purple-400">{item.genre}</h4>
                     <p className="text-sm italic text-gray-400 mt-1">"{item.creativeConcept}"</p>
-                    <div className="mt-4 grid md:grid-cols-2 gap-6">
+                    <div className="mt-4 grid md:grid-cols-3 gap-6">
+                        <div>
+                            <h5 className="text-lg font-semibold text-gray-300 mb-2">Album Cover</h5>
+                            <div className="aspect-square bg-gray-800/50 rounded-md flex items-center justify-center">
+                                {imageLoadingStates[item.genre] && <LoadingSpinner />}
+                                {imageUrls[item.genre] && !imageLoadingStates[item.genre] && (
+                                    <img src={imageUrls[item.genre]} alt={`Cover for ${item.genre}`} className="w-full h-full object-cover rounded-md" />
+                                )}
+                                {!imageUrls[item.genre] && !imageLoadingStates[item.genre] && (
+                                    <p className="text-xs text-gray-500 p-2 text-center">Image generation failed or is not available.</p>
+                                )}
+                            </div>
+                            {imageUrls[item.genre] && !imageLoadingStates[item.genre] && (
+                                <a href={imageUrls[item.genre]} download={`${item.genre.replace(/ /g, '_')}_cover.jpeg`} className="mt-2 w-full text-xs text-center block font-semibold px-3 py-1.5 bg-teal-600 text-white rounded-md hover:bg-teal-500 transition-colors">
+                                    Download
+                                </a>
+                            )}
+                        </div>
                         <div className="relative">
                             <h5 className="text-lg font-semibold text-gray-300 mb-2">New Lyrics</h5>
                             <CopyButton textToCopy={item.newLyrics} className="absolute top-0 right-0" />
                             <pre className="whitespace-pre-wrap font-sans text-gray-300 text-sm bg-gray-800/50 p-3 rounded-md h-64 overflow-y-auto">{item.newLyrics}</pre>
                         </div>
-                         <div className="relative">
+                        <div className="relative">
                             <h5 className="text-lg font-semibold text-gray-300 mb-2">Style Guide</h5>
                             <CopyButton textToCopy={item.styleGuide} className="absolute top-0 right-0" />
                             <pre className="whitespace-pre-wrap font-sans text-gray-300 text-sm bg-gray-800/50 p-3 rounded-md h-64 overflow-y-auto">{item.styleGuide}</pre>

@@ -229,6 +229,7 @@ export interface SoundPackItem {
     newLyrics: string;
     styleGuide: string;
     creativeConcept: string;
+    albumCoverPrompt: string;
 }
 
 export interface BridgeOption {
