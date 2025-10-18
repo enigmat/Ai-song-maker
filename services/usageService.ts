@@ -18,7 +18,6 @@ const PRICING = {
     'gemini-2.5-flash-native-audio-preview-09-2025': {
         perSecond: 0.28 / PER_MILLION,
     },
-    // FIX: Add pricing for the text-to-speech model to allow usage tracking.
     'gemini-2.5-flash-preview-tts': {
         inputChar: 4.00 / PER_MILLION,
         outputChar: 0, // Output is audio, not text characters
@@ -42,7 +41,6 @@ export interface UsageData {
     totalOutputChars: number;
     totalImages: number;
     totalAudioSeconds: number;
-    totalVideos: number;
     apiCalls: ApiCallLog[];
 }
 
@@ -51,7 +49,7 @@ interface TrackUsageParams {
     type: 'text' | 'image' | 'audio' | 'multimodal';
     inputChars?: number;
     outputChars?: number;
-    count?: number; // For images/videos
+    count?: number; // For images
     seconds?: number; // For audio
     description: string;
 }
@@ -72,7 +70,6 @@ export const getUsage = (): UsageData => {
         totalOutputChars: 0,
         totalImages: 0,
         totalAudioSeconds: 0,
-        totalVideos: 0,
         apiCalls: [],
     };
 };

@@ -1681,6 +1681,36 @@ export const generateSpeechFromText = async (text: string, voiceName: string): P
     return base64Audio;
 };
 
+export const generateVideoFromLyrics = async (lyrics: string, onProgress: (message: string) => void): Promise<string> => {
+    try {
+        onProgress('Analyzing lyrics to create a detailed video prompt...');
+        
+        const promptGenPrompt = `Based on the following lyrics, create a detailed, visually descriptive prompt for a video generation AI like Veo or Sora. The prompt should be a few sentences long, capturing the main visual elements, style, mood, color palette, camera movements, and overall cinematic feel of a music video for these lyrics. Do not just summarize the lyrics; create a compelling cinematic vision.
+
+Lyrics:
+---
+${lyrics}
+---
+
+Example of a good prompt: "An epic, cinematic shot of a lone astronaut drifting through a neon-lit asteroid field. Ghosts of their past flash before their eyes as lens flares streak across the screen. The mood is melancholic and introspective, with a color palette of deep blues, purples, and vibrant pinks. Slow, floating camera movements."`;
+        
+        const promptResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: promptGenPrompt,
+        });
+
+        const videoPrompt = promptResponse.text.trim();
+        trackUsage({ model: 'gemini-2.5-flash', type: 'text', inputChars: promptGenPrompt.length, outputChars: videoPrompt.length, description: 'Lyrics-to-Video-Prompt: Prompt Generation' });
+        
+        onProgress('Done!');
+        return videoPrompt;
+
+    } catch (error: any) {
+        console.error("Video prompt generation process failed:", error);
+        throw error;
+    }
+};
+
 
 export function encode(bytes: Uint8Array) {
   let binary = '';
