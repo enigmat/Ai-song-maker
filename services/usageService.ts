@@ -18,6 +18,11 @@ const PRICING = {
     'gemini-2.5-flash-native-audio-preview-09-2025': {
         perSecond: 0.28 / PER_MILLION,
     },
+    // FIX: Add pricing for the text-to-speech model to allow usage tracking.
+    'gemini-2.5-flash-preview-tts': {
+        inputChar: 4.00 / PER_MILLION,
+        outputChar: 0, // Output is audio, not text characters
+    },
 };
 
 const USAGE_STORAGE_KEY = 'mustbmusic_api_usage';

@@ -1652,6 +1652,35 @@ export const generatePlaylistPitch = async (songTitle: string, artistName: strin
     return response.text.trim();
 };
 
+export const generateSpeechFromText = async (text: string, voiceName: string): Promise<string> => {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-tts",
+      contents: [{ parts: [{ text: text }] }],
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: voiceName },
+            },
+        },
+      },
+    });
+
+    trackUsage({
+        model: 'gemini-2.5-flash-preview-tts',
+        // FIX: Changed usage type to 'text' to correctly track cost by input characters for TTS.
+        type: 'text',
+        inputChars: text.length,
+        description: `Vocal Synthesis with voice: ${voiceName}`
+    });
+
+    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (!base64Audio) {
+        throw new Error("AI did not return any audio data.");
+    }
+    return base64Audio;
+};
+
 
 export function encode(bytes: Uint8Array) {
   let binary = '';

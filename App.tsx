@@ -30,9 +30,10 @@ import { BridgeBuilder } from './components/BridgeBuilder';
 import { MixdownAnalyzer } from './components/MixdownAnalyzer';
 import { MerchMockupStudio } from './components/MerchMockupStudio';
 import { PlaylistPitchAssistant } from './components/PlaylistPitchAssistant';
+import { VocalSynthesizer } from './components/VocalSynthesizer';
 
 
-type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant';
+type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant';
 const ONBOARDING_KEY = 'mustbmusic_onboarding_complete_v1';
 
 const App: React.FC = () => {
@@ -123,6 +124,7 @@ const App: React.FC = () => {
             {activeTool === 'merch_mockup_studio' && <MerchMockupStudio />}
             {activeTool === 'playlist_pitch_assistant' && <PlaylistPitchAssistant />}
             {activeTool === 'vocaltools' && <VocalTools />}
+            {activeTool === 'vocal_synthesizer' && <VocalSynthesizer />}
             {activeTool === 'bridge_builder' && <BridgeBuilder />}
             {activeTool === 'chords' && <ChordProgressionGenerator />}
             {activeTool === 'jamsession' && <JamSession />}
