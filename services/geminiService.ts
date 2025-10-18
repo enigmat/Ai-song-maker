@@ -1711,6 +1711,43 @@ Example of a good prompt: "An epic, cinematic shot of a lone astronaut drifting 
     }
 };
 
+export const generateFeatureGuide = async (toolName: string): Promise<string> => {
+    const prompt = `Act as an expert technical writer and product educator for a music creation application called "MustBMusic Song Maker".
+Your task is to write a comprehensive and easy-to-understand guide for the "${toolName}" feature.
+The guide should be formatted in clean Markdown and follow this exact structure:
+
+# ${toolName}
+
+## 1. What It Is
+(Provide a concise, one-paragraph explanation of the tool's main purpose and what it helps the user achieve.)
+
+## 2. How to Use It
+(Provide a step-by-step guide on using the feature. Use a numbered list. Be clear and direct.)
+
+## 3. Pro Tips for Best Results
+(Offer 3-5 bullet points with expert advice, tips, or creative ideas for getting the most out of the tool.)
+
+## 4. The Tech Behind the Magic
+(Briefly explain in simple terms the AI technology that powers this feature. For example, mention if it uses text generation, image generation, audio analysis, etc.)
+
+Keep the tone helpful, encouraging, and professional.`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+    });
+
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: response.text.length,
+        description: `Feature Guide: ${toolName}`
+    });
+
+    return response.text.trim();
+};
+
 
 export function encode(bytes: Uint8Array) {
   let binary = '';

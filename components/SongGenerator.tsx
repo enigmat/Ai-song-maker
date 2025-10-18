@@ -13,11 +13,13 @@ import { Project, SongData } from '../types';
 import type { SingerGender, ArtistType, ArtistStyleProfile, MelodyAnalysis } from '../types';
 import { PlaybackContextType } from '../contexts/PlaybackContext';
 import { StoryboardViewer } from './StoryboardViewer';
+import { FeatureGuides } from './FeatureGuides';
 
 
 declare var Tone: any; // Using Tone.js from CDN
 
 type AppStatus = 'prompt' | 'generating' | 'review' | 'editing' | 'finalizing' | 'display' | 'error';
+type SongGeneratorView = 'generator' | 'guides';
 
 interface SongGeneratorProps {
     project: Project;
@@ -144,6 +146,8 @@ const VocalPlayer: React.FC<{ lyrics: string; singerGender: SingerGender }> = ({
 
 
 export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateProject, setPlaybackControls }) => {
+    const [activeView, setActiveView] = useState<SongGeneratorView>('generator');
+
     const getInitialStatus = (): AppStatus => {
         if (!project.songData) return 'prompt';
         if (project.artistImageUrl) return 'display';
@@ -407,7 +411,7 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
         }
     };
 
-    const renderContent = () => {
+    const renderGeneratorContent = () => {
         switch (status) {
             case 'prompt':
             case 'error':
@@ -510,9 +514,21 @@ export const SongGenerator: React.FC<SongGeneratorProps> = ({ project, onUpdateP
 
     return (
         <div>
+            <div className="mb-6">
+                <div className="flex items-center gap-1 rounded-lg bg-gray-800/70 p-1 border border-gray-700 max-w-sm mx-auto">
+                    <button onClick={() => setActiveView('generator')} aria-pressed={activeView === 'generator'} className={`w-1/2 px-4 py-2 text-sm font-semibold rounded-md transition-colors ${activeView === 'generator' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>
+                        Song Generator
+                    </button>
+                    <button onClick={() => setActiveView('guides')} aria-pressed={activeView === 'guides'} className={`w-1/2 px-4 py-2 text-sm font-semibold rounded-md transition-colors ${activeView === 'guides' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>
+                        Feature Guides
+                    </button>
+                </div>
+            </div>
+
             {isMelodyStudioOpen && <MelodyStudio onClose={() => setIsMelodyStudioOpen(false)} onMelodySelect={handleHummedMelodySelect} />}
             {error && <ErrorMessage message={error} onRetry={() => setStatus('prompt')} />}
-            {renderContent()}
+            
+            {activeView === 'generator' ? renderGeneratorContent() : <FeatureGuides />}
         </div>
     );
 };

@@ -13,7 +13,6 @@ import { JamSession } from './components/JamSession';
 import { ArtistProfileManager } from './components/ArtistProfileManager';
 import { UsageDashboard } from './components/UsageDashboard';
 import { ProjectManager } from './components/ProjectManager';
-import { OnboardingWizard } from './components/OnboardingWizard';
 import { AssistantController } from './components/AssistantController';
 import { StudioAssistant } from './components/StudioAssistant';
 import { StyleCreator } from './components/StyleCreator';
@@ -35,7 +34,6 @@ import { LyricsToVideo } from './components/LyricsToVideo';
 
 
 type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video';
-const ONBOARDING_KEY = 'mustbmusic_onboarding_complete_v1';
 
 const App: React.FC = () => {
   const [activeTool, setActiveTool] = useState<ActiveTool>('generator');
@@ -47,19 +45,6 @@ const App: React.FC = () => {
     updateProject,
     deleteProject,
   } = useProjects();
-  
-  const [showOnboarding, setShowOnboarding] = useState(false);
-
-  useEffect(() => {
-    try {
-        const hasCompleted = localStorage.getItem(ONBOARDING_KEY);
-        if (!hasCompleted) {
-            setShowOnboarding(true);
-        }
-    } catch (e) {
-        console.error("Could not access local storage for onboarding.", e);
-    }
-  }, []);
 
   const activeProject = useMemo(() => {
     return projects.find(p => p.id === activeProjectId) || null;
@@ -76,10 +61,9 @@ const App: React.FC = () => {
   return (
     <PlaybackContext.Provider value={playbackControls}>
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white font-sans p-4 sm:p-6 md:p-8">
-        <OnboardingWizard isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />
         <div className="max-w-4xl mx-auto">
           <Header />
-          <Tabs activeTool={activeTool} onSelectTool={setActiveTool} onShowRecipe={() => setShowOnboarding(true)} />
+          <Tabs activeTool={activeTool} onSelectTool={setActiveTool} />
           <main className="mt-8">
             {activeTool === 'generator' && activeProject && (
               <SongGenerator

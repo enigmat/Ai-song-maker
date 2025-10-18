@@ -3,6 +3,7 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { SongStorylineGenerator } from './SongStorylineGenerator';
 import type { SingerGender, ArtistType, ArtistStyleProfile, StoredArtistProfile } from '../types';
 import { generateRandomSongPrompt } from '../services/geminiService';
+import { RecipeBrowser } from './RecipeBrowser';
 import {
     genres, singerGenders, artistTypes, moods, tempos,
     melodies, harmonies, rhythms, instrumentations, atmospheres, vocalStyles,
@@ -113,6 +114,9 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
     
     // Inspire Me state
     const [isInspiring, setIsInspiring] = useState(false);
+    
+    // Recipe state
+    const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false);
 
     // Load profiles from local storage on mount
     useEffect(() => {
@@ -133,6 +137,22 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
             console.error("Failed to load artist profiles:", e);
         }
     }, []);
+    
+    const handleApplyRecipe = (profile: ArtistStyleProfile) => {
+        setGenre(profile.genre);
+        setSingerGender(profile.singerGender);
+        setArtistType(profile.artistType);
+        setMood(profile.mood);
+        setTempo(profile.tempo);
+        setMelody(profile.melody);
+        setHarmony(profile.harmony);
+        setRhythm(profile.rhythm);
+        setInstrumentation(profile.instrumentation);
+        setAtmosphere(profile.atmosphere);
+        setVocalStyle(profile.vocalStyle);
+        setSelectedProfile('custom');
+        setIsRecipeModalOpen(false);
+    };
     
     const handleProfileChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const profileName = e.target.value;
@@ -221,6 +241,12 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
 
     return (
         <div className="p-4 sm:p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700">
+            {isRecipeModalOpen && (
+                <RecipeBrowser 
+                    onSelectRecipe={handleApplyRecipe} 
+                    onClose={() => setIsRecipeModalOpen(false)} 
+                />
+            )}
             <h1 className="text-4xl text-center font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-transparent bg-clip-text">
                 Music Prompt Generator
             </h1>
@@ -233,6 +259,14 @@ export const SongPromptForm: React.FC<SongPromptFormProps> = ({ onGenerate, isLo
                     <div className="flex justify-between items-center mb-2">
                         <label htmlFor="prompt" className="block text-sm font-medium text-gray-400">Your Song Idea</label>
                          <div className="flex items-center gap-2">
+                             <button
+                                type="button"
+                                onClick={() => setIsRecipeModalOpen(true)}
+                                disabled={isLoading}
+                                className="flex items-center gap-2 text-sm font-semibold px-3 py-1 bg-gray-700 text-gray-200 rounded-full shadow-md hover:bg-purple-600 hover:text-white transition-all duration-300 disabled:opacity-50"
+                            >
+                                📖 Browse Recipes
+                            </button>
                              <button
                                 type="button"
                                 onClick={onOpenMelodyStudio}
