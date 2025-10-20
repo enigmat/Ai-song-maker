@@ -115,7 +115,64 @@ export const FeatureGuides: React.FC = () => {
                         </button>
                     </div>
                     <div className="prose prose-invert max-w-none bg-gray-900/50 p-6 rounded-lg border border-gray-700">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{guides[selectedGuide]}</ReactMarkdown>
+                        {selectedGuide === 'Song Generator' ? (
+                            <>
+                                <h1>Song Generator</h1>
+                                <h2>Video Tutorial</h2>
+                                <iframe
+                                    src="https://gamma.app/embed/abtl5jcbpczen4m"
+                                    style={{ width: '700px', maxWidth: '100%', height: '450px', border: 'none', borderRadius: '8px' }}
+                                    allow="fullscreen"
+                                    title="MustBMusic Song Generator">
+                                </iframe>
+                            </>
+                        ) : selectedGuide === 'Artist Generator' ? (
+                            <>
+                                <h1>Artist Generator</h1>
+                                <h2>Video Tutorial</h2>
+                                <iframe
+                                    src="https://gamma.app/embed/qhfhqoh7mpa48go"
+                                    style={{ width: '700px', maxWidth: '100%', height: '450px', border: 'none', borderRadius: '8px' }}
+                                    allow="fullscreen"
+                                    title="Artist Generator">
+                                </iframe>
+                            </>
+                        ) : selectedGuide === 'Album Generator' ? (
+                            <>
+                                <h1>Album Generator</h1>
+                                <h2>Video Tutorial</h2>
+                                <iframe
+                                    src="https://gamma.app/embed/zgl63e509ete274"
+                                    style={{ width: '700px', maxWidth: '100%', height: '450px', border: 'none', borderRadius: '8px' }}
+                                    allow="fullscreen"
+                                    title="Album Generator">
+                                </iframe>
+                            </>
+                        ) : selectedGuide === 'Studio Assistant' ? (
+                             <>
+                                <h1>Studio Assistant</h1>
+                                <h2>Video Tutorial</h2>
+                                <iframe 
+                                    src="https://gamma.app/embed/4lubqyef63c9wzi" 
+                                    style={{ width: '700px', maxWidth: '100%', height: '450px', border: 'none', borderRadius: '8px' }} 
+                                    allow="fullscreen" 
+                                    title="Meet Your New Creative Partner: Studio Assistant">
+                                </iframe>
+                            </>
+                        ) : selectedGuide === 'Song Remixer' ? (
+                             <>
+                                <h1>Song Remixer</h1>
+                                <h2>Video Tutorial</h2>
+                                <iframe 
+                                    src="https://gamma.app/embed/eqhrsvuxbq5e29g" 
+                                    style={{ width: '700px', maxWidth: '100%', height: '450px', border: 'none', borderRadius: '8px' }} 
+                                    allow="fullscreen" 
+                                    title="Song Remixer">
+                                </iframe>
+                            </>
+                        ) : (
+                           <ReactMarkdown remarkPlugins={[remarkGfm]}>{guides[selectedGuide]}</ReactMarkdown>
+                        )}
                     </div>
                 </div>
             ) : (
