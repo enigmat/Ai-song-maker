@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 
-type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video';
+type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'artist_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video';
 
 interface TabsProps {
   activeTool: ActiveTool;
@@ -32,6 +32,7 @@ const SocialMediaIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" classNam
 const SoundPackIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg> );
 const BridgeBuilderIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v3a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H4zm0 6a2 2 0 00-2 2v3a2 2 0 002 2h12a2 2 0 002-2v-3a2 2 0 00-2-2H4z" clipRule="evenodd" /></svg>);
 const MixdownAnalyzerIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M15.5 14.5a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0z" /><path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /><path d="M12 11.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" /><path d="M5 5.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" /><path d="M10 5a.5.5 0 01.5.5v1.5a.5.5 0 01-1 0V5.5A.5.5 0 0110 5z" /></svg>);
+const ArtistAnalyzerIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M3 8c0-1.1.9-2 2-2h3.5a.5.5 0 010 1H5a1 1 0 00-1 1v2a1 1 0 001 1h1.5a.5.5 0 010 1H5a2 2 0 01-2-2V8z" /><path d="M8 6h2v8H8V6z" /><path d="M12.5 6a.5.5 0 01.5-.5H15a2 2 0 012 2v.5a.5.5 0 01-1 0V8a1 1 0 00-1-1h-2a.5.5 0 01-.5-.5z" /><path fillRule="evenodd" d="M13.442 13.024a5.5 5.5 0 10-1.418 1.418l2.663 2.663a1 1 0 001.414-1.414l-2.66-2.66zM11.5 15.5a4.5 4.5 0 110-9 4.5 4.5 0 010 9z" clipRule="evenodd" /></svg> );
 const MerchIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" /></svg> );
 const PitchIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /></svg> );
 const LyricsToVideoIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 4a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V4zm2 2v2h2V6H4zm4 0v2h2V6H8zm4 0v2h2V6h-2zM4 10v2h2v-2H4zm4 0v2h2v-2H8zm4 0v2h2v-2h-2z" /><path d="M6 14v2h2v-2H6zm4 0v2h2v-2h-2z" /></svg> );
@@ -61,6 +62,7 @@ const toolList: { id: ActiveTool; label: string; icon: React.ReactElement }[] = 
     { id: 'profiles', label: 'Artist Profiles', icon: <ProfileIcon /> },
     { id: 'mastering', label: 'AI Mastering', icon: <MasteringIcon /> },
     { id: 'mixdown_analyzer', label: 'Mixdown Analyzer', icon: <MixdownAnalyzerIcon /> },
+    { id: 'artist_analyzer', label: 'Artist Analyzer', icon: <ArtistAnalyzerIcon /> },
     { id: 'comparator', label: 'Song Comparator', icon: <ComparatorIcon /> },
     { id: 'converter', label: 'Audio Converter', icon: <ConverterIcon /> },
     { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
@@ -74,7 +76,9 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
 
     const { coreTools, otherTools } = useMemo(() => {
         const core = toolList.filter(tool => coreToolIds.includes(tool.id));
-        const other = toolList.filter(tool => !coreToolIds.includes(tool.id));
+        const other = toolList
+            .filter(tool => !coreToolIds.includes(tool.id))
+            .sort((a, b) => a.label.localeCompare(b.label));
         return { coreTools: core, otherTools: other };
     }, []);
     

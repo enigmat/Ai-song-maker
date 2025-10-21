@@ -256,3 +256,18 @@ export interface MerchKit {
     poster: string;
     hat: string;
 }
+
+export interface VocalAnalysis {
+    vocalRange: string;
+    timbre: string;
+    style: string;
+    pitch: string;
+    summary: string;
+}
+
+export interface VocalComparison {
+    similarityScore: number;
+    justification: string;
+    voice1Analysis: VocalAnalysis;
+    voice2Analysis: VocalAnalysis;
+}

@@ -23,6 +23,8 @@ import type {
     BridgeOption,
     MixdownReport,
     MerchKit,
+    VocalAnalysis,
+    VocalComparison,
 } from '../types';
 
 export type { 
@@ -48,6 +50,8 @@ export type {
     BridgeOption,
     MixdownReport,
     MerchKit,
+    VocalAnalysis,
+    VocalComparison,
 };
 
 const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
@@ -1857,4 +1861,109 @@ export const analyzeAudioForProfile = async (audioBlob: Blob): Promise<ArtistSty
     const jsonText = response.text.trim();
     trackUsage({ model: 'gemini-2.5-flash', type: 'multimodal', inputChars: textPart.text.length, outputChars: jsonText.length, description: `Analyze Audio for Profile: ${(audioBlob as any).name || 'audio blob'}` });
     return JSON.parse(jsonText) as ArtistStyleProfile & { artistNameSuggestion: string };
+};
+
+const vocalAnalysisSchema = {
+    type: Type.OBJECT,
+    properties: {
+        vocalRange: { type: Type.STRING, description: "The singer's estimated vocal range (e.g., 'Baritone', 'Soprano', 'Tenor')." },
+        timbre: { type: Type.STRING, description: "A detailed description of the voice's texture and quality (e.g., 'Raspy and warm', 'Bright and airy')." },
+        style: { type: Type.STRING, description: "The performance style (e.g., 'Heavy use of vibrato', 'Rhythmic and percussive', 'Smooth and connected legato')." },
+        pitch: { type: Type.STRING, description: "An analysis of pitch accuracy and characteristics (e.g., 'Very accurate with occasional sharp notes', 'Stable with controlled vibrato')." },
+        summary: { type: Type.STRING, description: "A one or two-sentence summary of the overall vocal character." },
+    },
+    required: ["vocalRange", "timbre", "style", "pitch", "summary"]
+};
+
+const vocalComparisonSchema = {
+    type: Type.OBJECT,
+    properties: {
+        similarityScore: { type: Type.INTEGER, description: "A score from 0 (completely different) to 100 (indistinguishable) representing the vocal similarity." },
+        justification: { type: Type.STRING, description: "A detailed explanation for the similarity score, comparing timbre, pitch, vibrato, and style." },
+        voice1Analysis: vocalAnalysisSchema,
+        voice2Analysis: vocalAnalysisSchema,
+    },
+    required: ["similarityScore", "justification", "voice1Analysis", "voice2Analysis"]
+};
+
+
+export const analyzeVocalProfile = async (audioBlob: Blob): Promise<VocalAnalysis> => {
+    const base64Audio = await blobToBase64(audioBlob);
+
+    const audioPart = {
+        inlineData: {
+            mimeType: audioBlob.type,
+            data: base64Audio,
+        },
+    };
+
+    const textPart = {
+        text: `You are an expert vocal coach. Analyze the provided audio file which contains a singing voice. Your analysis should be objective and technical. Provide a detailed breakdown of the vocal characteristics in the specified JSON format. The summary should be a high-level overview of the singer's voice.`
+    };
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: { parts: [audioPart, textPart] },
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: vocalAnalysisSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'multimodal',
+        inputChars: textPart.text.length,
+        outputChars: jsonText.length,
+        description: `Vocal Analysis: ${(audioBlob as any).name || 'audio blob'}`
+    });
+    
+    return JSON.parse(jsonText) as VocalAnalysis;
+};
+
+export const compareVocalProfiles = async (audioBlob1: Blob, audioBlob2: Blob): Promise<VocalComparison> => {
+    const [base64Audio1, base64Audio2] = await Promise.all([
+        blobToBase64(audioBlob1),
+        blobToBase64(audioBlob2)
+    ]);
+
+    const audioPart1 = { inlineData: { mimeType: audioBlob1.type, data: base64Audio1 } };
+    const audioPart2 = { inlineData: { mimeType: audioBlob2.type, data: base64Audio2 } };
+    
+    const textPart = {
+        text: `You are an expert musicologist and audio analyst specializing in vocal timbre and performance. Compare the two provided audio files, each containing a singing voice.
+1.  Provide a 'similarityScore' from 0 (completely different) to 100 (indistinguishable).
+2.  Write a detailed 'justification' explaining your score, comparing aspects like pitch, timbre, vibrato, phrasing, and vocal technique.
+3.  For each voice, provide a concise but technical analysis covering vocal range, timbre, style, and pitch characteristics.
+The output must be ONLY the JSON object, without any markdown formatting or explanatory text.`
+    };
+    
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: { parts: [
+            { text: "This is Voice 1:" },
+            audioPart1,
+            { text: "This is Voice 2:" },
+            audioPart2,
+            textPart,
+        ] },
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: vocalComparisonSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'multimodal',
+        inputChars: textPart.text.length,
+        outputChars: jsonText.length,
+        description: `Vocal Comparison: ${(audioBlob1 as any).name || 'audio 1'} vs ${(audioBlob2 as any).name || 'audio 2'}`
+    });
+    
+    return JSON.parse(jsonText) as VocalComparison;
 };

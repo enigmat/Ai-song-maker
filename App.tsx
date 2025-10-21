@@ -27,13 +27,14 @@ import { SocialMediaKitGenerator } from './components/SocialMediaKitGenerator';
 import { SoundPackGenerator } from './components/SoundPackGenerator';
 import { BridgeBuilder } from './components/BridgeBuilder';
 import { MixdownAnalyzer } from './components/MixdownAnalyzer';
+import { ArtistAnalyzer } from './components/ArtistAnalyzer';
 import { MerchMockupStudio } from './components/MerchMockupStudio';
 import { PlaylistPitchAssistant } from './components/PlaylistPitchAssistant';
 import { VocalSynthesizer } from './components/VocalSynthesizer';
 import { LyricsToVideo } from './components/LyricsToVideo';
 
 
-type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video';
+type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'artist_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video';
 
 const App: React.FC = () => {
   const [activeTool, setActiveTool] = useState<ActiveTool>('generator');
@@ -121,6 +122,7 @@ const App: React.FC = () => {
             {activeTool === 'comparator' && <SongComparator />}
             {activeTool === 'mastering' && <AIMastering />}
             {activeTool === 'mixdown_analyzer' && <MixdownAnalyzer />}
+            {activeTool === 'artist_analyzer' && <ArtistAnalyzer />}
             {activeTool === 'dashboard' && <UsageDashboard />}
           </main>
         </div>

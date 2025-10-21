@@ -12,7 +12,7 @@ const toolNames = [
     'Release Toolkit', 'Press Release Generator', 'Playlist Pitch Assistant', 
     'Jam Session', 'Vocal Tools', 'Vocal Synthesizer', 'Chord Progression Generator', 
     'Bridge Builder', 'Artist Profile Manager', 'AI Mastering', 'Mixdown Analyzer', 
-    'Song Comparator', 'Audio Converter'
+    'Artist Analyzer', 'Song Comparator', 'Audio Converter'
 ];
 
 export const FeatureGuides: React.FC = () => {
