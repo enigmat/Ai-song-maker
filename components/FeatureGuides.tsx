@@ -38,50 +38,16 @@ const allToolNames = [
 // Add the overview guide to the top, and sort the rest alphabetically.
 const toolNames = ['MustBMusic Overview', ...allToolNames.sort()];
 
-const overviewGuideContent = `# Welcome to MustBMusic Song Maker: Your AI-Powered Music Creation Suite
+const overviewGuidePrintContent = `
+# MustBMusic Overview
 
-Unleash your creativity and bring your musical ideas to life with MustBMusic Song Maker, the all-in-one platform designed for artists, producers, and creators of all levels. Whether you're a seasoned songwriter or just starting, our suite of powerful, AI-driven tools will revolutionize your workflow from the first spark of an idea to the final release.
+An interactive guide is available in the application. You can view it at: https://gamma.app/embed/nvh1kahmg9pcxdm
 
 ## What is MustBMusic?
 
-MustBMusic is more than just a songwriting tool; it's your personal co-producer, A&R executive, and marketing team, available 24/7. We leverage cutting-edge generative AI to help you:
-
-*   **Create Original Music:** Instantly generate complete songs, unique artist personas, and full albums from a simple text prompt.
-*   **Refine Your Craft:** Get expert feedback on your mixdowns, enhance your lyrics, and build the perfect bridge for your track.
-*   **Explore and Remix:** Reimagine classic tracks in new genres or discover the history behind your favorite songs.
-*   **Prepare for Release:** Generate professional press releases, create a full social media kit, and build a strategic rollout plan.
-
-## Explore Our Core Features
-
-Our studio is packed with specialized tools to assist you at every stage of the music creation process:
-
-### Song & Artist Creation
-*   **Song Generator:** The heart of the app. Describe an idea, and get a full song package, including lyrics, a beat, a production style guide, and even a music video storyboard.
-*   **Artist Generator:** Create a complete, fully-realized artist persona from a single idea, complete with a bio, signature style, and AI-generated portrait.
-*   **Album Generator:** Expand your vision. Turn a concept into a full album experience with a cohesive theme, artwork, and artist branding.
-*   **Song Remixer:** Breathe new life into existing songs. Reimagine any track in a different genre or style.
-
-### Production & Songwriting Tools
-*   **Co-Producer:** Stuck on a track? Generate new basslines, melodies, or chord progressions that complement your existing work.
-*   **Vocal Tools:** Transcribe vocals from an audio file or enhance your existing lyrics for greater impact.
-*   **Vocal Synthesizer:** Change the voice of a vocal track using a selection of high-quality AI voices.
-*   **Bridge Builder:** Craft the perfect transition to connect your song's sections.
-*   **AI Mastering & Mixdown Analyzer:** Upload your mix and get instant, professional feedback and mastering to make it release-ready.
-
-### Marketing & Release
-*   **Release Toolkit:** A comprehensive suite to prepare for your launch. Get an A&R report, define your ideal listener, and generate content ideas.
-*   **Press Release Generator:** Create a professional press release to announce your music to the world.
-*   **Social Media Kit Generator:** Instantly create a full set of branded visuals for your promotional campaign.
-*   **Merch Mockup Studio:** Visualize your brand on t-shirts, hoodies, and more.
-
-## The Tech Behind the Magic
-
-MustBMusic is powered by Google's advanced Gemini models. We use state-of-the-art AI for text generation (lyrics, bios, prompts), image generation (album covers, artist portraits), and audio analysis. This allows you to tap into world-class creative power with simple, intuitive controls.
-
-## Get Started Today!
-
-Ready to make your next hit? Jump into the **Song Generator**, try our "Recipe Mode" for a guided experience, or explore any of the tools to see what's possible. Your musical journey starts here. Welcome to the future of music creation. Welcome to MustBMusic.com.
+MustBMusic is more than just a songwriting tool; it's your personal co-producer, A&R executive, and marketing team, available 24/7. We leverage cutting-edge generative AI to help you create original music, refine your craft, explore and remix, and prepare for release.
 `;
+
 
 export const FeatureGuides: React.FC = () => {
     const [status, setStatus] = useState<'loading' | 'idle' | 'error'>('loading');
@@ -139,7 +105,7 @@ export const FeatureGuides: React.FC = () => {
             <div id="printable-guides-area" className="hidden print:block">
                 <h1 className="text-4xl font-bold mb-4 text-center">MustBMusic Feature Guides</h1>
                 <div className="guide-page-break">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{overviewGuideContent}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{overviewGuidePrintContent}</ReactMarkdown>
                 </div>
                 {Object.entries(guides).sort(([a], [b]) => a.localeCompare(b)).map(([name, content]) => (
                     <div key={`print-${name}`} className="guide-page-break">
@@ -188,7 +154,16 @@ export const FeatureGuides: React.FC = () => {
                     </div>
                     <div className="prose prose-invert max-w-none bg-gray-900/50 p-6 rounded-lg border border-gray-700">
                         {selectedGuide === 'MustBMusic Overview' ? (
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{overviewGuideContent}</ReactMarkdown>
+                             <>
+                                <h1>Welcome to MustBMusic Song Maker</h1>
+                                <h2>Video Tutorial</h2>
+                                <iframe
+                                    src="https://gamma.app/embed/nvh1kahmg9pcxdm"
+                                    style={{ width: '700px', maxWidth: '100%', height: '450px', border: 'none', borderRadius: '8px' }}
+                                    allow="fullscreen"
+                                    title="Welcome to MustBMusic Song Maker">
+                                </iframe>
+                            </>
                         ) : selectedGuide === 'Song Generator' ? (
                             <>
                                 <h1>Song Generator</h1>
@@ -242,6 +217,17 @@ export const FeatureGuides: React.FC = () => {
                                     style={{ width: '700px', maxWidth: '100%', height: '450px', border: 'none', borderRadius: '8px' }} 
                                     allow="fullscreen" 
                                     title="Song Remixer">
+                                </iframe>
+                            </>
+                        ) : selectedGuide === 'Co-Producer' ? (
+                             <>
+                                <h1>Co-Producer</h1>
+                                <h2>Video Tutorial</h2>
+                                <iframe 
+                                    src="https://gamma.app/embed/z4pkm6icievvarh" 
+                                    style={{ width: '700px', maxWidth: '100%', height: '450px', border: 'none', borderRadius: '8px' }} 
+                                    allow="fullscreen" 
+                                    title="Meet Your Co-Producer">
                                 </iframe>
                             </>
                         ) : (
