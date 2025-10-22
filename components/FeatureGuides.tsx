@@ -7,7 +7,7 @@ import remarkGfm from 'remark-gfm';
 
 const toolNames = [
     'Song Generator', 'Artist Generator', 'Album Generator', 'Song Explorer', 
-    'Studio Assistant', 'Style Creator', 'Song Remixer', 'Sound Pack Generator', 
+    'Studio Assistant', 'Co-Producer', 'Style Creator', 'Song Remixer', 'Sound Pack Generator', 
     'Social Media Kit', 'Merch Mockup Studio', 'YouTube Tools', 'Lyrics to Video Prompt',
     'Release Toolkit', 'Press Release Generator', 'Playlist Pitch Assistant', 
     'Jam Session', 'Vocal Tools', 'Vocal Synthesizer', 'Chord Progression Generator', 

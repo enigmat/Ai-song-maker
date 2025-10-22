@@ -1715,6 +1715,54 @@ Example of a good prompt: "An epic, cinematic shot of a lone astronaut drifting 
     }
 };
 
+export const generateMusicalLayer = async (
+    analysis: ArtistStyleProfile,
+    partType: 'bassline' | 'melody' | 'chords'
+): Promise<MelodyAnalysis> => {
+    const partDescription = {
+        bassline: 'a groovy and complementary bassline that locks in with the rhythm.',
+        melody: 'a catchy and memorable top-line synth melody.',
+        chords: 'a lush and atmospheric chord progression using pads or keys.'
+    }[partType];
+
+    const prompt = `Act as an expert music producer and composer. I have a track with the following style profile:
+    - Genre: ${analysis.genre}
+    - Mood: ${analysis.mood}
+    - Tempo: ${analysis.tempo}
+    - Rhythm: ${analysis.rhythm}
+    - Harmony: ${analysis.harmony}
+    - Instrumentation: ${analysis.instrumentation}
+    
+    Your task is to generate ${partDescription}
+    The output must be a JSON object containing a list of notes with pitch (e.g., 'C#3'), startTime (in seconds), and duration (in seconds), along with the track's BPM.
+    The musical piece should be 8 measures long. Assume a 4/4 time signature.
+    The BPM should be derived from the tempo description (e.g., 'Medium (80-120 BPM)' could be 100 BPM).
+    Base the harmony of your generated part on the provided style profile.
+    `;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: melodyAnalysisSchema,
+        },
+    });
+    
+    const jsonText = response.text.trim();
+    
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: jsonText.length,
+        description: `Co-Producer: Generate ${partType}`
+    });
+    
+    return JSON.parse(jsonText) as MelodyAnalysis;
+};
+
+
 export const generateFeatureGuide = async (toolName: string): Promise<string> => {
     const prompt = `Act as an expert technical writer and product educator for a music creation application called "MustBMusic Song Maker".
 Your task is to write a comprehensive and easy-to-understand guide for the "${toolName}" feature.

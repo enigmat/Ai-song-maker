@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 
-type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'artist_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video';
+type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'artist_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video' | 'co_producer';
 
 interface TabsProps {
   activeTool: ActiveTool;
@@ -36,6 +36,7 @@ const ArtistAnalyzerIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" class
 const MerchIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" /></svg> );
 const PitchIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /></svg> );
 const LyricsToVideoIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 4a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V4zm2 2v2h2V6H4zm4 0v2h2V6H8zm4 0v2h2V6h-2zM4 10v2h2v-2H4zm4 0v2h2v-2H8zm4 0v2h2v-2h-2z" /><path d="M6 14v2h2v-2H6zm4 0v2h2v-2h-2z" /></svg> );
+const CoProducerIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5z" /><path d="M11 13a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" /></svg> );
 
 const toolList: { id: ActiveTool; label: string; icon: React.ReactElement }[] = [
     { id: 'projects', label: 'Projects', icon: <ProjectsIcon /> },
@@ -44,6 +45,7 @@ const toolList: { id: ActiveTool; label: string; icon: React.ReactElement }[] = 
     { id: 'album_generator', label: 'Album Generator', icon: <AlbumIcon /> },
     { id: 'song_explorer', label: 'Song Explorer', icon: <ExplorerIcon /> },
     { id: 'assistant', label: 'Assistant', icon: <AssistantIcon /> },
+    { id: 'co_producer', label: 'Co-Producer', icon: <CoProducerIcon /> },
     { id: 'style_creator', label: 'Style Creator', icon: <StyleCreatorIcon /> },
     { id: 'remixer', label: 'Song Remixer', icon: <RemixerIcon /> },
     { id: 'sound_pack_generator', label: 'Sound Pack Generator', icon: <SoundPackIcon /> },
@@ -68,7 +70,7 @@ const toolList: { id: ActiveTool; label: string; icon: React.ReactElement }[] = 
     { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
 ];
 
-const coreToolIds: ActiveTool[] = ['projects', 'generator', 'artist_generator', 'album_generator', 'remixer', 'assistant'];
+const coreToolIds: ActiveTool[] = ['projects', 'generator', 'artist_generator', 'co_producer', 'album_generator', 'remixer', 'assistant'];
 
 export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool }) => {
     const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);

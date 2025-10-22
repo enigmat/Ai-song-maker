@@ -32,12 +32,15 @@ import { MerchMockupStudio } from './components/MerchMockupStudio';
 import { PlaylistPitchAssistant } from './components/PlaylistPitchAssistant';
 import { VocalSynthesizer } from './components/VocalSynthesizer';
 import { LyricsToVideo } from './components/LyricsToVideo';
+import { CoProducer } from './components/CoProducer';
+import { OnboardingWizard } from './components/OnboardingWizard';
 
 
-type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'artist_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video';
+type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'artist_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video' | 'co_producer';
 
 const App: React.FC = () => {
   const [activeTool, setActiveTool] = useState<ActiveTool>('generator');
+  const [isRecipeMode, setIsRecipeMode] = useState(false);
   const {
     projects,
     activeProjectId,
@@ -61,10 +64,11 @@ const App: React.FC = () => {
 
   return (
     <PlaybackContext.Provider value={playbackControls}>
+        <OnboardingWizard isOpen={isRecipeMode} onClose={() => setIsRecipeMode(false)} />
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white font-sans p-4 sm:p-6 md:p-8">
         <div className="max-w-4xl mx-auto">
           <Header />
-          <Tabs activeTool={activeTool} onSelectTool={setActiveTool} />
+          <Tabs activeTool={activeTool} onSelectTool={setActiveTool} onShowRecipe={() => setIsRecipeMode(true)} />
           <main className="mt-8">
             {activeTool === 'generator' && activeProject && (
               <SongGenerator
@@ -116,6 +120,7 @@ const App: React.FC = () => {
             {activeTool === 'chords' && <ChordProgressionGenerator />}
             {activeTool === 'jamsession' && <JamSession />}
             {activeTool === 'assistant' && <StudioAssistant />}
+            {activeTool === 'co_producer' && <CoProducer />}
             {activeTool === 'style_creator' && <StyleCreator />}
             {activeTool === 'profiles' && <ArtistProfileManager />}
             {activeTool === 'converter' && <AifConverter />}
