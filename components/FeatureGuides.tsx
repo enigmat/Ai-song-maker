@@ -5,15 +5,83 @@ import { generateFeatureGuide } from '../services/geminiService';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-const toolNames = [
-    'Song Generator', 'Artist Generator', 'Album Generator', 'Song Explorer', 
-    'Studio Assistant', 'Co-Producer', 'Style Creator', 'Song Remixer', 'Sound Pack Generator', 
-    'Social Media Kit', 'Merch Mockup Studio', 'YouTube Tools', 'Lyrics to Video Prompt',
-    'Release Toolkit', 'Press Release Generator', 'Playlist Pitch Assistant', 
-    'Jam Session', 'Vocal Tools', 'Vocal Synthesizer', 'Chord Progression Generator', 
-    'Bridge Builder', 'Artist Profile Manager', 'AI Mastering', 'Mixdown Analyzer', 
-    'Artist Analyzer', 'Song Comparator', 'Audio Converter'
+const allToolNames = [
+    'AI Mastering',
+    'Album Generator',
+    'Artist Analyzer',
+    'Artist Generator',
+    'Artist Profile Manager',
+    'Audio Converter',
+    'Bridge Builder',
+    'Chord Progression Generator',
+    'Co-Producer',
+    'Jam Session',
+    'Lyrics to Video Prompt',
+    'Merch Mockup Studio',
+    'Mixdown Analyzer',
+    'Playlist Pitch Assistant',
+    'Press Release Generator',
+    'Release Toolkit',
+    'Social Media Kit',
+    'Song Comparator',
+    'Song Explorer',
+    'Song Generator',
+    'Song Remixer',
+    'Sound Pack Generator',
+    'Studio Assistant',
+    'Style Creator',
+    'Vocal Synthesizer',
+    'Vocal Tools',
+    'YouTube Tools'
 ];
+
+// Add the overview guide to the top, and sort the rest alphabetically.
+const toolNames = ['MustBMusic Overview', ...allToolNames.sort()];
+
+const overviewGuideContent = `# Welcome to MustBMusic Song Maker: Your AI-Powered Music Creation Suite
+
+Unleash your creativity and bring your musical ideas to life with MustBMusic Song Maker, the all-in-one platform designed for artists, producers, and creators of all levels. Whether you're a seasoned songwriter or just starting, our suite of powerful, AI-driven tools will revolutionize your workflow from the first spark of an idea to the final release.
+
+## What is MustBMusic?
+
+MustBMusic is more than just a songwriting tool; it's your personal co-producer, A&R executive, and marketing team, available 24/7. We leverage cutting-edge generative AI to help you:
+
+*   **Create Original Music:** Instantly generate complete songs, unique artist personas, and full albums from a simple text prompt.
+*   **Refine Your Craft:** Get expert feedback on your mixdowns, enhance your lyrics, and build the perfect bridge for your track.
+*   **Explore and Remix:** Reimagine classic tracks in new genres or discover the history behind your favorite songs.
+*   **Prepare for Release:** Generate professional press releases, create a full social media kit, and build a strategic rollout plan.
+
+## Explore Our Core Features
+
+Our studio is packed with specialized tools to assist you at every stage of the music creation process:
+
+### Song & Artist Creation
+*   **Song Generator:** The heart of the app. Describe an idea, and get a full song package, including lyrics, a beat, a production style guide, and even a music video storyboard.
+*   **Artist Generator:** Create a complete, fully-realized artist persona from a single idea, complete with a bio, signature style, and AI-generated portrait.
+*   **Album Generator:** Expand your vision. Turn a concept into a full album experience with a cohesive theme, artwork, and artist branding.
+*   **Song Remixer:** Breathe new life into existing songs. Reimagine any track in a different genre or style.
+
+### Production & Songwriting Tools
+*   **Co-Producer:** Stuck on a track? Generate new basslines, melodies, or chord progressions that complement your existing work.
+*   **Vocal Tools:** Transcribe vocals from an audio file or enhance your existing lyrics for greater impact.
+*   **Vocal Synthesizer:** Change the voice of a vocal track using a selection of high-quality AI voices.
+*   **Bridge Builder:** Craft the perfect transition to connect your song's sections.
+*   **AI Mastering & Mixdown Analyzer:** Upload your mix and get instant, professional feedback and mastering to make it release-ready.
+
+### Marketing & Release
+*   **Release Toolkit:** A comprehensive suite to prepare for your launch. Get an A&R report, define your ideal listener, and generate content ideas.
+*   **Press Release Generator:** Create a professional press release to announce your music to the world.
+*   **Social Media Kit Generator:** Instantly create a full set of branded visuals for your promotional campaign.
+*   **Merch Mockup Studio:** Visualize your brand on t-shirts, hoodies, and more.
+
+## The Tech Behind the Magic
+
+MustBMusic is powered by Google's advanced Gemini models. We use state-of-the-art AI for text generation (lyrics, bios, prompts), image generation (album covers, artist portraits), and audio analysis. This allows you to tap into world-class creative power with simple, intuitive controls.
+
+## Get Started Today!
+
+Ready to make your next hit? Jump into the **Song Generator**, try our "Recipe Mode" for a guided experience, or explore any of the tools to see what's possible. Your musical journey starts here. Welcome to the future of music creation. Welcome to MustBMusic.com.
+`;
 
 export const FeatureGuides: React.FC = () => {
     const [status, setStatus] = useState<'loading' | 'idle' | 'error'>('loading');
@@ -26,11 +94,12 @@ export const FeatureGuides: React.FC = () => {
             setStatus('loading');
             setError(null);
             try {
-                const guidePromises = toolNames.map(name => generateFeatureGuide(name));
+                const guidesToFetch = toolNames.filter(name => name !== 'MustBMusic Overview');
+                const guidePromises = guidesToFetch.map(name => generateFeatureGuide(name));
                 const guideContents = await Promise.all(guidePromises);
 
                 const guidesData: Record<string, string> = {};
-                toolNames.forEach((name, index) => {
+                guidesToFetch.forEach((name, index) => {
                     guidesData[name] = guideContents[index];
                 });
 
@@ -69,7 +138,10 @@ export const FeatureGuides: React.FC = () => {
             {/* Hidden printable area */}
             <div id="printable-guides-area" className="hidden print:block">
                 <h1 className="text-4xl font-bold mb-4 text-center">MustBMusic Feature Guides</h1>
-                {Object.entries(guides).map(([name, content]) => (
+                <div className="guide-page-break">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{overviewGuideContent}</ReactMarkdown>
+                </div>
+                {Object.entries(guides).sort(([a], [b]) => a.localeCompare(b)).map(([name, content]) => (
                     <div key={`print-${name}`} className="guide-page-break">
                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
                     </div>
@@ -115,7 +187,9 @@ export const FeatureGuides: React.FC = () => {
                         </button>
                     </div>
                     <div className="prose prose-invert max-w-none bg-gray-900/50 p-6 rounded-lg border border-gray-700">
-                        {selectedGuide === 'Song Generator' ? (
+                        {selectedGuide === 'MustBMusic Overview' ? (
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{overviewGuideContent}</ReactMarkdown>
+                        ) : selectedGuide === 'Song Generator' ? (
                             <>
                                 <h1>Song Generator</h1>
                                 <h2>Video Tutorial</h2>
