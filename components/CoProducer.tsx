@@ -45,12 +45,10 @@ export const CoProducer: React.FC = () => {
     useEffect(() => {
         return () => { // Cleanup on unmount
             if (Tone.Transport.state !== 'stopped') Tone.Transport.stop();
-            // FIX: Cast to any to resolve type inference issue with Object.values.
-            Object.values(players.current).forEach(p => (p as any)?.dispose());
-            // FIX: Cast to GeneratedPart to resolve type inference issue with Object.values.
-            Object.values(generatedParts).forEach(p => p && URL.revokeObjectURL((p as GeneratedPart).url));
+            Object.values(players.current).forEach((p: any) => p?.dispose());
+            Object.values(generatedParts).forEach((p: any) => p && URL.revokeObjectURL(p.url));
         };
-    }, []);
+    }, [generatedParts]);
 
     const handleFileSelect = (selectedFile: File | null) => {
         if (!selectedFile) return;
@@ -143,7 +141,6 @@ export const CoProducer: React.FC = () => {
 
         Object.entries(generatedParts).forEach(([key, part]) => {
             if (part) {
-                // FIX: Cast to GeneratedPart to resolve type inference issue.
                 const player = new Tone.Player((part as GeneratedPart).url).toDestination();
                 player.loop = true;
                 players.current[key] = player;
@@ -151,8 +148,7 @@ export const CoProducer: React.FC = () => {
         });
         
         // Sync all players
-        // FIX: Cast to any to resolve type inference issue with Object.values.
-        Object.values(players.current).forEach(p => (p as any).sync().start(0));
+        Object.values(players.current).forEach((p: any) => p.sync().start(0));
     };
 
     const handlePlayToggle = async () => {
@@ -176,11 +172,9 @@ export const CoProducer: React.FC = () => {
     
     const handleReset = () => {
         if (isPlaying) Tone.Transport.stop();
-        // FIX: Cast to any to resolve type inference issue with Object.values.
-        Object.values(players.current).forEach(p => (p as any)?.dispose());
+        Object.values(players.current).forEach((p: any) => p?.dispose());
         players.current = {};
-        // FIX: Cast to GeneratedPart to resolve type inference issue with Object.values.
-        Object.values(generatedParts).forEach(p => p && URL.revokeObjectURL((p as GeneratedPart).url));
+        Object.values(generatedParts).forEach((p: any) => p && URL.revokeObjectURL(p.url));
         
         setStatus('prompt');
         setError(null);

@@ -1672,7 +1672,6 @@ export const generateSpeechFromText = async (text: string, voiceName: string): P
 
     trackUsage({
         model: 'gemini-2.5-flash-preview-tts',
-        // FIX: Changed usage type to 'text' to correctly track cost by input characters for TTS.
         type: 'text',
         inputChars: text.length,
         description: `Vocal Synthesis with voice: ${voiceName}`
@@ -1843,7 +1842,6 @@ export async function decodeAudioData(
 export function createPcmBlob(data: Float32Array): GenAIBlob {
   const l = data.length;
   const int16 = new Int16Array(l);
-  // FIX: Changed `len` to `l` to fix reference error.
   for (let i = 0; i < l; i++) {
     const s = Math.max(-1, Math.min(1, data[i]));
     // The correct conversion for 16-bit signed PCM.

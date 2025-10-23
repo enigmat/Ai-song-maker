@@ -118,7 +118,6 @@ export const Mp3Analyzer: React.FC = () => {
         setError(null);
         setReport(null);
         try {
-            // FIX: Corrected the arguments passed to analyzeSong to match its signature.
             const analysisReport = await analyzeSong(file.name, 'Analyzed Artist', 'solo', `Listeners of ${genre} with a ${vibe} mood`);
             setReport(analysisReport);
             setStatus('success');

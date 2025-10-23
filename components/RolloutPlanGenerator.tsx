@@ -31,9 +31,6 @@ export const RolloutPlanGenerator: React.FC = () => {
         setError(null);
         setResult(null);
         try {
-            // FIX: The `generateRolloutPlan` function expects 6 arguments. The final argument,
-            // `selectedContentIdeas` (a string array), was missing. An empty array is passed
-            // as this component does not have a content idea selection step.
             const plan = await generateRolloutPlan(songTitle, artistName, 'solo', '', `Fans of ${genre} music with a ${vibe.toLowerCase()} vibe.`, []);
             setResult(plan);
             setStatus('success');
