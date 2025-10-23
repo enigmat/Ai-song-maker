@@ -107,7 +107,7 @@ export const BeatMaker: React.FC = () => {
         if (!beatPattern) return;
         
         const steps = Array.from({ length: 16 }, (_, i) => i);
-        sequence.current = new Tone.Sequence((time, step) => {
+        sequence.current = new Tone.Sequence((time: any, step: number) => {
             Object.keys(beatPattern).forEach(instName => {
                 const instrumentKey = instName as keyof ParsedBeat;
                 if (beatPattern[instrumentKey]?.includes(step)) {
@@ -245,10 +245,10 @@ export const BeatMaker: React.FC = () => {
                         clap: new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.001, decay: 0.15, sustain: 0 } }).toDestination(),
                     };
                     const steps = Array.from({ length: 16 }, (_, i) => i);
-                    new Tone.Sequence((time, step) => {
+                    new Tone.Sequence((time: any, step: number) => {
                          instruments.forEach(inst => {
                             if (beatPattern[inst.name]?.includes(step)) {
-                                const synth = offlineSynths[inst.name];
+                                const synth = offlineSynths[inst.name as keyof typeof offlineSynths];
                                 if (inst.name === 'kick') synth.triggerAttackRelease("C1", "8n", time);
                                 else if (inst.name === 'hihat') synth.triggerAttackRelease("16n", time, 0.6);
                                 else synth.triggerAttackRelease("16n", time);
@@ -257,7 +257,7 @@ export const BeatMaker: React.FC = () => {
                     }, steps, "16n").start(0).loop = 3;
                 }, duration);
 
-                const blob = format === 'mp3' ? audioBufferToMp3(buffer.get(), setExportProgress) : audioBufferToWav(buffer.get());
+                const blob = format === 'mp3' ? audioBufferToMp3(buffer, setExportProgress) : audioBufferToWav(buffer);
                 saveAs(blob, `beat.${format}`);
             }
         } catch (err) {
@@ -421,7 +421,7 @@ export const BeatMaker: React.FC = () => {
                                     const isActive = beatPattern?.[inst.name]?.includes(i);
                                     const isPlayingStep = isPlaying && currentStep === i;
                                     return (
-                                        <div key={i} className={`w-full aspect-square rounded-sm transition-all duration-100 transform ${isActive ? inst.color : 'bg-gray-700/50'} ${isPlayingStep ? 'scale-110 shadow-[0_0_10px_2px_rgba(255,255,255,0.7)]'}`}/>
+                                        <div key={i} className={`w-full aspect-square rounded-sm transition-all duration-100 transform ${isActive ? inst.color : 'bg-gray-700/50'} ${isPlayingStep ? 'scale-110 shadow-[0_0_10px_2px_rgba(255,255,255,0.7)]`}/>
                                     );
                                 })}
                             </div>

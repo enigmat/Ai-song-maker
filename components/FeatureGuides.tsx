@@ -12,6 +12,7 @@ const allToolNames = [
     'Artist Generator',
     'Artist Profile Manager',
     'Audio Converter',
+    'Beat Maker',
     'Bridge Builder',
     'Chord Progression Generator',
     'Co-Producer',
@@ -228,6 +229,17 @@ export const FeatureGuides: React.FC = () => {
                                     style={{ width: '700px', maxWidth: '100%', height: '450px', border: 'none', borderRadius: '8px' }} 
                                     allow="fullscreen" 
                                     title="Meet Your Co-Producer">
+                                </iframe>
+                            </>
+                        ) : selectedGuide === 'Beat Maker' ? (
+                            <>
+                                <h1>Beat Maker</h1>
+                                <h2>Video Tutorial</h2>
+                                <iframe 
+                                    src="https://gamma.app/embed/z4pkm6icievvarh" 
+                                    style={{ width: '700px', maxWidth: '100%', height: '450px', border: 'none', borderRadius: '8px' }} 
+                                    allow="fullscreen" 
+                                    title="AI Beat Maker">
                                 </iframe>
                             </>
                         ) : (

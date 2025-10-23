@@ -34,9 +34,10 @@ import { VocalSynthesizer } from './components/VocalSynthesizer';
 import { LyricsToVideo } from './components/LyricsToVideo';
 import { CoProducer } from './components/CoProducer';
 import { OnboardingWizard } from './components/OnboardingWizard';
+import { BeatMaker } from './components/BeatMaker';
 
 
-type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'artist_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video' | 'co_producer';
+type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'artist_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video' | 'co_producer' | 'beat_maker';
 
 const App: React.FC = () => {
   const [activeTool, setActiveTool] = useState<ActiveTool>('generator');
@@ -119,6 +120,7 @@ const App: React.FC = () => {
             {activeTool === 'bridge_builder' && <BridgeBuilder />}
             {activeTool === 'chords' && <ChordProgressionGenerator />}
             {activeTool === 'jamsession' && <JamSession />}
+            {activeTool === 'beat_maker' && <BeatMaker />}
             {activeTool === 'assistant' && <StudioAssistant />}
             {activeTool === 'co_producer' && <CoProducer />}
             {activeTool === 'style_creator' && <StyleCreator />}
