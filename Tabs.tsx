@@ -39,8 +39,9 @@ const MerchIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5
 const PitchIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /></svg> );
 const LyricsToVideoIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 4a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V4zm2 2v2h2V6H4zm4 0v2h2V6H8zm4 0v2h2V6h-2zM4 10v2h2v-2H4zm4 0v2h2v-2H8zm4 0v2h2v-2h-2z" /><path d="M6 14v2h2v-2H6zm4 0v2h2v-2h-2z" /></svg> );
 const CoProducerIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5z" /><path d="M11 13a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" /></svg> );
+const BeatMakerIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6 10a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zM9 15a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" /></svg> );
 
-const toolList: { id: ActiveTool; label: string; icon: React.ReactElement }[] = [
+const toolList: { id: ActiveTool | 'beat_maker'; label: string; icon: React.ReactElement }[] = [
     { id: 'projects', label: 'Projects', icon: <ProjectsIcon /> },
     { id: 'generator', label: 'Song Generator', icon: <GeneratorIcon /> },
     { id: 'artist_generator', label: 'Artist Generator', icon: <ArtistGeneratorIcon /> },
@@ -50,6 +51,7 @@ const toolList: { id: ActiveTool; label: string; icon: React.ReactElement }[] = 
     { id: 'co_producer', label: 'Co-Producer', icon: <CoProducerIcon /> },
     { id: 'style_creator', label: 'Style Creator', icon: <StyleCreatorIcon /> },
     { id: 'remixer', label: 'Song Remixer', icon: <RemixerIcon /> },
+    { id: 'beat_maker', label: 'Beat Maker', icon: <BeatMakerIcon /> },
     { id: 'sound_pack_generator', label: 'Sound Pack Generator', icon: <SoundPackIcon /> },
     { id: 'social_media_kit', label: 'Social Media Kit', icon: <SocialMediaIcon /> },
     { id: 'merch_mockup_studio', label: 'Merch Mockup Studio', icon: <MerchIcon /> },
@@ -79,9 +81,9 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowReci
     const moreMenuRef = useRef<HTMLDivElement>(null);
 
     const { coreTools, otherTools } = useMemo(() => {
-        const core = toolList.filter(tool => coreToolIds.includes(tool.id));
+        const core = toolList.filter(tool => coreToolIds.includes(tool.id as ActiveTool));
         const other = toolList
-            .filter(tool => !coreToolIds.includes(tool.id))
+            .filter(tool => !coreToolIds.includes(tool.id as ActiveTool))
             .sort((a, b) => a.label.localeCompare(b.label));
         return { coreTools: core, otherTools: other };
     }, []);
@@ -107,9 +109,9 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowReci
         setIsMoreMenuOpen(false);
     };
 
-    const TabButton: React.FC<{ tool: { id: ActiveTool; label: string; icon: React.ReactElement }, isActive: boolean }> = ({ tool, isActive }) => (
+    const TabButton: React.FC<{ tool: { id: ActiveTool | 'beat_maker'; label: string; icon: React.ReactElement }, isActive: boolean }> = ({ tool, isActive }) => (
         <button
-            onClick={() => handleSelect(tool.id)}
+            onClick={() => handleSelect(tool.id as ActiveTool)}
             className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors duration-200 ${
                 isActive
                     ? 'bg-purple-600 text-white'
@@ -159,7 +161,7 @@ export const Tabs: React.FC<TabsProps> = ({ activeTool, onSelectTool, onShowReci
                                 {otherTools.map(tool => (
                                     <button
                                         key={tool.id}
-                                        onClick={() => handleSelect(tool.id)}
+                                        onClick={() => handleSelect(tool.id as ActiveTool)}
                                         className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors text-sm rounded-md ${activeTool === tool.id ? 'bg-purple-600/50 text-white font-semibold' : 'text-gray-300 hover:bg-gray-700'}`}
                                     >
                                         <span className={activeTool === tool.id ? 'text-white' : 'text-gray-400'}>{tool.icon}</span>

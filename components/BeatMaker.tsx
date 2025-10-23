@@ -4,6 +4,7 @@ import { ErrorMessage } from './ErrorMessage';
 import { generateNewBeatPattern, generateBeatFromAudio } from '../services/geminiService';
 import { audioBufferToMp3, audioBufferToWav } from '../services/audioService';
 import { genres, moods, tempos, beatStyles, beatRegions, instrumentOptions } from '../constants/music';
+import { CopyButton } from './CopyButton';
 
 
 declare var Tone: any;
@@ -60,7 +61,7 @@ export const BeatMaker: React.FC = () => {
 
     // Beat & Playback state
     const [beatPattern, setBeatPattern] = useState<ParsedBeat | null>(null);
-    const [bpm, setBpm] = useState(90);
+    const [bpm, setBpm] = useState(120);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentStep, setCurrentStep] = useState(-1);
     
@@ -72,13 +73,21 @@ export const BeatMaker: React.FC = () => {
 
     // Effect to auto-generate prompt from filters
     useEffect(() => {
-        const instrumentText = Object.entries(instrumentSelections)
-            .map(([instrument, style]) => `${style} ${instrument.toLowerCase()}`)
-            .join(', ');
+        const tags = [
+            mood.toLowerCase(),
+            style.toLowerCase(),
+            genre.toLowerCase(),
+            'beat',
+            // FIX: Use Object.keys to ensure type safety with instrumentSelections map.
+            ...Object.keys(instrumentSelections).map(key => instrumentSelections[key].toLowerCase()),
+        ];
+        if (typeof region === 'string' && region !== 'None') {
+            tags.push(region.toLowerCase() + ' influence');
+        }
+        tags.push(tempo.split(' ')[0].toLowerCase() + ' tempo');
 
-        const regionText = region !== 'None' ? ` with a ${region.toLowerCase()} influence` : '';
-        const tempoText = tempo.toLowerCase();
-        setEditablePrompt(`A ${mood.toLowerCase()}, ${style.toLowerCase()} ${genre.toLowerCase()} beat featuring the sound of ${instrumentText}${regionText}, in a ${tempoText}.`);
+        const newPrompt = tags.join(', ');
+        setEditablePrompt(newPrompt);
     }, [genre, mood, tempo, style, region, instrumentSelections]);
     
     // Cleanup Tone.js on unmount
@@ -404,8 +413,9 @@ export const BeatMaker: React.FC = () => {
         <div className="space-y-6">
             <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-transparent bg-clip-text">Your Generated Beat</h2>
             
-            <div className="p-4 bg-gray-900/50 rounded-lg border border-teal-500/50">
-                <p className="text-sm text-gray-400 mb-1 font-semibold">Source:</p>
+            <div className="p-4 bg-gray-900/50 rounded-lg border border-teal-500/50 relative">
+                <CopyButton textToCopy={fullPromptUsed} className="absolute top-2 right-2" />
+                <p className="text-sm text-gray-400 mb-1 font-semibold">Source Prompt:</p>
                 <p className="text-gray-300 italic">"{fullPromptUsed}"</p>
             </div>
             
