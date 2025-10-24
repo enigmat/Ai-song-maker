@@ -12,6 +12,7 @@ const allToolNames = [
     'Artist Generator',
     'Artist Profile Manager',
     'Audio Converter',
+    'Beat Enhancer',
     'Bridge Builder',
     'Chord Progression Generator',
     'Co-Producer',
@@ -36,7 +37,7 @@ const allToolNames = [
 ];
 
 // Add the overview guide to the top, and sort the rest alphabetically.
-const toolNames = ['MustBMusic Overview', ...allToolNames.sort()];
+const toolNames = ['MustBMusic Overview', 'MustBMusic Song Maker Overview', ...allToolNames.sort()];
 
 const overviewGuidePrintContent = `
 # MustBMusic Overview
@@ -60,7 +61,7 @@ export const FeatureGuides: React.FC = () => {
             setStatus('loading');
             setError(null);
             try {
-                const guidesToFetch = toolNames.filter(name => name !== 'MustBMusic Overview');
+                const guidesToFetch = toolNames.filter(name => name !== 'MustBMusic Overview' && name !== 'MustBMusic Song Maker Overview');
                 const guidePromises = guidesToFetch.map(name => generateFeatureGuide(name));
                 const guideContents = await Promise.all(guidePromises);
 
@@ -153,17 +154,19 @@ export const FeatureGuides: React.FC = () => {
                         </button>
                     </div>
                     <div className="prose prose-invert max-w-none bg-gray-900/50 p-6 rounded-lg border border-gray-700">
-                        {selectedGuide === 'MustBMusic Overview' ? (
+                        {selectedGuide === 'MustBMusic Song Maker Overview' ? (
                              <>
-                                <h1>Welcome to MustBMusic Song Maker</h1>
+                                <h1>MustBMusic Song Maker Overview</h1>
                                 <h2>Video Tutorial</h2>
                                 <iframe
-                                    src="https://gamma.app/embed/nvh1kahmg9pcxdm"
+                                    src="https://gamma.app/embed/sc3b9ejfpjarlm9"
                                     style={{ width: '700px', maxWidth: '100%', height: '450px', border: 'none', borderRadius: '8px' }}
                                     allow="fullscreen"
-                                    title="Welcome to MustBMusic Song Maker">
+                                    title="MustBMusic Song Maker Overview">
                                 </iframe>
                             </>
+                        ) : selectedGuide === 'MustBMusic Overview' ? (
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{overviewGuidePrintContent}</ReactMarkdown>
                         ) : selectedGuide === 'Song Generator' ? (
                             <>
                                 <h1>Song Generator</h1>

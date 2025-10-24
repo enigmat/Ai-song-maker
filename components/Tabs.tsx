@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 
-type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'artist_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video' | 'co_producer';
+type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'artist_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video' | 'co_producer' | 'beat_enhancer';
 
 interface TabsProps {
   activeTool: ActiveTool;
@@ -39,6 +39,8 @@ const MerchIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5
 const PitchIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /></svg> );
 const LyricsToVideoIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 4a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V4zm2 2v2h2V6H4zm4 0v2h2V6H8zm4 0v2h2V6h-2zM4 10v2h2v-2H4zm4 0v2h2v-2H8zm4 0v2h2v-2h-2z" /><path d="M6 14v2h2v-2H6zm4 0v2h2v-2h-2z" /></svg> );
 const CoProducerIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5z" /><path d="M11 13a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" /></svg> );
+const EnhancerIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg> );
+
 
 const toolList: { id: ActiveTool; label: string; icon: React.ReactElement }[] = [
     { id: 'projects', label: 'Projects', icon: <ProjectsIcon /> },
@@ -63,6 +65,7 @@ const toolList: { id: ActiveTool; label: string; icon: React.ReactElement }[] = 
     { id: 'vocal_synthesizer', label: 'Vocal Synthesizer', icon: <VocalSynthIcon /> },
     { id: 'chords', label: 'Chord Progressions', icon: <ChordsIcon /> },
     { id: 'bridge_builder', label: 'Bridge Builder', icon: <BridgeBuilderIcon /> },
+    { id: 'beat_enhancer', label: 'Beat Enhancer', icon: <EnhancerIcon /> },
     { id: 'profiles', label: 'Artist Profiles', icon: <ProfileIcon /> },
     { id: 'mastering', label: 'AI Mastering', icon: <MasteringIcon /> },
     { id: 'mixdown_analyzer', label: 'Mixdown Analyzer', icon: <MixdownAnalyzerIcon /> },
