@@ -66,7 +66,7 @@ const App: React.FC = () => {
     <PlaybackContext.Provider value={playbackControls}>
         <OnboardingWizard isOpen={isRecipeMode} onClose={() => setIsRecipeMode(false)} />
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white font-sans p-4 sm:p-6 md:p-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <Header />
           <Tabs activeTool={activeTool} onSelectTool={setActiveTool} onShowRecipe={() => setIsRecipeMode(true)} />
           <main className="mt-8">
