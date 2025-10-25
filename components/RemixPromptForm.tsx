@@ -5,7 +5,7 @@ import { singerGenders, artistTypes, moods, genres } from '../constants/music';
 
 interface RemixPromptFormProps {
     onGenerate: (
-        details: { originalTitle: string; originalArtist: string; audioFile: File | null; },
+        details: { originalTitle: string; originalArtist: string; audioFile: File | null; lyrics: string | null; },
         targetGenre: string,
         singerGender: SingerGender,
         artistType: ArtistType,
@@ -47,14 +47,16 @@ const SelectInput: React.FC<{ label: string; value: string; onChange: (e: React.
 
 export const RemixPromptForm: React.FC<RemixPromptFormProps> = ({ onGenerate, isLoading }) => {
     // Core state
+    const [inputMode, setInputMode] = useState<'title' | 'lyrics' | 'audio'>('title');
     const [originalTitle, setOriginalTitle] = useState('');
     const [originalArtist, setOriginalArtist] = useState('');
-    const [targetGenre, setTargetGenre] = useState(genres[0]);
+    const [lyrics, setLyrics] = useState('');
     const [audioFile, setAudioFile] = useState<File | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     
     // Style parameters state
+    const [targetGenre, setTargetGenre] = useState(genres[0]);
     const [singerGender, setSingerGender] = useState<SingerGender>('any');
     const [artistType, setArtistType] = useState<ArtistType>('any');
     const [mood, setMood] = useState(moods[0]);
@@ -68,8 +70,6 @@ export const RemixPromptForm: React.FC<RemixPromptFormProps> = ({ onGenerate, is
                 return;
             }
             setAudioFile(file);
-            setOriginalTitle(''); // clear text inputs
-            setOriginalArtist('');
         }
     }, []);
 
@@ -91,13 +91,20 @@ export const RemixPromptForm: React.FC<RemixPromptFormProps> = ({ onGenerate, is
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const details = { originalTitle, originalArtist, audioFile };
-        if (audioFile) {
-            onGenerate(details, targetGenre, singerGender, artistType, mood, remixPrompt);
-        } else {
-            if (!originalTitle.trim() || !originalArtist.trim()) return;
-            onGenerate(details, targetGenre, singerGender, artistType, mood, remixPrompt);
+        const details = {
+            originalTitle: inputMode === 'title' ? originalTitle : '',
+            originalArtist: inputMode === 'title' ? originalArtist : '',
+            audioFile: inputMode === 'audio' ? audioFile : null,
+            lyrics: inputMode === 'lyrics' ? lyrics : null,
+        };
+
+        if ((inputMode === 'title' && (!details.originalTitle.trim() || !details.originalArtist.trim())) ||
+            (inputMode === 'lyrics' && !details.lyrics?.trim()) ||
+            (inputMode === 'audio' && !details.audioFile)) {
+            return;
         }
+
+        onGenerate(details, targetGenre, singerGender, artistType, mood, remixPrompt);
     };
 
 
@@ -107,79 +114,87 @@ export const RemixPromptForm: React.FC<RemixPromptFormProps> = ({ onGenerate, is
                 Song Remixer
             </h1>
             <p className="text-center text-gray-400 mt-2 mb-6">
-                Reimagine a classic song for a new generation.
+                Reimagine a song for a new generation.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <div>
-                        <label htmlFor="originalTitle" className="block text-sm font-medium text-gray-400 mb-2">Original Song Title</label>
-                        <input
-                            id="originalTitle"
-                            type="text"
-                            value={originalTitle}
-                            onChange={(e) => setOriginalTitle(e.target.value)}
-                            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all disabled:bg-gray-800/50 disabled:text-gray-500 disabled:cursor-not-allowed"
-                            placeholder="e.g., 'Bohemian Rhapsody'"
-                            disabled={isLoading || !!audioFile}
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="originalArtist" className="block text-sm font-medium text-gray-400 mb-2">Original Artist</label>
-                        <input
-                            id="originalArtist"
-                            type="text"
-                            value={originalArtist}
-                            onChange={(e) => setOriginalArtist(e.target.value)}
-                            className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all disabled:bg-gray-800/50 disabled:text-gray-500 disabled:cursor-not-allowed"
-                            placeholder="e.g., 'Queen'"
-                            disabled={isLoading || !!audioFile}
-                        />
-                    </div>
-                </div>
-
-                <div className="text-center my-4 text-gray-500 font-semibold flex items-center">
-                    <div className="flex-grow border-t border-gray-700"></div>
-                    <span className="flex-shrink mx-4">OR</span>
-                    <div className="flex-grow border-t border-gray-700"></div>
-                </div>
-                
                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Upload Audio to Remix</label>
-                    <div
-                        onDragEnter={handleDragIn} onDragLeave={handleDragOut} onDragOver={handleDrag} onDrop={handleDrop}
-                        onClick={() => fileInputRef.current?.click()}
-                        className={`p-6 border-2 border-dashed rounded-lg cursor-pointer transition-colors duration-300 ${isDragging ? 'border-purple-500 bg-gray-700/50' : 'border-gray-600 hover:border-gray-500'}`}
-                    >
-                        <input ref={fileInputRef} id="audio-file-input" type="file" accept=".mp3,.wav,audio/mpeg,audio/wav" onChange={handleFileChange} className="hidden" disabled={isLoading} />
-                        <div className="text-center">
-                            <UploadIcon />
-                            {audioFile ? (
-                                <div className="mt-2 text-center">
-                                    <p className="text-lg font-semibold text-teal-400 truncate" title={audioFile.name}>{audioFile.name}</p>
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setAudioFile(null);
-                                            if (fileInputRef.current) {
-                                                fileInputRef.current.value = "";
-                                            }
-                                        }}
-                                        className="mt-1 text-xs px-2 py-1 text-gray-400 hover:text-white hover:bg-red-600/50 rounded-md transition-colors"
-                                    >
-                                        Clear
-                                    </button>
-                                </div>
-
-                            ) : (
-                                <>
-                                    <p className="mt-2 text-lg font-semibold text-gray-300">Drag & Drop MP3/WAV file</p>
-                                    <p className="mt-1 text-sm text-gray-400">or click to select a file</p>
-                                </>
-                            )}
+                    <label className="block text-sm font-medium text-gray-400 mb-2">Choose Remix Source</label>
+                    <div className="flex justify-center mb-4">
+                        <div className="flex items-center gap-1 rounded-lg bg-gray-900 p-1 border border-gray-700">
+                            <button type="button" onClick={() => setInputMode('title')} aria-pressed={inputMode === 'title'} className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${inputMode === 'title' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Title/Artist</button>
+                            <button type="button" onClick={() => setInputMode('lyrics')} aria-pressed={inputMode === 'lyrics'} className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${inputMode === 'lyrics' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Paste Lyrics</button>
+                            <button type="button" onClick={() => setInputMode('audio')} aria-pressed={inputMode === 'audio'} className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${inputMode === 'audio' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Upload Audio</button>
                         </div>
                     </div>
+                    {inputMode === 'title' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in-fast">
+                             <div>
+                                <label htmlFor="originalTitle" className="block text-sm font-medium text-gray-400 mb-2">Original Song Title</label>
+                                <input
+                                    id="originalTitle"
+                                    type="text"
+                                    value={originalTitle}
+                                    onChange={(e) => setOriginalTitle(e.target.value)}
+                                    className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                                    placeholder="e.g., 'Bohemian Rhapsody'"
+                                    disabled={isLoading}
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="originalArtist" className="block text-sm font-medium text-gray-400 mb-2">Original Artist</label>
+                                <input
+                                    id="originalArtist"
+                                    type="text"
+                                    value={originalArtist}
+                                    onChange={(e) => setOriginalArtist(e.target.value)}
+                                    className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                                    placeholder="e.g., 'Queen'"
+                                    disabled={isLoading}
+                                />
+                            </div>
+                        </div>
+                    )}
+                    {inputMode === 'lyrics' && (
+                        <div className="animate-fade-in-fast">
+                             <label htmlFor="lyrics" className="block text-sm font-medium text-gray-400 mb-2">Original Lyrics</label>
+                             <textarea
+                                id="lyrics"
+                                rows={8}
+                                value={lyrics}
+                                onChange={e => setLyrics(e.target.value)}
+                                className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all resize-y"
+                                placeholder="Paste lyrics here to create a new version..."
+                                disabled={isLoading}
+                             />
+                        </div>
+                    )}
+                    {inputMode === 'audio' && (
+                        <div className="animate-fade-in-fast">
+                            <label className="block text-sm font-medium text-gray-400 mb-2">Upload Audio to Remix</label>
+                            <div
+                                onDragEnter={handleDragIn} onDragLeave={handleDragOut} onDragOver={handleDrag} onDrop={handleDrop}
+                                onClick={() => fileInputRef.current?.click()}
+                                className={`p-6 border-2 border-dashed rounded-lg cursor-pointer transition-colors duration-300 ${isDragging ? 'border-purple-500 bg-gray-700/50' : 'border-gray-600 hover:border-gray-500'}`}
+                            >
+                                <input ref={fileInputRef} id="audio-file-input" type="file" accept=".mp3,.wav,audio/mpeg,audio/wav" onChange={handleFileChange} className="hidden" disabled={isLoading} />
+                                <div className="text-center">
+                                    <UploadIcon />
+                                    {audioFile ? (
+                                        <div className="mt-2 text-center">
+                                            <p className="text-lg font-semibold text-teal-400 truncate" title={audioFile.name}>{audioFile.name}</p>
+                                            <button type="button" onClick={(e) => { e.stopPropagation(); setAudioFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }} className="mt-1 text-xs px-2 py-1 text-gray-400 hover:text-white hover:bg-red-600/50 rounded-md transition-colors">Clear</button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <p className="mt-2 text-lg font-semibold text-gray-300">Drag & Drop MP3/WAV file</p>
+                                            <p className="mt-1 text-sm text-gray-400">or click to select a file</p>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
@@ -228,7 +243,7 @@ export const RemixPromptForm: React.FC<RemixPromptFormProps> = ({ onGenerate, is
                 
                 <button
                     type="submit"
-                    disabled={isLoading || (!originalTitle.trim() || !originalArtist.trim()) && !audioFile}
+                    disabled={isLoading || (inputMode === 'title' && (!originalTitle.trim() || !originalArtist.trim())) || (inputMode === 'lyrics' && !lyrics.trim()) || (inputMode === 'audio' && !audioFile)}
                     className="mt-6 w-full flex items-center justify-center gap-3 text-xl font-semibold px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                     {isLoading ? (
@@ -244,6 +259,7 @@ export const RemixPromptForm: React.FC<RemixPromptFormProps> = ({ onGenerate, is
                     )}
                 </button>
             </form>
+            <style>{`.animate-fade-in-fast { animation: fade-in-fast 0.2s ease-out; } @keyframes fade-in-fast { from { opacity: 0; } to { opacity: 1; } }`}</style>
         </div>
     );
 };

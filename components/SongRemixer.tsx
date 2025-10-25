@@ -136,7 +136,7 @@ export const SongRemixer: React.FC = () => {
 
 
     const handleGenerate = async (
-        details: { originalTitle: string; originalArtist: string; audioFile: File | null },
+        details: { originalTitle: string; originalArtist: string; audioFile: File | null; lyrics: string | null; },
         targetGenre: string,
         singerGender: SingerGender,
         artistType: ArtistType,
@@ -149,7 +149,18 @@ export const SongRemixer: React.FC = () => {
         try {
             let data: SongData;
 
-            if (details.audioFile) {
+            if (details.lyrics) {
+                setGenerationStatusText('Generating remix from your lyrics...');
+                data = await generateRemixedSongFromLyrics(
+                    details.lyrics,
+                    'pasted_lyrics.txt',
+                    targetGenre,
+                    singerGender,
+                    artistType,
+                    mood,
+                    remixPrompt,
+                );
+            } else if (details.audioFile) {
                 setGenerationStatusText('Transcribing audio...');
                 const transcribedLyrics = await transcribeAudio(details.audioFile);
                 if (!transcribedLyrics || transcribedLyrics.trim().length === 0) {
