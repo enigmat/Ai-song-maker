@@ -200,9 +200,9 @@ export const AlbumGenerator: React.FC = () => {
 
             setStatus('display');
 
-        } catch (err) {
+        } catch (err: any) {
             console.error('Album generation failed:', err);
-            setError('An error occurred during album generation. Please try again.');
+            setError(err.message || 'An error occurred during album generation. Please try again.');
             setStatus('error');
         }
     };
@@ -218,6 +218,11 @@ export const AlbumGenerator: React.FC = () => {
         setCoverArtPreview(null);
         setNameSuggestions([]);
         setUploadedTracks([]);
+    };
+    
+    const handleRetry = () => {
+        setStatus('prompt');
+        setError(null);
     };
 
     return (
@@ -240,9 +245,9 @@ export const AlbumGenerator: React.FC = () => {
                 Album Experience Generator
             </h2>
 
-            {error && <ErrorMessage message={error} />}
+            {error && <ErrorMessage message={error} onRetry={handleRetry} />}
             
-            {status === 'prompt' && (
+            {(status === 'prompt' || status === 'error') && (
                 <div className="space-y-6 mt-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
