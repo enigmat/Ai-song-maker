@@ -1,14 +1,15 @@
-import React, { useState, ChangeEvent, useEffect, useRef } from 'react';
+import React, { useState, ChangeEvent, useEffect, useRef, useCallback } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { ErrorMessage } from './ErrorMessage';
 import { CopyButton } from './CopyButton';
-import { generateArtistPersona, generateImage } from '../services/geminiService';
+import { generateArtistPersona, generateImage, generatePersonaFromAudio } from '../services/geminiService';
 import type { ArtistPersona, ArtistStyleProfile, StoredArtistProfile, SingerGender, ArtistType } from '../types';
 import { genres, singerGenders, artistTypes } from '../constants/music';
 
 const PROFILES_STORAGE_KEY = 'mustbmusic_artist_profiles';
 
 type Status = 'prompt' | 'generating' | 'success' | 'error';
+type Mode = 'prompt' | 'audio';
 
 interface ResultData {
     persona: ArtistPersona;
@@ -35,9 +36,16 @@ const DownloadIcon = () => (
     </svg>
 );
 
+const UploadIcon = () => (
+    <svg className="w-12 h-12 mx-auto text-gray-500" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8a4 4 0 01-4 4H28m0-28v8a4 4 0 004 4h8m-8-8l8 8m-8-8l-8 8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
 
 export const ArtistGenerator: React.FC = () => {
     const [status, setStatus] = useState<Status>('prompt');
+    const [mode, setMode] = useState<Mode>('prompt');
     const [error, setError] = useState<string | null>(null);
     const [prompt, setPrompt] = useState('');
     const [result, setResult] = useState<ResultData | null>(null);
@@ -51,11 +59,17 @@ export const ArtistGenerator: React.FC = () => {
     const [artistType, setArtistType] = useState<ArtistType>('any');
     const [artistName, setArtistName] = useState('');
     const [trackName, setTrackName] = useState('');
+    const [audioFile, setAudioFile] = useState<File | null>(null);
     
     // New state for download menu
     const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
     const downloadMenuRef = useRef<HTMLDivElement>(null);
     const [profileDataUrl, setProfileDataUrl] = useState<string | null>(null);
+    
+    // State for audio upload
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isDragging, setIsDragging] = useState(false);
+
 
     // Effect for closing menu on outside click
     useEffect(() => {
@@ -103,18 +117,31 @@ export const ArtistGenerator: React.FC = () => {
     }, [isDownloadMenuOpen, result, profileDataUrl]);
 
     const handleGenerate = async () => {
-        if (!prompt.trim()) {
-            setError("Please enter an idea for your artist.");
-            return;
-        }
         setStatus('generating');
         setError(null);
         setResult(null);
 
         try {
-            setGenerationMessage("Crafting artist persona...");
-            const persona = await generateArtistPersona(prompt, genre, singerGender, artistType, artistName, trackName);
+            let persona: ArtistPersona;
 
+            if (mode === 'audio') {
+                if (!audioFile) {
+                    setError("Please upload an audio file.");
+                    setStatus('error');
+                    return;
+                }
+                setGenerationMessage("Analyzing audio and crafting persona...");
+                persona = await generatePersonaFromAudio(audioFile);
+            } else { // mode === 'prompt'
+                if (!prompt.trim()) {
+                    setError("Please enter an idea for your artist.");
+                    setStatus('error');
+                    return;
+                }
+                setGenerationMessage("Crafting artist persona...");
+                persona = await generateArtistPersona(prompt, genre, singerGender, artistType, artistName, trackName);
+            }
+            
             setGenerationMessage("Generating artist portrait...");
             const artistImageUrl = await generateImage(persona.artistImagePrompt);
             
@@ -168,7 +195,6 @@ export const ArtistGenerator: React.FC = () => {
         }
     };
 
-
     const handleReset = () => {
         setStatus('prompt');
         setError(null);
@@ -176,7 +202,41 @@ export const ArtistGenerator: React.FC = () => {
         setPrompt('');
         setArtistName('');
         setTrackName('');
+        setAudioFile(null);
     };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = e.target.files?.[0];
+        if (selectedFile) {
+            if (!selectedFile.type.startsWith('audio/')) {
+                setError('Please upload a valid audio file (MP3, WAV, etc.).');
+                setAudioFile(null);
+                return;
+            }
+            setError(null);
+            setAudioFile(selectedFile);
+        }
+    };
+
+    const handleDrag = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); }, []);
+    const handleDragIn = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (e.dataTransfer.items?.length > 0) setIsDragging(true); }, []);
+    const handleDragOut = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }, []);
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        const droppedFile = e.dataTransfer.files?.[0];
+        if (droppedFile) {
+            if (!droppedFile.type.startsWith('audio/')) {
+                setError('Please upload a valid audio file (MP3, WAV, etc.).');
+                setAudioFile(null);
+                return;
+            }
+            setError(null);
+            setAudioFile(droppedFile);
+            e.dataTransfer.clearData();
+        }
+    }, []);
 
     const renderSuccess = () => result && (
         <div className="space-y-6 animate-fade-in">
@@ -273,62 +333,94 @@ export const ArtistGenerator: React.FC = () => {
             default:
                 return (
                     <div className="space-y-6 max-w-2xl mx-auto">
-                        <div>
-                            <label htmlFor="artist-prompt" className="block text-sm font-medium text-gray-400 mb-2">Describe Your Artist*</label>
-                            <textarea
-                                id="artist-prompt"
-                                rows={4}
-                                value={prompt}
-                                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
-                                className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-all resize-y"
-                                placeholder="e.g., 'A mysterious solo synthwave artist from the future, trapped in the 80s.'"
-                            />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                             <div>
-                                <label htmlFor="genre" className="block text-sm font-medium text-gray-400 mb-2">Genre*</label>
-                                <select id="genre" value={genre} onChange={(e) => setGenre(e.target.value)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500">
-                                    {genres.map(g => <option key={g} value={g}>{g}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="singerGender" className="block text-sm font-medium text-gray-400 mb-2">Singer*</label>
-                                <select id="singerGender" value={singerGender} onChange={(e) => setSingerGender(e.target.value as SingerGender)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500">
-                                    {singerGenders.map(sg => <option key={sg.value} value={sg.value}>{sg.label}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="artistType" className="block text-sm font-medium text-gray-400 mb-2">Artist Type*</label>
-                                <select id="artistType" value={artistType} onChange={(e) => setArtistType(e.target.value as ArtistType)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500">
-                                    {artistTypes.map(at => <option key={at.value} value={at.value}>{at.label}</option>)}
-                                </select>
+                         <div className="flex justify-center">
+                            <div className="flex items-center gap-1 rounded-lg bg-gray-900 p-1 border border-gray-700">
+                                <button onClick={() => setMode('prompt')} aria-pressed={mode === 'prompt'} className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${mode === 'prompt' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>From Prompt</button>
+                                <button onClick={() => setMode('audio')} aria-pressed={mode === 'audio'} className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${mode === 'audio' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>From Audio Track</button>
                             </div>
                         </div>
-                        <div>
-                            <label htmlFor="track-name" className="block text-sm font-medium text-gray-400 mb-2">Track Name / Song Idea (Optional)</label>
-                            <input
-                                id="track-name"
-                                type="text"
-                                value={trackName}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => setTrackName(e.target.value)}
-                                className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500"
-                                placeholder="e.g., 'Cybernetic Love'"
-                            />
-                        </div>
-                         <div>
-                            <label htmlFor="artist-name" className="block text-sm font-medium text-gray-400 mb-2">Artist Name (Optional)</label>
-                            <input
-                                id="artist-name"
-                                type="text"
-                                value={artistName}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => setArtistName(e.target.value)}
-                                className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500"
-                                placeholder="Leave blank for AI to generate a name"
-                            />
-                        </div>
+
+                        {mode === 'prompt' ? (
+                            <div className="space-y-6 animate-fade-in">
+                                <div>
+                                    <label htmlFor="artist-prompt" className="block text-sm font-medium text-gray-400 mb-2">Describe Your Artist*</label>
+                                    <textarea
+                                        id="artist-prompt"
+                                        rows={4}
+                                        value={prompt}
+                                        onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
+                                        className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 transition-all resize-y"
+                                        placeholder="e.g., 'A mysterious solo synthwave artist from the future, trapped in the 80s.'"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label htmlFor="genre" className="block text-sm font-medium text-gray-400 mb-2">Genre*</label>
+                                        <select id="genre" value={genre} onChange={(e) => setGenre(e.target.value)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                            {genres.map(g => <option key={g} value={g}>{g}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label htmlFor="singerGender" className="block text-sm font-medium text-gray-400 mb-2">Singer*</label>
+                                        <select id="singerGender" value={singerGender} onChange={(e) => setSingerGender(e.target.value as SingerGender)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                            {singerGenders.map(sg => <option key={sg.value} value={sg.value}>{sg.label}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label htmlFor="artistType" className="block text-sm font-medium text-gray-400 mb-2">Artist Type*</label>
+                                        <select id="artistType" value={artistType} onChange={(e) => setArtistType(e.target.value as ArtistType)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                            {artistTypes.map(at => <option key={at.value} value={at.value}>{at.label}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label htmlFor="track-name" className="block text-sm font-medium text-gray-400 mb-2">Track Name / Song Idea (Optional)</label>
+                                    <input
+                                        id="track-name"
+                                        type="text"
+                                        value={trackName}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setTrackName(e.target.value)}
+                                        className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                        placeholder="e.g., 'Cybernetic Love'"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="artist-name" className="block text-sm font-medium text-gray-400 mb-2">Artist Name (Optional)</label>
+                                    <input
+                                        id="artist-name"
+                                        type="text"
+                                        value={artistName}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setArtistName(e.target.value)}
+                                        className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                        placeholder="Leave blank for AI to generate a name"
+                                    />
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="animate-fade-in">
+                                <div
+                                    onDragEnter={handleDragIn} onDragLeave={handleDragOut} onDragOver={handleDrag} onDrop={handleDrop}
+                                    className={`p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors duration-300 ${isDragging ? 'border-purple-500 bg-gray-700/50' : 'border-gray-600 hover:border-gray-500'}`}
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <input ref={fileInputRef} id="artist-audio-input" type="file" accept=".mp3,.wav,audio/mpeg,audio/wav" onChange={handleFileChange} className="hidden" />
+                                    <div className="text-center">
+                                        <UploadIcon />
+                                        {audioFile ? (
+                                            <p className="mt-2 text-lg font-semibold text-teal-400 truncate" title={audioFile.name}>{audioFile.name}</p>
+                                        ) : (
+                                            <>
+                                            <p className="mt-2 text-lg font-semibold text-gray-300">Drop your track here (MP3/WAV)</p>
+                                            <p className="mt-1 text-sm text-gray-400">or click to select a file</p>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <button
                             onClick={handleGenerate}
-                            disabled={status === 'generating' || !prompt.trim()}
+                            disabled={status === 'generating' || (mode === 'prompt' && !prompt.trim()) || (mode === 'audio' && !audioFile)}
                             className="w-full flex items-center justify-center gap-3 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 disabled:opacity-50"
                         >
                             Generate Artist
@@ -344,7 +436,7 @@ export const ArtistGenerator: React.FC = () => {
                 Artist Persona Generator
             </h2>
             <p className="text-center text-gray-400 mt-2 mb-6">
-                Create a complete, fully-realized artist persona from a single idea.
+                Create a complete, fully-realized artist persona from a single idea or audio track.
             </p>
             {error && <ErrorMessage message={error} />}
             {saveSuccess && (

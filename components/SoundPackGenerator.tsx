@@ -16,15 +16,17 @@ const SoundPackIcon = () => (
 
 export const SoundPackGenerator: React.FC = () => {
     type Status = 'prompt' | 'generating' | 'success' | 'error';
-    type InputMode = 'text' | 'audio';
+    type InputMode = 'text' | 'audio' | 'inspiration';
 
     const [status, setStatus] = useState<Status>('prompt');
-    const [inputMode, setInputMode] = useState<InputMode>('text');
+    const [inputMode, setInputMode] = useState<InputMode>('inspiration');
     const [error, setError] = useState<string | null>(null);
     const [generationMessage, setGenerationMessage] = useState('');
 
     // Form state
     const [lyrics, setLyrics] = useState('');
+    const [inspiration, setInspiration] = useState('');
+    const [songName, setSongName] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
     const [artistType, setArtistType] = useState<ArtistPackType>('Male Vocalist');
@@ -72,14 +74,18 @@ export const SoundPackGenerator: React.FC = () => {
             setError('Please upload an audio file.');
             return;
         }
+        if (inputMode === 'inspiration' && !inspiration.trim()) {
+            setError('Please provide a theme or inspiration.');
+            return;
+        }
 
         setStatus('generating');
         setError(null);
         setReportData([]);
 
         try {
-            let originalLyrics = lyrics;
-            let inspirationSource = "Pasted Lyrics";
+            let originalLyrics: string | null = lyrics;
+            let inspirationSource: string;
 
             if (inputMode === 'audio' && file) {
                 setGenerationMessage('Transcribing audio file...');
@@ -88,10 +94,15 @@ export const SoundPackGenerator: React.FC = () => {
                 if (!originalLyrics.trim()) {
                     throw new Error("Could not detect any lyrics in the audio file.");
                 }
+            } else if (inputMode === 'text') {
+                inspirationSource = "Pasted Lyrics";
+            } else { // inspiration mode
+                originalLyrics = null;
+                inspirationSource = inspiration;
             }
             
-            setGenerationMessage(`Generating ${selectedGenres.length} sound pack variations...`);
-            const results = await generateSoundPack(originalLyrics, inspirationSource, selectedGenres, artistType);
+            setGenerationMessage(`Generating ${selectedGenres.length} song idea variations...`);
+            const results = await generateSoundPack(originalLyrics, inspirationSource, selectedGenres, artistType, songName);
             setReportData(results);
             setStatus('success');
 
@@ -127,7 +138,7 @@ export const SoundPackGenerator: React.FC = () => {
     const handleDownloadReport = () => {
         if (reportData.length === 0) return;
 
-        let reportText = `SOUND PACK REPORT\n`;
+        let reportText = `SONG IDEA PACK REPORT\n`;
         reportText += `Generated on: ${new Date().toLocaleString()}\n`;
         reportText += `========================================\n\n`;
 
@@ -142,13 +153,15 @@ export const SoundPackGenerator: React.FC = () => {
         });
 
         const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
-        saveAs(blob, 'sound_pack_report.txt');
+        saveAs(blob, 'song_idea_pack_report.txt');
     };
 
     const handleReset = useCallback(() => {
         setStatus('prompt');
         setError(null);
         setLyrics('');
+        setInspiration('');
+        setSongName('');
         setFile(null);
         setSelectedGenres([]);
         setArtistType('Male Vocalist');
@@ -161,17 +174,25 @@ export const SoundPackGenerator: React.FC = () => {
         <div className="space-y-6 max-w-3xl mx-auto">
             <div className="flex justify-center">
                 <div className="flex items-center gap-1 rounded-lg bg-gray-900 p-1 border border-gray-700">
+                    <button onClick={() => setInputMode('inspiration')} aria-pressed={inputMode === 'inspiration'} className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${inputMode === 'inspiration' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>From Theme</button>
                     <button onClick={() => setInputMode('text')} aria-pressed={inputMode === 'text'} className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${inputMode === 'text' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Paste Lyrics</button>
                     <button onClick={() => setInputMode('audio')} aria-pressed={inputMode === 'audio'} className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${inputMode === 'audio' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Upload Audio</button>
                 </div>
             </div>
 
-            {inputMode === 'text' ? (
+            {inputMode === 'inspiration' && (
+                <div>
+                    <label htmlFor="inspiration-input" className="block text-sm font-medium text-gray-400 mb-2">Inspiration / Theme</label>
+                    <textarea id="inspiration-input" rows={8} value={inspiration} onChange={e => setInspiration(e.target.value)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="e.g., A song about a lonely robot watching the stars." />
+                </div>
+            )}
+            {inputMode === 'text' && (
                 <div>
                     <label htmlFor="lyrics-input" className="block text-sm font-medium text-gray-400 mb-2">Original Lyrics</label>
                     <textarea id="lyrics-input" rows={8} value={lyrics} onChange={e => setLyrics(e.target.value)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="Paste the lyrics you want to reimagine..." />
                 </div>
-            ) : (
+            )}
+            {inputMode === 'audio' && (
                  <div>
                     <label className="block text-sm font-medium text-gray-400 mb-2">Audio File (MP3 or WAV)</label>
                     <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-600 border-dashed rounded-md">
@@ -189,6 +210,12 @@ export const SoundPackGenerator: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            <div>
+                <label htmlFor="song-name-input" className="block text-sm font-medium text-gray-400 mb-2">Song Name (Optional)</label>
+                <input id="song-name-input" type="text" value={songName} onChange={e => setSongName(e.target.value)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="e.g., 'Stardust Memories'" />
+                <p className="text-xs text-gray-500 mt-1">Providing a song name can help guide the AI's creative direction.</p>
+            </div>
 
             <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">Target Genres (Select up to 5)</label>
@@ -219,7 +246,7 @@ export const SoundPackGenerator: React.FC = () => {
             </div>
 
             <button onClick={handleGenerate} className="w-full flex items-center justify-center gap-3 text-lg font-semibold px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 disabled:opacity-50">
-                <SoundPackIcon /> Generate Sound Pack
+                <SoundPackIcon /> Generate Song Idea Pack
             </button>
         </div>
     );
@@ -227,7 +254,7 @@ export const SoundPackGenerator: React.FC = () => {
     const renderSuccess = () => (
         <div className="space-y-6 animate-fade-in">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <h3 className="text-2xl font-bold text-gray-200">Your Sound Pack is Ready!</h3>
+                <h3 className="text-2xl font-bold text-gray-200">Your Song Idea Pack is Ready!</h3>
                 <div className="flex gap-2">
                     <button onClick={handleDownloadReport} className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-md shadow-md hover:bg-teal-500 transition-colors">Download Report</button>
                     <button onClick={handleReset} className="px-4 py-2 border-2 border-gray-600 text-gray-300 rounded-md hover:bg-gray-700">Start Over</button>
@@ -274,10 +301,10 @@ export const SoundPackGenerator: React.FC = () => {
     return (
         <div className="p-4 sm:p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg border border-gray-700">
             <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-transparent bg-clip-text">
-                Sound Pack Generator
+                Song Idea Pack Generator
             </h2>
             <p className="text-center text-gray-400 mt-2 mb-6">
-                Instantly reimagine your song in multiple genres.
+                Instantly reimagine your song idea in multiple genres.
             </p>
 
             {error && <ErrorMessage message={error} onRetry={() => { setError(null); setStatus('prompt'); }} />}

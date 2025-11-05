@@ -20,6 +20,7 @@ import type {
     SocialMediaKit,
     ArtistPersona,
     SoundPackItem,
+    SamplePack,
     BridgeOption,
     MixdownReport,
     MerchKit,
@@ -47,6 +48,7 @@ export type {
     SocialMediaKit,
     ArtistPersona,
     SoundPackItem,
+    SamplePack,
     BridgeOption,
     MixdownReport,
     MerchKit,
@@ -271,7 +273,6 @@ export const generateArtistPersona = async (
 
     return artistPersona;
 };
-
 
 export const generateSongFromPrompt = async (
     prompt: string,
@@ -875,8 +876,13 @@ export const generateYouTubeAssets = async (
     songTitle: string,
     artistName: string,
     genre: string,
-    vibe: string
+    vibe: string,
+    channelProfileText?: string
 ): Promise<YouTubeAssets> => {
+    const profileInstruction = channelProfileText
+      ? `\n\n**Channel Profile Information:**\nYou MUST include the following information at the end of the generated 'description' under a heading like "--- CONNECT WITH ${artistName} ---" or "--- FOLLOW ME ---". Format it nicely with labels. Do not include labels for empty fields.\n\n${channelProfileText}`
+      : 'Do not include any social media links or contact information unless it is explicitly provided in the details.';
+
     const prompt = `Act as a YouTube music promotion expert. Your task is to generate a complete set of YouTube assets for a new song release.
 
     **Song Details:**
@@ -887,9 +893,10 @@ export const generateYouTubeAssets = async (
 
     **Instructions:**
     1.  Create a catchy and SEO-optimized \`title\` for the YouTube video.
-    2.  Write a comprehensive \`description\`. Include placeholders like "[Link to Spotify]", "[Artist Website]", etc. and use hashtags.
+    2.  Write a comprehensive \`description\`. Include placeholders like "[Link to Spotify]", "[Artist Website]", etc. AND use hashtags.
     3.  Generate a list of 15-20 effective \`tags\`.
     4.  Come up with 3 diverse and visually striking \`thumbnailPrompts\` for an AI image generator. These should describe scenes, not just abstract concepts. For example: "Epic fantasy landscape painting of a lone knight watching a glowing city under a purple nebula, digital art, high detail, cinematic lighting."
+    ${profileInstruction}
 
     Provide the output in the specified JSON format.`;
 
@@ -1362,10 +1369,11 @@ const soundPackItemSchema = {
 export type ArtistPackType = 'Male Vocalist' | 'Female Vocalist' | 'Band' | 'Duet';
 
 export const generateSoundPack = async (
-    originalLyrics: string,
+    originalLyrics: string | null,
     originalInspiration: string,
     targetGenres: string[],
-    artistPackType: ArtistPackType
+    artistPackType: ArtistPackType,
+    songName?: string
 ): Promise<SoundPackItem[]> => {
     let singerGender: SingerGender;
     let artistType: ArtistType;
@@ -1391,12 +1399,25 @@ export const generateSoundPack = async (
     }
 
     const generationPromises = targetGenres.map(genre => {
-        const prompt = `Act as an expert music producer and A&R. Your task is to completely reimagine a song in a new genre.
+        const inspirationBlock = originalLyrics
+            ? `**Original Inspiration (${originalInspiration}):**\n---\n${originalLyrics}\n---`
+            : `**Creative Inspiration:** "${originalInspiration}"`;
+
+        const songNameBlock = songName ? `\n**Inspirational Song Name:** "${songName}"` : '';
+
+        const taskDescription = originalLyrics
+            ? "Your task is to completely reimagine a song in a new genre based on the original lyrics."
+            : "Your task is to create a complete song idea from scratch in a new genre based on the creative inspiration.";
         
-        **Original Inspiration (${originalInspiration}):**
-        ---
-        ${originalLyrics}
-        ---
+        const lyricsInstruction = originalLyrics
+            ? "Write completely `newLyrics` inspired by the original's themes but fitting the new concept and genre."
+            : "Write completely `newLyrics` based on the creative inspiration, fitting the new concept and genre.";
+        
+        const promptInstruction = "If an inspirational song name is provided, let it heavily influence the new creative concept and lyrics.";
+
+        const prompt = `Act as an expert music producer and A&R. ${taskDescription} ${promptInstruction}
+        
+        ${inspirationBlock}${songNameBlock}
 
         **Target Genre:** ${genre}
         **Singer Gender:** ${singerGender}
@@ -1404,7 +1425,7 @@ export const generateSoundPack = async (
 
         **Instructions:**
         1.  Create a new, one-sentence \`creativeConcept\` for this reimagining.
-        2.  Write completely \`newLyrics\` inspired by the original's themes but fitting the new concept and genre.
+        2.  ${lyricsInstruction}
         3.  Write a detailed \`styleGuide\` for a production in the target genre.
         4.  Generate a detailed, artistic \`albumCoverPrompt\` for an image generation model to create a compelling album cover for this specific genre remix. The prompt should reflect the new creative concept, genre, and mood.
         5.  The output must be a single JSON object matching the schema.`;
@@ -1423,7 +1444,7 @@ export const generateSoundPack = async (
 
     const soundPackItems = responses.map((response, index) => {
         const jsonText = response.text.trim();
-        const promptLength = (targetGenres[index] || '').length + originalLyrics.length + 200; // Rough estimate
+        const promptLength = (targetGenres[index] || '').length + (originalLyrics || originalInspiration).length + 200; // Rough estimate
         trackUsage({
             model: 'gemini-2.5-flash',
             type: 'text',
@@ -1436,6 +1457,77 @@ export const generateSoundPack = async (
 
     return soundPackItems;
 };
+
+const sampleSchema = {
+    type: Type.OBJECT,
+    properties: {
+        name: { type: Type.STRING, description: "A descriptive name for the sample, e.g., 'Gated Reverb Snare'." },
+        type: { type: Type.STRING, description: "The type of sample: 'kick', 'snare', 'hihat', 'clap', 'perc', 'bass', 'synth', or 'pad'." },
+        description: { type: Type.STRING, description: "A one-sentence description of the sound's character." },
+        soundPrompt: { type: Type.STRING, description: "An onomatopoeia or short phrase for a text-to-speech model to generate the sound, e.g., 'boom', 'tsh', 'a short 'pah' sound'." },
+    },
+    required: ["name", "type", "description", "soundPrompt"]
+};
+
+const loopSchema = {
+    type: Type.OBJECT,
+    properties: {
+        name: { type: Type.STRING, description: "A descriptive name for the loop, e.g., 'Driving Arp Bassline'." },
+        type: { type: Type.STRING, description: "The type of loop: 'bass', 'melody', or 'chords'." },
+        description: { type: Type.STRING, description: "A one-sentence description of the loop's character." },
+        notes: { type: Type.ARRAY, items: melodyNoteSchema },
+        bpm: { type: Type.INTEGER, description: "The tempo of the loop in beats per minute." }
+    },
+    required: ["name", "type", "description", "notes", "bpm"]
+};
+
+const samplePackSchema = {
+    type: Type.OBJECT,
+    properties: {
+        packName: { type: Type.STRING, description: "A creative name for the sample pack, e.g., 'Retro Synthwave Essentials'." },
+        samples: { type: Type.ARRAY, description: "A list of 8-12 one-shot drum and melodic samples.", items: sampleSchema },
+        loops: { type: Type.ARRAY, description: "A list of 3-5 musical loops (basslines, melodies, etc.).", items: loopSchema }
+    },
+    required: ["packName", "samples", "loops"]
+};
+
+export const generateSamplePack = async (styleProfile: ArtistStyleProfile): Promise<SamplePack> => {
+    const prompt = `Act as an expert sound designer and music producer. Based on the provided musical style profile, generate a complete "Sample Pack" with one-shot samples and musical loops.
+
+    **Musical Style Profile:**
+    - Genre: ${styleProfile.genre}
+    - Mood: ${styleProfile.mood}
+    - Tempo: ${styleProfile.tempo}
+    - Rhythm: ${styleProfile.rhythm}
+    - Harmony: ${styleProfile.harmony}
+    - Instrumentation: ${styleProfile.instrumentation}
+
+    **Instructions:**
+    1.  Create a fitting \`packName\`.
+    2.  Generate 8-12 diverse one-shot \`samples\`, including drums (kick, snare, hihat) and some melodic elements (bass pluck, synth stab). For each, provide a \`soundPrompt\` that an AI voice could use to generate a percussive or short sound.
+    3.  Generate 3-5 musical \`loops\` that are 2 to 4 measures long. For each loop, provide a sequence of notes in the specified format and an appropriate BPM based on the tempo. The musical key and complexity should match the provided harmony style.
+    4.  The entire output must be a single, valid JSON object that strictly adheres to the provided schema.`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: samplePackSchema,
+        },
+    });
+    
+    const jsonText = response.text.trim();
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'text',
+        inputChars: prompt.length,
+        outputChars: jsonText.length,
+        description: `Generate Sample Pack: ${styleProfile.genre}`
+    });
+    return JSON.parse(jsonText) as SamplePack;
+};
+
 
 export const getLyricalSuggestions = async (lyrics: string, prompt: string): Promise<string> => {
     const fullPrompt = `Act as an expert lyrical co-writer and poet. A user is working on the lyrics below and needs help. Your task is to provide creative suggestions based on their request.
@@ -1907,6 +1999,53 @@ export const analyzeAudioForProfile = async (audioBlob: Blob): Promise<ArtistSty
     const jsonText = response.text.trim();
     trackUsage({ model: 'gemini-2.5-flash', type: 'multimodal', inputChars: textPart.text.length, outputChars: jsonText.length, description: `Analyze Audio for Profile: ${(audioBlob as any).name || 'audio blob'}` });
     return JSON.parse(jsonText) as ArtistStyleProfile & { artistNameSuggestion: string };
+};
+
+export const generatePersonaFromAudio = async (audioBlob: Blob): Promise<ArtistPersona> => {
+    const base64Audio = await blobToBase64(audioBlob);
+
+    const audioPart = {
+        inlineData: {
+            mimeType: audioBlob.type,
+            data: base64Audio,
+        },
+    };
+
+    const textPart = {
+        text: `You are an expert A&R executive and creative director. Analyze the provided audio file, which contains a complete song. Based on your analysis of its genre, mood, instrumentation, vocal style (if any), and overall vibe, generate a complete and cohesive artist persona that could have created this track.
+
+        **Instructions:**
+        1.  Create a creative and plausible \`artistName\`.
+        2.  Write a detailed \`artistBio\` of at least two paragraphs that fits the sound and feel of the music.
+        3.  Generate a highly specific \`artistImagePrompt\` to create a portrait of this artist.
+        4.  Create a broader \`visualIdentityPrompt\` for the artist's brand.
+        5.  Fill out a complete \`styleProfile\` that musically defines the artist's sound, based entirely on your analysis of the audio.
+        6.  Provide a list of 3-5 plausible \`signatureSongConcepts\` (song titles or brief ideas) that this artist would create, fitting their style and bio.
+
+        The entire output must be a single JSON object that strictly adheres to the provided schema.`
+    };
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: { parts: [audioPart, textPart] },
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: artistPersonaSchema,
+        },
+    });
+
+    const jsonText = response.text.trim();
+    const artistPersona = JSON.parse(jsonText) as ArtistPersona;
+
+    trackUsage({
+        model: 'gemini-2.5-flash',
+        type: 'multimodal',
+        inputChars: textPart.text.length,
+        outputChars: jsonText.length,
+        description: `Generate Artist Persona from Audio: ${(audioBlob as any).name || 'audio blob'}`
+    });
+
+    return artistPersona;
 };
 
 const vocalAnalysisSchema = {

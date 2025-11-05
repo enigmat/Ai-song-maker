@@ -64,6 +64,18 @@ export interface YouTubeAssets {
     thumbnailPrompts: string[];
 }
 
+export interface ChannelProfile {
+    name: string;
+    website?: string;
+    instagram?: string;
+    twitter?: string;
+    tiktok?: string;
+    facebook?: string;
+    patreon?: string;
+    contactEmail?: string;
+    otherInfo?: string;
+}
+
 export interface RemixResult {
     profile: ArtistStyleProfile;
     newCreativePrompt: string;
@@ -230,6 +242,25 @@ export interface SoundPackItem {
     styleGuide: string;
     creativeConcept: string;
     albumCoverPrompt: string;
+}
+
+export interface Sample {
+    name: string;
+    type: 'kick' | 'snare' | 'hihat' | 'clap' | 'perc' | 'bass' | 'synth' | 'pad';
+    description: string;
+    soundPrompt: string;
+}
+export interface Loop {
+    name: string;
+    type: 'bass' | 'melody' | 'chords';
+    description: string;
+    notes: MelodyNote[];
+    bpm: number;
+}
+export interface SamplePack {
+    packName: string;
+    samples: Sample[];
+    loops: Loop[];
 }
 
 export interface BridgeOption {

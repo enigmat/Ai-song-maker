@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 
-type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'artist_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video' | 'co_producer';
+type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'sample_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'artist_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video' | 'co_producer';
 
 interface TabsProps {
   activeTool: ActiveTool;
@@ -32,6 +32,7 @@ const DashboardIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className=
 const PressReleaseIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6a1 1 0 010 2H5a1 1 0 010-2zm0 4h6a1 1 0 010 2H5a1 1 0 010-2zm0 4h6a1 1 0 010 2H5a1 1 0 010-2z" clipRule="evenodd" /><path d="M15 7h1a1 1 0 011 1v5.5a1.5 1.5 0 01-3 0V8a1 1 0 011-1z" /></svg> );
 const SocialMediaIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" /></svg> );
 const SoundPackIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg> );
+const SamplePackIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M3 8a2 2 0 012-2h1.586a1 1 0 01.707.293l1.414 1.414a1 1 0 001.414 0l1.414-1.414A1 1 0 0113.414 6H15a2 2 0 012 2v4a2 2 0 01-2 2h-1.586a1 1 0 01-.707-.293l-1.414-1.414a1 1 0 00-1.414 0l-1.414 1.414A1 1 0 016.586 14H5a2 2 0 01-2-2V8z" /></svg> );
 const BridgeBuilderIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v3a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H4zm0 6a2 2 0 00-2 2v3a2 2 0 002 2h12a2 2 0 002-2v-3a2 2 0 00-2-2H4z" clipRule="evenodd" /></svg>);
 const MixdownAnalyzerIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M15.5 14.5a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0z" /><path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /><path d="M12 11.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" /><path d="M5 5.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" /><path d="M10 5a.5.5 0 01.5.5v1.5a.5.5 0 01-1 0V5.5A.5.5 0 0110 5z" /></svg>);
 const ArtistAnalyzerIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M3 8c0-1.1.9-2 2-2h3.5a.5.5 0 010 1H5a1 1 0 00-1 1v2a1 1 0 001 1h1.5a.5.5 0 010 1H5a2 2 0 01-2-2V8z" /><path d="M8 6h2v8H8V6z" /><path d="M12.5 6a.5.5 0 01.5-.5H15a2 2 0 012 2v.5a.5.5 0 01-1 0V8a1 1 0 00-1-1h-2a.5.5 0 01-.5-.5z" /><path fillRule="evenodd" d="M13.442 13.024a5.5 5.5 0 10-1.418 1.418l2.663 2.663a1 1 0 001.414-1.414l-2.66-2.66zM11.5 15.5a4.5 4.5 0 110-9 4.5 4.5 0 010 9z" clipRule="evenodd" /></svg> );
@@ -51,7 +52,8 @@ const toolList: { id: ActiveTool; label: string; icon: React.ReactElement }[] = 
     { id: 'co_producer', label: 'Co-Producer', icon: <CoProducerIcon /> },
     { id: 'style_creator', label: 'Style Creator', icon: <StyleCreatorIcon /> },
     { id: 'remixer', label: 'Song Remixer', icon: <RemixerIcon /> },
-    { id: 'sound_pack_generator', label: 'Sound Pack Generator', icon: <SoundPackIcon /> },
+    { id: 'sound_pack_generator', label: 'Song Idea Pack', icon: <SoundPackIcon /> },
+    { id: 'sample_pack_generator', label: 'Sample Pack Generator', icon: <SamplePackIcon /> },
     { id: 'social_media_kit', label: 'Social Media Kit', icon: <SocialMediaIcon /> },
     { id: 'merch_mockup_studio', label: 'Merch Mockup Studio', icon: <MerchIcon /> },
     { id: 'youtube_tools', label: 'YouTube Tools', icon: <YouTubeIcon /> },

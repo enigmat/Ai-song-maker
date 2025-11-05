@@ -25,6 +25,7 @@ import { YouTubeTools } from './components/YouTubeTools';
 import { PressReleaseGenerator } from './components/PressReleaseGenerator';
 import { SocialMediaKitGenerator } from './components/SocialMediaKitGenerator';
 import { SoundPackGenerator } from './components/SoundPackGenerator';
+import { SamplePackGenerator } from './components/SamplePackGenerator';
 import { BridgeBuilder } from './components/BridgeBuilder';
 import { MixdownAnalyzer } from './components/MixdownAnalyzer';
 import { ArtistAnalyzer } from './components/ArtistAnalyzer';
@@ -36,7 +37,7 @@ import { CoProducer } from './components/CoProducer';
 import { OnboardingWizard } from './components/OnboardingWizard';
 
 
-type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'artist_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video' | 'co_producer';
+type ActiveTool = 'generator' | 'artist_generator' | 'album_generator' | 'remixer' | 'vocaltools' | 'vocal_synthesizer' | 'chords' | 'jamsession' | 'converter' | 'release_toolkit' | 'comparator' | 'profiles' | 'dashboard' | 'projects' | 'assistant' | 'style_creator' | 'mastering' | 'song_explorer' | 'youtube_tools' | 'press_release' | 'social_media_kit' | 'sound_pack_generator' | 'sample_pack_generator' | 'bridge_builder' | 'mixdown_analyzer' | 'artist_analyzer' | 'merch_mockup_studio' | 'playlist_pitch_assistant' | 'lyrics_to_video' | 'co_producer';
 
 const App: React.FC = () => {
   const [activeTool, setActiveTool] = useState<ActiveTool>('generator');
@@ -107,6 +108,7 @@ const App: React.FC = () => {
             )}
             {activeTool === 'remixer' && <SongRemixer />}
             {activeTool === 'sound_pack_generator' && <SoundPackGenerator />}
+            {activeTool === 'sample_pack_generator' && <SamplePackGenerator />}
             {activeTool === 'youtube_tools' && <YouTubeTools />}
             {activeTool === 'lyrics_to_video' && <LyricsToVideo />}
             {activeTool === 'release_toolkit' && <ReleaseToolkit />}
