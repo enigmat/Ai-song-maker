@@ -73,6 +73,8 @@ export interface ChannelProfile {
     facebook?: string;
     patreon?: string;
     contactEmail?: string;
+    linkedin?: string;
+    youtube?: string;
     otherInfo?: string;
 }
 

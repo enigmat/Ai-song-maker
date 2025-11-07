@@ -8,6 +8,18 @@ import { CopyButton } from './CopyButton';
 
 const PROFILES_STORAGE_KEY = 'mustbmusic_yt_profiles';
 
+const socialLogos: Record<string, string> = {
+    website: '🌐',
+    youtube: '▶️',
+    instagram: '📸',
+    twitter: '🐦',
+    tiktok: '🎵',
+    facebook: '👍',
+    patreon: '🅿️',
+    linkedin: '💼',
+    contactEmail: '📧',
+};
+
 const ThumbnailGenerator: React.FC<{ prompt: string }> = ({ prompt }) => {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -75,7 +87,7 @@ const ProfileManagerModal: React.FC<{
         handleCancelEdit();
     };
     
-    const fields: (keyof Omit<ChannelProfile, 'name'>)[] = [ 'website', 'instagram', 'twitter', 'tiktok', 'facebook', 'patreon', 'contactEmail' ];
+    const fields: (keyof Omit<ChannelProfile, 'name' | 'otherInfo'>)[] = [ 'website', 'youtube', 'instagram', 'twitter', 'tiktok', 'facebook', 'patreon', 'linkedin', 'contactEmail' ];
 
     return (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 animate-fade-in-fast">
@@ -195,8 +207,9 @@ export const YouTubeTools: React.FC = () => {
             channelProfileText = Object.entries(profile)
                 .filter(([key, value]) => key !== 'name' && value && String(value).trim())
                 .map(([key, value]) => {
+                    const logo = socialLogos[key] || '';
                     const label = key.replace(/([A-Z])/g, ' $1').replace(' ', '').replace(/^./, str => str.toUpperCase());
-                    return `${label}: ${value}`;
+                    return `${logo} ${label}: ${value}`.trim();
                 })
                 .join('\n');
         }
